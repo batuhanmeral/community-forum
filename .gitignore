@@ -1,0 +1,84 @@
+# ─────────────────────────────────────────────
+# Python / Django (backend/)
+# ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Sanal ortamlar
+venv/
+.venv/
+env/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Migration'ları commit ediyoruz; geçici migration script'leri için:
+# backend/**/migrations/*_temp_*.py
+
+# ─────────────────────────────────────────────
+# Node / React (frontend/)
+# ─────────────────────────────────────────────
+node_modules/
+.pnp/
+.pnp.js
+dist/
+dist-ssr/
+*.local
+
+# Build cache
+.vite/
+.cache/
+.parcel-cache/
+.turbo/
+
+# Coverage
+coverage/
+
+# ─────────────────────────────────────────────
+# Environment / Secrets
+# ─────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# ─────────────────────────────────────────────
+# Editör / IDE
+# ─────────────────────────────────────────────
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────────────
+# OS / Misc
+# ─────────────────────────────────────────────
+*.orig
+*.rej
+
+.docs/
