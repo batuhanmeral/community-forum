@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
 from apps.communities.models import Community, Flair
@@ -32,6 +33,10 @@ class Post(models.Model):
     is_nsfw = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    votes = GenericRelation(
+        "votes.Vote", content_type_field="content_type", object_id_field="object_id"
+    )
 
     class Meta:
         ordering = ("-is_pinned", "-created_at")

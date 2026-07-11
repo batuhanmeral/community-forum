@@ -4,12 +4,15 @@ from django.contrib import admin
 from django.urls import include, path
 
 from apps.communities.urls import urlpatterns as communities_urlpatterns
+from apps.posts.urls import community_posts_urlpatterns, posts_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
 
 api_v1_patterns = [
     path("auth/", include((auth_urlpatterns, "auth"))),
     path("users/", include((users_urlpatterns, "users"))),
     path("", include((communities_urlpatterns, "communities"))),
+    path("", include((community_posts_urlpatterns, "community-posts"))),
+    path("", include((posts_urlpatterns, "posts"))),
 ]
 
 urlpatterns = [
