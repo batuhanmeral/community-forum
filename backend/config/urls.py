@@ -3,6 +3,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.comments.urls import comments_urlpatterns, post_comments_urlpatterns
 from apps.communities.urls import urlpatterns as communities_urlpatterns
 from apps.posts.urls import community_posts_urlpatterns, posts_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
@@ -13,6 +14,8 @@ api_v1_patterns = [
     path("", include((communities_urlpatterns, "communities"))),
     path("", include((community_posts_urlpatterns, "community-posts"))),
     path("", include((posts_urlpatterns, "posts"))),
+    path("", include((post_comments_urlpatterns, "post-comments"))),
+    path("", include((comments_urlpatterns, "comments"))),
 ]
 
 urlpatterns = [

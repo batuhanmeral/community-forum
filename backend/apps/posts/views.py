@@ -50,7 +50,10 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
         return ctx
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user, community=self.get_community())
+        post = serializer.save(author=self.request.user, community=self.get_community())
+        from apps.comments.views import notify_mentions
+
+        notify_mentions(post.body, actor=self.request.user, target=post)
 
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
