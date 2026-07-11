@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
 from apps.posts.models import Post
@@ -19,6 +20,10 @@ class Comment(models.Model):
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    votes = GenericRelation(
+        "votes.Vote", content_type_field="content_type", object_id_field="object_id"
+    )
 
     class Meta:
         ordering = ("created_at",)

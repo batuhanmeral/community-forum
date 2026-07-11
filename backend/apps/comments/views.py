@@ -1,3 +1,5 @@
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions
 
@@ -8,6 +10,10 @@ from apps.posts.permissions import IsAuthorOrReadOnly
 from .lib.mentions import resolve_mentions
 from .models import Comment
 from .serializers import CommentSerializer
+
+
+def _annotate_score(qs):
+    return qs.annotate(score=Coalesce(Sum("votes__value"), 0))
 
 
 def notify_mentions(body: str, *, actor, target) -> None:
@@ -26,7 +32,7 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return (
-            Comment.objects.filter(post=self.get_post())
+            _annotate_score(Comment.objects.filter(post=self.get_post()))
             .select_related("author")
             .order_by("created_at")
         )
@@ -49,7 +55,7 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
-    queryset = Comment.objects.select_related("author")
+    queryset = _annotate_score(Comment.objects.select_related("author"))
 
     def perform_update(self, serializer):
         comment = serializer.save()

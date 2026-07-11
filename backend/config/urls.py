@@ -7,6 +7,7 @@ from apps.comments.urls import comments_urlpatterns, post_comments_urlpatterns
 from apps.communities.urls import urlpatterns as communities_urlpatterns
 from apps.posts.urls import community_posts_urlpatterns, posts_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
+from apps.votes.urls import urlpatterns as votes_urlpatterns
 
 api_v1_patterns = [
     path("auth/", include((auth_urlpatterns, "auth"))),
@@ -16,6 +17,7 @@ api_v1_patterns = [
     path("", include((posts_urlpatterns, "posts"))),
     path("", include((post_comments_urlpatterns, "post-comments"))),
     path("", include((comments_urlpatterns, "comments"))),
+    path("", include((votes_urlpatterns, "votes"))),
 ]
 
 urlpatterns = [
