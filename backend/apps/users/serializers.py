@@ -7,6 +7,9 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     total_karma = serializers.SerializerMethodField()
+    followers_count = serializers.SerializerMethodField()
+    following_count = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -19,12 +22,34 @@ class UserSerializer(serializers.ModelSerializer):
             "post_karma",
             "comment_karma",
             "total_karma",
+            "followers_count",
+            "following_count",
+            "is_following",
             "date_joined",
         )
         read_only_fields = ("id", "post_karma", "comment_karma", "date_joined")
 
     def get_total_karma(self, obj: User) -> int:
         return obj.post_karma + obj.comment_karma
+
+    def get_followers_count(self, obj: User) -> int:
+        return obj.followers.count()
+
+    def get_following_count(self, obj: User) -> int:
+        return obj.following.count()
+
+    def get_is_following(self, obj: User) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        if request.user.id == obj.id:
+            return False
+        return obj.followers.filter(follower=request.user).exists()
+
+
+class PublicUserSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        fields = tuple(f for f in UserSerializer.Meta.fields if f != "email")
 
 
 class RegisterSerializer(serializers.ModelSerializer):
