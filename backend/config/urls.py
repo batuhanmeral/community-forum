@@ -6,6 +6,7 @@ from django.urls import include, path
 from apps.comments.urls import comments_urlpatterns, post_comments_urlpatterns
 from apps.communities.urls import urlpatterns as communities_urlpatterns
 from apps.messaging.urls import urlpatterns as messaging_urlpatterns
+from apps.notifications.urls import urlpatterns as notifications_urlpatterns
 from apps.posts.urls import (
     community_posts_urlpatterns,
     feed_urlpatterns,
@@ -25,6 +26,7 @@ api_v1_patterns = [
     path("", include((comments_urlpatterns, "comments"))),
     path("", include((votes_urlpatterns, "votes"))),
     path("", include((messaging_urlpatterns, "messaging"))),
+    path("", include((notifications_urlpatterns, "notifications"))),
 ]
 
 urlpatterns = [

@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.communities.models import Community
+from apps.notifications.services import notify
 
 from .models import Post
 from .permissions import IsAuthorOrReadOnly, IsCommunityMember, is_moderator
@@ -89,6 +90,7 @@ class PostStickyView(APIView):
             )
         post.is_pinned = True
         post.save(update_fields=["is_pinned"])
+        notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_pinned": True}, status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
@@ -97,4 +99,5 @@ class PostStickyView(APIView):
         if post.is_pinned:
             post.is_pinned = False
             post.save(update_fields=["is_pinned"])
+            notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_pinned": False}, status=status.HTTP_200_OK)

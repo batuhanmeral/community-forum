@@ -44,11 +44,17 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         comment = serializer.save(author=self.request.user, post=self.get_post())
-        # In-thread reply notification
+        community = comment.post.community
         if comment.parent_id and comment.parent.author_id != self.request.user.id:
             notify(comment.parent.author, actor=self.request.user, verb="reply", target=comment)
         elif not comment.parent_id and comment.post.author_id != self.request.user.id:
-            notify(comment.post.author, actor=self.request.user, verb="comment", target=comment)
+            notify(
+                comment.post.author,
+                actor=self.request.user,
+                verb="comment",
+                target=comment,
+                community=community,
+            )
         notify_mentions(comment.body, actor=self.request.user, target=comment)
 
 
