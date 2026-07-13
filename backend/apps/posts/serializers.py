@@ -1,6 +1,8 @@
 from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 
+from apps.polls.serializers import PollCreateInputSerializer, PollSerializer
+
 from .models import Post
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -12,6 +14,9 @@ class PostSerializer(serializers.ModelSerializer):
     community = serializers.SlugRelatedField(read_only=True, slug_field="slug")
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
+    poll = serializers.SerializerMethodField()
+    # Write-only payload used when kind='poll'
+    poll_input = PollCreateInputSerializer(write_only=True, required=False)
 
     class Meta:
         model = Post
@@ -29,9 +34,17 @@ class PostSerializer(serializers.ModelSerializer):
             "is_pinned",
             "score",
             "user_vote",
+            "poll",
+            "poll_input",
             "created_at",
         )
         read_only_fields = ("id", "author", "community", "is_pinned", "created_at")
+
+    def get_poll(self, obj: Post):
+        poll = getattr(obj, "poll", None)
+        if poll is None:
+            return None
+        return PollSerializer(poll, context=self.context).data
 
     def get_user_vote(self, obj: Post) -> int | None:
         request = self.context.get("request")
@@ -76,4 +89,27 @@ class PostSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"url": "URL is required for link posts."})
         if kind == Post.Kind.IMAGE and not (attrs.get("image") or (self.instance and self.instance.image)):
             raise serializers.ValidationError({"image": "Image is required for image posts."})
+        if kind == Post.Kind.POLL and not self.instance and not attrs.get("poll_input"):
+            raise serializers.ValidationError(
+                {"poll_input": "Poll posts require 'poll_input' with options and closes_at."}
+            )
         return attrs
+
+    def create(self, validated_data):
+        from apps.polls.models import Poll, PollOption
+
+        poll_payload = validated_data.pop("poll_input", None)
+        post = super().create(validated_data)
+        if post.kind == Post.Kind.POLL and poll_payload:
+            poll = Poll.objects.create(post=post, closes_at=poll_payload["closes_at"])
+            PollOption.objects.bulk_create(
+                [
+                    PollOption(poll=poll, text=text, order=idx)
+                    for idx, text in enumerate(poll_payload["options"])
+                ]
+            )
+        return post
+
+    def update(self, instance, validated_data):
+        validated_data.pop("poll_input", None)
+        return super().update(instance, validated_data)
