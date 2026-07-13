@@ -1,0 +1,45 @@
+from django.contrib.auth import get_user_model
+from django.contrib.postgres.search import SearchQuery, SearchRank
+from rest_framework import permissions
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import ListAPIView
+
+from apps.communities.models import Community
+from apps.communities.serializers import CommunitySerializer
+from apps.posts.models import Post
+from apps.posts.serializers import PostSerializer
+from apps.users.serializers import PublicUserSerializer
+
+User = get_user_model()
+
+_TYPE_CONFIG = {
+    "post": (Post, PostSerializer),
+    "community": (Community, CommunitySerializer),
+    "user": (User, PublicUserSerializer),
+}
+
+
+class SearchView(ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def _config(self):
+        type_param = self.request.query_params.get("type", "post").lower()
+        if type_param not in _TYPE_CONFIG:
+            raise ValidationError({"type": f"must be one of {sorted(_TYPE_CONFIG)}."})
+        return type_param, _TYPE_CONFIG[type_param]
+
+    def get_serializer_class(self):
+        _, (_, serializer_cls) = self._config()
+        return serializer_cls
+
+    def get_queryset(self):
+        query = self.request.query_params.get("q", "").strip()
+        if not query:
+            raise ValidationError({"q": "Search query 'q' is required."})
+        _, (model, _) = self._config()
+        sq = SearchQuery(query, search_type="websearch")
+        return (
+            model.objects.filter(search_vector=sq)
+            .annotate(rank=SearchRank("search_vector", sq))
+            .order_by("-rank")
+        )

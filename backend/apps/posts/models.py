@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 
 from apps.communities.models import Community, Flair
@@ -33,6 +35,7 @@ class Post(models.Model):
     is_nsfw = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    search_vector = SearchVectorField(null=True, blank=True)
 
     votes = GenericRelation(
         "votes.Vote", content_type_field="content_type", object_id_field="object_id"
@@ -45,6 +48,7 @@ class Post(models.Model):
         ordering = ("-is_pinned", "-created_at")
         indexes = [
             models.Index(fields=("community", "-created_at")),
+            GinIndex(fields=("search_vector",), name="posts_post_search_gin"),
         ]
 
     def __str__(self) -> str:

@@ -10,6 +10,7 @@ from apps.moderation.urls import urlpatterns as moderation_urlpatterns
 from apps.notifications.urls import urlpatterns as notifications_urlpatterns
 from apps.polls.urls import urlpatterns as polls_urlpatterns
 from apps.saves.urls import urlpatterns as saves_urlpatterns
+from apps.search.urls import urlpatterns as search_urlpatterns
 from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.posts.urls import (
     community_posts_urlpatterns,
@@ -35,6 +36,7 @@ api_v1_patterns = [
     path("", include((polls_urlpatterns, "polls"))),
     path("", include((saves_urlpatterns, "saves"))),
     path("", include((moderation_urlpatterns, "moderation"))),
+    path("", include((search_urlpatterns, "search"))),
 ]
 
 urlpatterns = [
