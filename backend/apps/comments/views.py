@@ -5,7 +5,7 @@ from rest_framework import generics, permissions
 
 from apps.notifications.services import notify
 from apps.posts.models import Post
-from apps.posts.permissions import IsAuthorOrReadOnly
+from apps.posts.permissions import IsAuthorOrModeratorForDelete
 
 from .lib.mentions import resolve_mentions
 from .models import Comment
@@ -60,9 +60,14 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
     queryset = _annotate_score(Comment.objects.select_related("author"))
 
     def perform_update(self, serializer):
         comment = serializer.save()
         notify_mentions(comment.body, actor=self.request.user, target=comment)
+
+    def perform_destroy(self, instance):
+        if instance.author_id != self.request.user.id:
+            notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
+        instance.delete()

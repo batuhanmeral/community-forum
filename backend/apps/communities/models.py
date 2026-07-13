@@ -44,6 +44,7 @@ class Membership(models.Model):
     notify_level = models.CharField(
         max_length=16, choices=NotifyLevel.choices, default=NotifyLevel.ALL
     )
+    is_banned = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

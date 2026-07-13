@@ -11,7 +11,11 @@ from apps.communities.models import Community
 from apps.notifications.services import notify
 
 from .models import Post
-from .permissions import IsAuthorOrReadOnly, IsCommunityMember, is_moderator
+from .permissions import (
+    IsAuthorOrModeratorForDelete,
+    IsCommunityMember,
+    is_moderator,
+)
 from .serializers import PostSerializer
 
 MAX_STICKY_PER_COMMUNITY = 2
@@ -59,7 +63,12 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
+
+    def perform_destroy(self, instance):
+        if instance.author_id != self.request.user.id:
+            notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
+        instance.delete()
     parser_classes = (JSONParser, FormParser, MultiPartParser)
     queryset = _annotate_score(Post.objects.all())
 
