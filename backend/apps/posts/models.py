@@ -37,6 +37,9 @@ class Post(models.Model):
     votes = GenericRelation(
         "votes.Vote", content_type_field="content_type", object_id_field="object_id"
     )
+    saves = GenericRelation(
+        "saves.SavedItem", content_type_field="content_type", object_id_field="object_id"
+    )
 
     class Meta:
         ordering = ("-is_pinned", "-created_at")

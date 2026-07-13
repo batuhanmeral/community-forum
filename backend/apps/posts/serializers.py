@@ -14,6 +14,7 @@ class PostSerializer(serializers.ModelSerializer):
     community = serializers.SlugRelatedField(read_only=True, slug_field="slug")
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
+    is_saved = serializers.SerializerMethodField()
     poll = serializers.SerializerMethodField()
     # Write-only payload used when kind='poll'
     poll_input = PollCreateInputSerializer(write_only=True, required=False)
@@ -34,11 +35,18 @@ class PostSerializer(serializers.ModelSerializer):
             "is_pinned",
             "score",
             "user_vote",
+            "is_saved",
             "poll",
             "poll_input",
             "created_at",
         )
         read_only_fields = ("id", "author", "community", "is_pinned", "created_at")
+
+    def get_is_saved(self, obj: Post) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.saves.filter(user=request.user).exists()
 
     def get_poll(self, obj: Post):
         poll = getattr(obj, "poll", None)

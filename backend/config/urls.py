@@ -8,6 +8,7 @@ from apps.communities.urls import urlpatterns as communities_urlpatterns
 from apps.messaging.urls import urlpatterns as messaging_urlpatterns
 from apps.notifications.urls import urlpatterns as notifications_urlpatterns
 from apps.polls.urls import urlpatterns as polls_urlpatterns
+from apps.saves.urls import urlpatterns as saves_urlpatterns
 from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.posts.urls import (
     community_posts_urlpatterns,
@@ -31,6 +32,7 @@ api_v1_patterns = [
     path("", include((notifications_urlpatterns, "notifications"))),
     path("", include((social_urlpatterns, "social"))),
     path("", include((polls_urlpatterns, "polls"))),
+    path("", include((saves_urlpatterns, "saves"))),
 ]
 
 urlpatterns = [

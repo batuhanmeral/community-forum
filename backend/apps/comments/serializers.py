@@ -8,6 +8,7 @@ class CommentSerializer(serializers.ModelSerializer):
     author_username = serializers.CharField(source="author.username", read_only=True)
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
+    is_saved = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -20,10 +21,17 @@ class CommentSerializer(serializers.ModelSerializer):
             "body",
             "score",
             "user_vote",
+            "is_saved",
             "created_at",
             "updated_at",
         )
         read_only_fields = ("id", "post", "author", "created_at", "updated_at")
+
+    def get_is_saved(self, obj: Comment) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.saves.filter(user=request.user).exists()
 
     def get_user_vote(self, obj: Comment) -> int | None:
         request = self.context.get("request")
