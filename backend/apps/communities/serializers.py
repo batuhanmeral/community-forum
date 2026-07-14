@@ -16,7 +16,7 @@ class CommunitySerializer(serializers.ModelSerializer):
             "slug",
             "name",
             "description",
-            "icon",
+            "avatar",
             "is_nsfw",
             "creator",
             "created_at",

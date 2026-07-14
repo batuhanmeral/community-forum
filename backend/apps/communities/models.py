@@ -8,7 +8,7 @@ class Community(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, default="")
-    icon = models.ImageField(upload_to="community_icons/", blank=True, null=True)
+    avatar = models.ImageField(upload_to="community_avatars/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
