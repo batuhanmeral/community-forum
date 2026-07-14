@@ -1,6 +1,7 @@
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, permissions
 
 from apps.notifications.services import notify
@@ -68,6 +69,10 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
         notify_mentions(comment.body, actor=self.request.user, target=comment)
 
     def perform_destroy(self, instance):
+        if instance.deleted_at is not None:
+            return
+        instance.deleted_at = timezone.now()
+        instance.deleted_by = self.request.user
+        instance.save(update_fields=["deleted_at", "deleted_by"])
         if instance.author_id != self.request.user.id:
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
-        instance.delete()

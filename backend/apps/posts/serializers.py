@@ -10,13 +10,25 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 
 
+def _is_mod_removal(obj) -> bool:
+    return obj.deleted_at is not None and obj.deleted_by_id != obj.author_id
+
+
+def _mask_body(obj) -> str:
+    if obj.deleted_at is None:
+        return obj.body
+    return "[removed]" if _is_mod_removal(obj) else "[deleted]"
+
+
 class PostSerializer(serializers.ModelSerializer):
-    author = serializers.PrimaryKeyRelatedField(read_only=True)
+    author = serializers.SerializerMethodField()
     community = serializers.SlugRelatedField(read_only=True, slug_field="slug")
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
+    body = serializers.SerializerMethodField()
     body_html = serializers.SerializerMethodField()
+    is_deleted = serializers.SerializerMethodField()
     poll = serializers.SerializerMethodField()
     # Write-only payload used when kind='poll'
     poll_input = PollCreateInputSerializer(write_only=True, required=False)
@@ -32,6 +44,7 @@ class PostSerializer(serializers.ModelSerializer):
             "title",
             "body",
             "body_html",
+            "is_deleted",
             "url",
             "image",
             "is_nsfw",
@@ -45,8 +58,20 @@ class PostSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "author", "community", "is_pinned", "created_at")
 
+    def get_author(self, obj: Post):
+        if obj.deleted_at is not None:
+            return None
+        return obj.author_id
+
+    def get_body(self, obj: Post) -> str:
+        return _mask_body(obj)
+
     def get_body_html(self, obj: Post) -> str:
-        return render_markdown(obj.body)
+        body = _mask_body(obj)
+        return render_markdown(body) if obj.deleted_at is None else f"<p>{body}</p>"
+
+    def get_is_deleted(self, obj: Post) -> bool:
+        return obj.deleted_at is not None
 
     def get_is_saved(self, obj: Post) -> bool:
         request = self.context.get("request")
@@ -127,3 +152,10 @@ class PostSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         validated_data.pop("poll_input", None)
         return super().update(instance, validated_data)
+
+    def to_internal_value(self, data):
+        body = data.get("body") if isinstance(data, dict) else None
+        out = super().to_internal_value(data)
+        if body is not None:
+            out["body"] = body
+        return out

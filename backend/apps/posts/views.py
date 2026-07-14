@@ -1,6 +1,7 @@
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -64,13 +65,17 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
-
-    def perform_destroy(self, instance):
-        if instance.author_id != self.request.user.id:
-            notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
-        instance.delete()
     parser_classes = (JSONParser, FormParser, MultiPartParser)
     queryset = _annotate_score(Post.objects.all())
+
+    def perform_destroy(self, instance):
+        if instance.deleted_at is not None:
+            return
+        instance.deleted_at = timezone.now()
+        instance.deleted_by = self.request.user
+        instance.save(update_fields=["deleted_at", "deleted_by"])
+        if instance.author_id != self.request.user.id:
+            notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
 
 
 class PostStickyView(APIView):

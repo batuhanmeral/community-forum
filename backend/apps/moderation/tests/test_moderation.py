@@ -190,7 +190,8 @@ class TestModDelete:
         api.force_authenticate(mod)
         resp = api.delete(post_detail(post.id))
         assert resp.status_code == 204
-        assert not Post.objects.filter(id=post.id).exists()
+        post.refresh_from_db()
+        assert post.deleted_at is not None and post.deleted_by == mod
         assert Notification.objects.filter(recipient=alice, verb="mod_action").exists()
 
     def test_mod_can_delete_comment(self, api, mod, comment, alice):
