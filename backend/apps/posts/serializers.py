@@ -1,6 +1,7 @@
 from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 
+from apps.common.markdown import render_markdown
 from apps.polls.serializers import PollCreateInputSerializer, PollSerializer
 
 from .models import Post
@@ -15,6 +16,7 @@ class PostSerializer(serializers.ModelSerializer):
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
+    body_html = serializers.SerializerMethodField()
     poll = serializers.SerializerMethodField()
     # Write-only payload used when kind='poll'
     poll_input = PollCreateInputSerializer(write_only=True, required=False)
@@ -29,6 +31,7 @@ class PostSerializer(serializers.ModelSerializer):
             "kind",
             "title",
             "body",
+            "body_html",
             "url",
             "image",
             "is_nsfw",
@@ -41,6 +44,9 @@ class PostSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = ("id", "author", "community", "is_pinned", "created_at")
+
+    def get_body_html(self, obj: Post) -> str:
+        return render_markdown(obj.body)
 
     def get_is_saved(self, obj: Post) -> bool:
         request = self.context.get("request")

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.common.markdown import render_markdown
+
 from .models import Comment
 
 
@@ -9,6 +11,7 @@ class CommentSerializer(serializers.ModelSerializer):
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
+    body_html = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -19,6 +22,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "author_username",
             "parent",
             "body",
+            "body_html",
             "score",
             "user_vote",
             "is_saved",
@@ -26,6 +30,9 @@ class CommentSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "post", "author", "created_at", "updated_at")
+
+    def get_body_html(self, obj: Comment) -> str:
+        return render_markdown(obj.body)
 
     def get_is_saved(self, obj: Comment) -> bool:
         request = self.context.get("request")
