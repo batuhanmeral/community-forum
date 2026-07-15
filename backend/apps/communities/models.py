@@ -62,6 +62,23 @@ class Membership(models.Model):
         return f"{self.user} @ {self.community} ({self.role})"
 
 
+class CommunityRule(models.Model):
+    community = models.ForeignKey(
+        Community, on_delete=models.CASCADE, related_name="rules"
+    )
+    order = models.PositiveSmallIntegerField(default=0)
+    short = models.CharField(max_length=100)
+    description = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("order", "id")
+        indexes = [models.Index(fields=("community", "order"))]
+
+    def __str__(self) -> str:
+        return f"{self.community.slug}: {self.short}"
+
+
 class Flair(models.Model):
     community = models.ForeignKey(
         Community, on_delete=models.CASCADE, related_name="flairs"

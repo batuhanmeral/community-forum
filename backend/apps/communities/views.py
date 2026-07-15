@@ -1,13 +1,28 @@
 from django.db.models import Count
-from rest_framework import filters, permissions, status, viewsets
+from django.shortcuts import get_object_or_404
+from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from .models import Community, Membership
+from .models import Community, CommunityRule, Membership
 from .permissions import IsCreatorOrReadOnly
-from .serializers import CommunitySerializer, MembershipSerializer
+from .serializers import (
+    CommunityRuleSerializer,
+    CommunitySerializer,
+    MembershipSerializer,
+)
+
+
+def _require_mod(user, community):
+    if not user.is_authenticated or not Membership.objects.filter(
+        user=user,
+        community=community,
+        role__in=(Membership.Role.ADMIN, Membership.Role.MODERATOR),
+        is_banned=False,
+    ).exists():
+        raise PermissionDenied("Moderator role required.")
 
 
 class CommunityViewSet(viewsets.ModelViewSet):
@@ -75,3 +90,38 @@ class CommunityViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class CommunityRuleListCreateView(generics.ListCreateAPIView):
+    serializer_class = CommunityRuleSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+    def get_community(self) -> Community:
+        return get_object_or_404(Community, slug=self.kwargs["slug"])
+
+    def get_queryset(self):
+        return self.get_community().rules.all()
+
+    def perform_create(self, serializer):
+        community = self.get_community()
+        _require_mod(self.request.user, community)
+        serializer.save(community=community)
+
+
+class CommunityRuleDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CommunityRuleSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+    def get_community(self) -> Community:
+        return get_object_or_404(Community, slug=self.kwargs["slug"])
+
+    def get_queryset(self):
+        return self.get_community().rules.all()
+
+    def perform_update(self, serializer):
+        _require_mod(self.request.user, self.get_community())
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        _require_mod(self.request.user, self.get_community())
+        instance.delete()

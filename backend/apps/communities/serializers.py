@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Community, Membership
+from .models import Community, CommunityRule, Membership
 
 
 class CommunitySerializer(serializers.ModelSerializer):
@@ -38,6 +38,13 @@ class CommunitySerializer(serializers.ModelSerializer):
     def get_my_role(self, obj: Community) -> str | None:
         m = self._membership(obj)
         return m.role if m else None
+
+
+class CommunityRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommunityRule
+        fields = ("id", "order", "short", "description", "created_at")
+        read_only_fields = ("id", "created_at")
 
 
 class MembershipSerializer(serializers.ModelSerializer):
