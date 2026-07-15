@@ -20,6 +20,7 @@ class Comment(models.Model):
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -44,3 +45,20 @@ class Comment(models.Model):
 
     def __str__(self) -> str:
         return f"Comment by {self.author} on {self.post_id}"
+
+
+class CommentRevision(models.Model):
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="revisions")
+    body = models.TextField()
+    edited_at = models.DateTimeField(auto_now_add=True)
+    edited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        ordering = ("-edited_at",)
+        indexes = [models.Index(fields=("comment", "-edited_at"))]

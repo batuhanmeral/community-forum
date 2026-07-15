@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from apps.common.markdown import render_markdown
 
-from .models import Comment
+from .models import Comment, CommentRevision
 
 
 def _is_mod_removal(obj: Comment) -> bool:
@@ -45,8 +45,9 @@ class CommentSerializer(serializers.ModelSerializer):
             "is_saved",
             "created_at",
             "updated_at",
+            "edited_at",
         )
-        read_only_fields = ("id", "post", "created_at", "updated_at")
+        read_only_fields = ("id", "post", "created_at", "updated_at", "edited_at")
 
     def get_author(self, obj: Comment):
         return None if obj.deleted_at is not None else obj.author_id
@@ -100,3 +101,12 @@ class CommentSerializer(serializers.ModelSerializer):
         if post and value.post_id != post.id:
             raise serializers.ValidationError("Parent comment belongs to a different post.")
         return value
+
+
+class CommentRevisionSerializer(serializers.ModelSerializer):
+    edited_by_username = serializers.CharField(source="edited_by.username", read_only=True, default=None)
+
+    class Meta:
+        model = CommentRevision
+        fields = ("id", "body", "edited_at", "edited_by", "edited_by_username")
+        read_only_fields = fields

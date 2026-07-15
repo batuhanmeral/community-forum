@@ -1,7 +1,12 @@
 from django.urls import path
 
 from .feed import FeedView, FollowingFeedView
-from .views import CommunityPostListCreateView, PostDetailView, PostStickyView
+from .views import (
+    CommunityPostListCreateView,
+    PostDetailView,
+    PostRevisionListView,
+    PostStickyView,
+)
 
 community_posts_urlpatterns = [
     path(
@@ -14,6 +19,11 @@ community_posts_urlpatterns = [
 posts_urlpatterns = [
     path("posts/<int:pk>/", PostDetailView.as_view(), name="post-detail"),
     path("posts/<int:pk>/sticky/", PostStickyView.as_view(), name="post-sticky"),
+    path(
+        "posts/<int:pk>/revisions/",
+        PostRevisionListView.as_view(),
+        name="post-revisions",
+    ),
 ]
 
 feed_urlpatterns = [

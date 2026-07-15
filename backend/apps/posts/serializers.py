@@ -4,7 +4,7 @@ from rest_framework import serializers
 from apps.common.markdown import render_markdown
 from apps.polls.serializers import PollCreateInputSerializer, PollSerializer
 
-from .models import Post
+from .models import Post, PostRevision
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
@@ -55,8 +55,9 @@ class PostSerializer(serializers.ModelSerializer):
             "poll",
             "poll_input",
             "created_at",
+            "edited_at",
         )
-        read_only_fields = ("id", "author", "community", "is_pinned", "created_at")
+        read_only_fields = ("id", "author", "community", "is_pinned", "created_at", "edited_at")
 
     def get_author(self, obj: Post):
         if obj.deleted_at is not None:
@@ -159,3 +160,12 @@ class PostSerializer(serializers.ModelSerializer):
         if body is not None:
             out["body"] = body
         return out
+
+
+class PostRevisionSerializer(serializers.ModelSerializer):
+    edited_by_username = serializers.CharField(source="edited_by.username", read_only=True, default=None)
+
+    class Meta:
+        model = PostRevision
+        fields = ("id", "title", "body", "edited_at", "edited_by", "edited_by_username")
+        read_only_fields = fields

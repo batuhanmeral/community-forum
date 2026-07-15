@@ -11,13 +11,13 @@ from rest_framework.views import APIView
 from apps.communities.models import Community
 from apps.notifications.services import notify
 
-from .models import Post
+from .models import Post, PostRevision
 from .permissions import (
     IsAuthorOrModeratorForDelete,
     IsCommunityMember,
     is_moderator,
 )
-from .serializers import PostSerializer
+from .serializers import PostRevisionSerializer, PostSerializer
 
 MAX_STICKY_PER_COMMUNITY = 2
 
@@ -76,6 +76,28 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.save(update_fields=["deleted_at", "deleted_by"])
         if instance.author_id != self.request.user.id:
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old_title, old_body = instance.title, instance.body
+        post = serializer.save()
+        if (post.title, post.body) != (old_title, old_body):
+            PostRevision.objects.create(
+                post=post, title=old_title, body=old_body, edited_by=self.request.user
+            )
+            post.edited_at = timezone.now()
+            post.save(update_fields=["edited_at"])
+
+
+class PostRevisionListView(generics.ListAPIView):
+    serializer_class = PostRevisionSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        post = get_object_or_404(Post, pk=self.kwargs["pk"])
+        if post.author_id != self.request.user.id and not is_moderator(self.request.user, post.community):
+            raise PermissionDenied("Only the author or a moderator can view edit history.")
+        return post.revisions.select_related("edited_by")
 
 
 class PostStickyView(APIView):

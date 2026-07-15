@@ -6,11 +6,11 @@ from rest_framework import generics, permissions
 
 from apps.notifications.services import notify
 from apps.posts.models import Post
-from apps.posts.permissions import IsAuthorOrModeratorForDelete
+from apps.posts.permissions import IsAuthorOrModeratorForDelete, is_moderator
 
 from .lib.mentions import resolve_mentions
-from .models import Comment
-from .serializers import CommentSerializer
+from .models import Comment, CommentRevision
+from .serializers import CommentRevisionSerializer, CommentSerializer
 
 
 def _annotate_score(qs):
@@ -65,7 +65,15 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = _annotate_score(Comment.objects.select_related("author"))
 
     def perform_update(self, serializer):
+        instance = self.get_object()
+        old_body = instance.body
         comment = serializer.save()
+        if comment.body != old_body:
+            CommentRevision.objects.create(
+                comment=comment, body=old_body, edited_by=self.request.user
+            )
+            comment.edited_at = timezone.now()
+            comment.save(update_fields=["edited_at"])
         notify_mentions(comment.body, actor=self.request.user, target=comment)
 
     def perform_destroy(self, instance):
@@ -76,3 +84,18 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.save(update_fields=["deleted_at", "deleted_by"])
         if instance.author_id != self.request.user.id:
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
+
+
+class CommentRevisionListView(generics.ListAPIView):
+    serializer_class = CommentRevisionSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        from rest_framework.exceptions import PermissionDenied
+
+        comment = get_object_or_404(Comment, pk=self.kwargs["pk"])
+        if comment.author_id != self.request.user.id and not is_moderator(
+            self.request.user, comment.post.community
+        ):
+            raise PermissionDenied("Only the author or a moderator can view edit history.")
+        return comment.revisions.select_related("edited_by")

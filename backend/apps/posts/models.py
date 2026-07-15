@@ -35,6 +35,7 @@ class Post(models.Model):
     is_nsfw = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -61,3 +62,21 @@ class Post(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+class PostRevision(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="revisions")
+    title = models.CharField(max_length=300)
+    body = models.TextField(blank=True, default="")
+    edited_at = models.DateTimeField(auto_now_add=True)
+    edited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        ordering = ("-edited_at",)
+        indexes = [models.Index(fields=("post", "-edited_at"))]
