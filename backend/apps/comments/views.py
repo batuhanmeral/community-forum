@@ -1,5 +1,5 @@
-from django.db.models import Sum
-from django.db.models.functions import Coalesce
+from django.db.models import Count, F, Q, Sum
+from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
@@ -14,7 +14,28 @@ from .serializers import CommentRevisionSerializer, CommentSerializer
 
 
 def _annotate_score(qs):
-    return qs.annotate(score=Coalesce(Sum("votes__value"), 0))
+    return qs.annotate(
+        score=Coalesce(Sum("votes__value"), 0),
+        ups=Count("votes", filter=Q(votes__value=1)),
+        downs=Count("votes", filter=Q(votes__value=-1)),
+    )
+
+
+def _apply_comment_sort(qs, sort: str):
+    if sort == "top":
+        return qs.order_by("-score", "created_at")
+    if sort == "new":
+        return qs.order_by("-created_at")
+    if sort == "old":
+        return qs.order_by("created_at")
+    if sort == "controversial":
+        # high engagement, near-zero score
+        return qs.annotate(
+            abs_score=Abs("score"),
+            total_votes=F("ups") + F("downs"),
+        ).order_by("abs_score", "-total_votes", "created_at")
+    # "best" (default): score-based with downvote penalty; falls back to created_at tiebreaker
+    return qs.order_by("-score", "downs", "created_at")
 
 
 def notify_mentions(body: str, *, actor, target) -> None:
@@ -32,11 +53,9 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
         return self._post
 
     def get_queryset(self):
-        return (
-            _annotate_score(Comment.objects.filter(post=self.get_post()))
-            .select_related("author")
-            .order_by("created_at")
-        )
+        qs = _annotate_score(Comment.objects.filter(post=self.get_post())).select_related("author")
+        sort = self.request.query_params.get("sort", "best")
+        return _apply_comment_sort(qs, sort)
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
