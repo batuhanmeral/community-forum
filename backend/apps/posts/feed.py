@@ -2,7 +2,7 @@ from rest_framework import generics, permissions
 
 from .models import Post
 from .serializers import PostSerializer
-from .views import _annotate_score, _apply_sort
+from .views import _annotate_score, _apply_sort, _apply_time_window
 
 
 def _apply_nsfw_filter(qs, request):
@@ -26,6 +26,8 @@ class FeedView(generics.ListAPIView):
         qs = _annotate_score(qs)
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new" if request.user.is_authenticated else "top")
+        if sort == "top":
+            qs = _apply_time_window(qs, request.query_params.get("t"))
         return _apply_sort(qs, sort)
 
 
@@ -40,4 +42,7 @@ class FollowingFeedView(generics.ListAPIView):
         qs = Post.objects.filter(author__followers__follower=request.user).distinct()
         qs = _annotate_score(qs)
         qs = _apply_nsfw_filter(qs, request)
-        return _apply_sort(qs, request.query_params.get("sort", "new"))
+        sort = request.query_params.get("sort", "new")
+        if sort == "top":
+            qs = _apply_time_window(qs, request.query_params.get("t"))
+        return _apply_sort(qs, sort)
