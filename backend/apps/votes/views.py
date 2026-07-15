@@ -11,6 +11,7 @@ class VoteView(APIView):
     """Upsert/toggle a vote. Same value → delete; different → update."""
 
     permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "vote"
 
     @transaction.atomic
     def post(self, request):

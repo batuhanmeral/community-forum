@@ -85,6 +85,7 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCommunityMember)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
+    throttle_scope = "write"
 
     def get_community(self) -> Community:
         if not hasattr(self, "_community"):

@@ -46,6 +46,7 @@ def notify_mentions(body: str, *, actor, target) -> None:
 class PostCommentListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    throttle_scope = "write"
 
     def get_post(self) -> Post:
         if not hasattr(self, "_post"):
