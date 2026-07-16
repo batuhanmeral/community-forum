@@ -34,6 +34,7 @@ class Post(models.Model):
     image = models.ImageField(upload_to="posts/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     edited_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

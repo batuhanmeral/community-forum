@@ -10,6 +10,7 @@ class Community(models.Model):
     description = models.TextField(blank=True, default="")
     avatar = models.ImageField(upload_to="community_avatars/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
+    requires_approval = models.BooleanField(default=False)
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

@@ -2,7 +2,9 @@ from django.urls import path
 
 from .feed import FeedView, FollowingFeedView
 from .views import (
+    ApprovalQueueView,
     CommunityPostListCreateView,
+    PostApprovalView,
     PostDetailView,
     PostRevisionListView,
     PostStickyView,
@@ -14,6 +16,11 @@ community_posts_urlpatterns = [
         CommunityPostListCreateView.as_view(),
         name="community-posts",
     ),
+    path(
+        "communities/<slug:slug>/mod/approval-queue/",
+        ApprovalQueueView.as_view(),
+        name="community-approval-queue",
+    ),
 ]
 
 posts_urlpatterns = [
@@ -23,6 +30,11 @@ posts_urlpatterns = [
         "posts/<int:pk>/revisions/",
         PostRevisionListView.as_view(),
         name="post-revisions",
+    ),
+    path(
+        "posts/<int:pk>/approve/",
+        PostApprovalView.as_view(),
+        name="post-approve",
     ),
 ]
 

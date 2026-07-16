@@ -18,6 +18,7 @@ class CommunitySerializer(serializers.ModelSerializer):
             "description",
             "avatar",
             "is_nsfw",
+            "requires_approval",
             "creator",
             "created_at",
             "member_count",

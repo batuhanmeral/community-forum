@@ -93,7 +93,9 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
         return self._community
 
     def get_queryset(self):
-        qs = _annotate_score(Post.objects.filter(community=self.get_community()))
+        qs = _annotate_score(
+            Post.objects.filter(community=self.get_community(), is_approved=True)
+        )
         sort = self.request.query_params.get("sort", "new")
         if sort == "top":
             qs = _apply_time_window(qs, self.request.query_params.get("t"))
@@ -105,7 +107,14 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
         return ctx
 
     def perform_create(self, serializer):
-        post = serializer.save(author=self.request.user, community=self.get_community())
+        community = self.get_community()
+        # If community requires approval, hide post until a mod approves.
+        is_approved = not community.requires_approval or is_moderator(self.request.user, community)
+        post = serializer.save(
+            author=self.request.user,
+            community=community,
+            is_approved=is_approved,
+        )
         from apps.comments.views import notify_mentions
 
         notify_mentions(post.body, actor=self.request.user, target=post)
@@ -186,3 +195,55 @@ class PostStickyView(APIView):
             post.save(update_fields=["is_pinned"])
             notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_pinned": False}, status=status.HTTP_200_OK)
+
+
+class ApprovalQueueView(generics.ListAPIView):
+    """Mod-only list of pending posts awaiting approval."""
+
+    serializer_class = PostSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_community(self) -> Community:
+        if not hasattr(self, "_community"):
+            self._community = get_object_or_404(Community, slug=self.kwargs["slug"])
+        return self._community
+
+    def get_queryset(self):
+        community = self.get_community()
+        if not is_moderator(self.request.user, community):
+            raise PermissionDenied("Moderator role required.")
+        return _annotate_score(
+            Post.objects.filter(community=community, is_approved=False)
+        ).order_by("created_at")
+
+
+class PostApprovalView(APIView):
+    """Mod approve (POST) / reject-delete (DELETE)."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def _get(self, pk):
+        return get_object_or_404(Post, pk=pk)
+
+    def _require_mod(self, request, post):
+        if not is_moderator(request.user, post.community):
+            raise PermissionDenied("Moderator role required.")
+
+    def post(self, request, pk):
+        post = self._get(pk)
+        self._require_mod(request, post)
+        if not post.is_approved:
+            post.is_approved = True
+            post.save(update_fields=["is_approved"])
+            notify(post.author, actor=request.user, verb="mod_action", target=post)
+        return Response({"is_approved": True})
+
+    def delete(self, request, pk):
+        post = self._get(pk)
+        self._require_mod(request, post)
+        if post.deleted_at is None:
+            post.deleted_at = timezone.now()
+            post.deleted_by = request.user
+            post.save(update_fields=["deleted_at", "deleted_by"])
+            notify(post.author, actor=request.user, verb="mod_action", target=post)
+        return Response({"is_approved": False, "deleted": True})
