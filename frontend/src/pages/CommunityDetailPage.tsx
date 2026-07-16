@@ -1,0 +1,268 @@
+import { useEffect, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import {
+  getCommunity,
+  joinCommunity,
+  leaveCommunity,
+  listRules,
+  updateNotifyLevel,
+} from '@/api/communities';
+import type {
+  Community,
+  CommunityRule,
+  NotifyLevel,
+} from '@/features/communities/types';
+import { useAppSelector } from '@/app/hooks';
+import { Avatar } from '@/components/ui/Avatar';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { cn } from '@/lib/cn';
+
+const notifyLabels: Record<NotifyLevel, string> = {
+  all: 'All updates',
+  posts_only: 'Posts only',
+  off: 'Muted',
+};
+
+export function CommunityDetailPage() {
+  const { slug = '' } = useParams<{ slug: string }>();
+  const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
+
+  const [community, setCommunity] = useState<Community | null>(null);
+  const [rules, setRules] = useState<CommunityRule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [notifyLevel, setNotifyLevel] = useState<NotifyLevel>('all');
+  const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+    Promise.all([getCommunity(slug), listRules(slug).catch(() => [])])
+      .then(([c, r]) => {
+        if (cancelled) return;
+        setCommunity(c);
+        setRules(r);
+      })
+      .catch(() => {
+        if (!cancelled) setNotFound(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  async function handleJoinLeave() {
+    if (!community) return;
+    setActionLoading(true);
+    try {
+      if (community.is_member) {
+        await leaveCommunity(community.slug);
+        setCommunity({
+          ...community,
+          is_member: false,
+          my_role: null,
+          member_count: Math.max(0, community.member_count - 1),
+        });
+      } else {
+        await joinCommunity(community.slug);
+        setCommunity({
+          ...community,
+          is_member: true,
+          my_role: 'member',
+          member_count: community.member_count + 1,
+        });
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleNotifyChange(level: NotifyLevel) {
+    if (!community) return;
+    const prev = notifyLevel;
+    setNotifyLevel(level);
+    try {
+      await updateNotifyLevel(community.slug, level);
+    } catch {
+      setNotifyLevel(prev);
+    }
+  }
+
+  if (loading) {
+    return <div className="text-sm text-[var(--color-text-muted)]">Loading…</div>;
+  }
+  if (notFound || !community) {
+    return (
+      <Card>
+        <h2 className="text-lg font-semibold">Community not found</h2>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          The community c/{slug} doesn't exist.
+        </p>
+        <Link to="/c" className="mt-3 inline-block text-sm text-[var(--color-accent)] hover:underline">
+          ← Browse communities
+        </Link>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Card padded={false} className="overflow-hidden">
+        <div className="h-24 w-full bg-gradient-to-r from-[var(--color-accent)]/30 via-[var(--color-surface-hover)] to-[var(--color-surface)]" />
+        <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="-mt-12">
+              <Avatar
+                src={community.avatar}
+                alt={community.name}
+                size="lg"
+                className="ring-4 ring-[var(--color-surface)]"
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight">{community.name}</h1>
+                {community.is_nsfw && <Badge tone="danger">NSFW</Badge>}
+              </div>
+              <p className="text-sm text-[var(--color-text-muted)]">c/{community.slug}</p>
+              <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
+                {community.member_count.toLocaleString()} member
+                {community.member_count === 1 ? '' : 's'}
+              </p>
+            </div>
+          </div>
+
+          {isAuthed && (
+            <div className="flex items-center gap-2 self-start">
+              {community.is_member && (
+                <NotifyDropdown value={notifyLevel} onChange={handleNotifyChange} />
+              )}
+              <Button
+                variant={community.is_member ? 'secondary' : 'primary'}
+                onClick={handleJoinLeave}
+                loading={actionLoading}
+              >
+                {community.is_member ? 'Joined' : 'Join'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+        <div className="flex flex-col gap-3">
+          {community.description && (
+            <Card>
+              <p className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap">
+                {community.description}
+              </p>
+            </Card>
+          )}
+          <Card>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Posts will appear here once the post UI is wired up.
+            </p>
+          </Card>
+        </div>
+
+        <aside className="flex flex-col gap-3">
+          <Card>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+              About
+            </h2>
+            <dl className="mt-3 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-[var(--color-text-muted)]">Created</dt>
+                <dd>{new Date(community.created_at).toLocaleDateString()}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-[var(--color-text-muted)]">Members</dt>
+                <dd>{community.member_count.toLocaleString()}</dd>
+              </div>
+            </dl>
+          </Card>
+          {rules.length > 0 && (
+            <Card>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                Rules
+              </h2>
+              <ol className="mt-3 space-y-2 text-sm">
+                {rules.map((r, i) => (
+                  <li key={r.id} className="flex gap-2">
+                    <span className="text-[var(--color-text-dim)]">{i + 1}.</span>
+                    <span>{r.short}</span>
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+interface NotifyDropdownProps {
+  value: NotifyLevel;
+  onChange: (level: NotifyLevel) => void;
+}
+
+function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
+        aria-label="Notification level"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+          <path d="M6 8a6 6 0 1 1 12 0v4l1.5 3h-15L6 12V8Z" />
+          <path d="M10 19a2 2 0 0 0 4 0" />
+        </svg>
+        <span className="hidden sm:inline">{notifyLabels[value]}</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-[var(--color-text-muted)]">
+          <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-2xl">
+          {(['all', 'posts_only', 'off'] as NotifyLevel[]).map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => {
+                onChange(level);
+                setOpen(false);
+              }}
+              className={cn(
+                'block w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--color-surface-hover)]',
+                level === value && 'text-[var(--color-accent)]',
+              )}
+            >
+              {notifyLabels[level]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

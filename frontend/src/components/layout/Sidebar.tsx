@@ -74,9 +74,45 @@ export function Sidebar() {
         <div className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-dim)]">
           Communities
         </div>
-        <p className="px-3 text-xs text-[var(--color-text-dim)]">
-          Your subscribed communities will appear here.
-        </p>
+        <NavLink
+          to="/c"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+              isActive
+                ? 'bg-[var(--color-surface)] text-[var(--color-text)]'
+                : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]',
+            )
+          }
+        >
+          <span className="h-5 w-5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="9" cy="8" r="3" />
+              <circle cx="17" cy="9" r="2.5" />
+              <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5" />
+              <path d="M14.5 19c.2-2 1.7-3.5 3.5-3.5s3.2 1.5 3.5 3.5" />
+            </svg>
+          </span>
+          <span>Browse all</span>
+        </NavLink>
+        <NavLink
+          to="/c/create"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+              isActive
+                ? 'bg-[var(--color-surface)] text-[var(--color-text)]'
+                : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]',
+            )
+          }
+        >
+          <span className="h-5 w-5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </span>
+          <span>Create a community</span>
+        </NavLink>
       </nav>
     </aside>
   );
