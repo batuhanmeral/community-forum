@@ -1,0 +1,102 @@
+import { useState, type FormEvent } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { authFailure, authStart, setTokens, setUser } from '@/features/auth/authSlice';
+import { fetchMe, login } from '@/api/auth';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+
+export function LoginPage() {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { status, error } = useAppSelector((s) => s.auth);
+  const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
+
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  if (isAuthed) {
+    const from = (location.state as { from?: string } | null)?.from ?? '/';
+    return <Navigate to={from} replace />;
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    dispatch(authStart());
+    try {
+      const tokens = await login({ username, password });
+      dispatch(setTokens(tokens));
+      const me = await fetchMe();
+      dispatch(setUser(me));
+      const from = (location.state as { from?: string } | null)?.from ?? '/';
+      navigate(from, { replace: true });
+    } catch (err) {
+      const ax = err as AxiosError<{ detail?: string }>;
+      dispatch(authFailure(ax.response?.data?.detail ?? 'Invalid credentials.'));
+    }
+  }
+
+  return (
+    <AuthShell title="Log in" subtitle="Welcome back to nexus.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          name="username"
+          label="Username"
+          autoComplete="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+        <Input
+          name="password"
+          type="password"
+          label="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
+        <Button type="submit" loading={status === 'loading'} fullWidth>
+          Log in
+        </Button>
+      </form>
+      <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
+        New to nexus?{' '}
+        <Link to="/register" className="font-medium text-[var(--color-accent)] hover:underline">
+          Create an account
+        </Link>
+      </p>
+    </AuthShell>
+  );
+}
+
+interface ShellProps {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}
+
+export function AuthShell({ title, subtitle, children }: ShellProps) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-12">
+      <div className="w-full max-w-md">
+        <Link to="/" className="mb-8 flex items-center justify-center gap-2">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--color-accent)] text-[#0b1418] font-black">
+            N
+          </span>
+          <span className="text-xl font-bold tracking-tight">nexus</span>
+        </Link>
+        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xl">
+          <h1 className="text-2xl font-bold">{title}</h1>
+          {subtitle && (
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">{subtitle}</p>
+          )}
+          <div className="mt-6">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
