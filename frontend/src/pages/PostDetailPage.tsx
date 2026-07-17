@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { CommentSection } from '@/components/comments/CommentSection';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -175,11 +176,7 @@ export function PostDetailPage() {
         )}
       </Card>
 
-      <Card>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          Comments arrive in the next phase.
-        </p>
-      </Card>
+      <CommentSection postId={post.id} />
 
       <Modal
         open={confirmDelete}
