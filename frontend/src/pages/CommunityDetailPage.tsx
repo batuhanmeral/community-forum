@@ -179,76 +179,57 @@ export function CommunityDetailPage() {
         </div>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-        <div className="flex flex-col gap-3">
-          {community.description && (
-            <Card>
-              <p className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap">
-                {community.description}
-              </p>
-            </Card>
-          )}
+      <div className="flex flex-col gap-3">
+        {community.description && (
+          <Card>
+            <p className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap">
+              {community.description}
+            </p>
+          </Card>
+        )}
 
-          <div className="flex items-center justify-between gap-2">
-            <PostSortTabs value={sort} onChange={setSort} />
-            {isAuthed && (
-              <Link to={`/c/${community.slug}/submit`}>
-                <Button variant="primary" size="sm">
-                  Create post
-                </Button>
-              </Link>
-            )}
-          </div>
-
-          {postsLoading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="h-28 animate-pulse" />
+        {rules.length > 0 && (
+          <Card>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              Community rules
+            </h2>
+            <ol className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
+              {rules.map((r, i) => (
+                <li key={r.id} className="flex gap-2">
+                  <span className="text-[var(--color-text-dim)]">{i + 1}.</span>
+                  <span>{r.short}</span>
+                </li>
               ))}
-            </div>
-          ) : posts.length === 0 ? (
-            <Card>
-              <p className="text-sm text-[var(--color-text-muted)]">
-                No posts in this community yet.
-              </p>
-            </Card>
-          ) : (
-            posts.map((p) => <PostCard key={p.id} post={p} hideCommunity />)
+            </ol>
+          </Card>
+        )}
+
+        <div className="flex items-center justify-between gap-2">
+          <PostSortTabs value={sort} onChange={setSort} />
+          {isAuthed && (
+            <Link to={`/c/${community.slug}/submit`}>
+              <Button variant="primary" size="sm">
+                Create post
+              </Button>
+            </Link>
           )}
         </div>
 
-        <aside className="flex flex-col gap-3">
+        {postsLoading ? (
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="h-28 animate-pulse" />
+            ))}
+          </div>
+        ) : posts.length === 0 ? (
           <Card>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-              About
-            </h2>
-            <dl className="mt-3 space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-[var(--color-text-muted)]">Created</dt>
-                <dd>{new Date(community.created_at).toLocaleDateString()}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-[var(--color-text-muted)]">Members</dt>
-                <dd>{community.member_count.toLocaleString()}</dd>
-              </div>
-            </dl>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              No posts in this community yet.
+            </p>
           </Card>
-          {rules.length > 0 && (
-            <Card>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                Rules
-              </h2>
-              <ol className="mt-3 space-y-2 text-sm">
-                {rules.map((r, i) => (
-                  <li key={r.id} className="flex gap-2">
-                    <span className="text-[var(--color-text-dim)]">{i + 1}.</span>
-                    <span>{r.short}</span>
-                  </li>
-                ))}
-              </ol>
-            </Card>
-          )}
-        </aside>
+        ) : (
+          posts.map((p) => <PostCard key={p.id} post={p} hideCommunity />)
+        )}
       </div>
     </div>
   );

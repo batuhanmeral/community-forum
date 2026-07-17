@@ -6,7 +6,27 @@ import { logoutRequest } from '@/api/auth';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 
-export function Navbar() {
+interface NavbarProps {
+  leftOpen?: boolean;
+  rightOpen?: boolean;
+  onToggleLeft?: () => void;
+  onToggleRight?: () => void;
+}
+
+const panelLeftIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[16px] w-[16px]">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M9 3v18" />
+  </svg>
+);
+const panelRightIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[16px] w-[16px]">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M15 3v18" />
+  </svg>
+);
+
+export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: NavbarProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { user, refreshToken, status } = useAppSelector((s) => s.auth);
@@ -35,7 +55,23 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[rgba(8,8,10,0.72)] backdrop-blur-xl backdrop-saturate-150">
-      <div className="mx-auto grid h-[68px] max-w-[1480px] grid-cols-[280px_minmax(0,1fr)_340px] items-center gap-7 px-8 max-[1180px]:grid-cols-[240px_minmax(0,1fr)_300px] max-[1180px]:gap-5 max-[1180px]:px-5 max-[960px]:flex max-[960px]:gap-3 max-[960px]:px-4">
+      <div className="mx-auto flex h-[68px] max-w-[1280px] items-center gap-4 px-20 max-[1180px]:px-10 max-[960px]:gap-3 max-[960px]:px-4">
+        {/* Left sidebar toggle */}
+        {onToggleLeft && (
+          <button
+            type="button"
+            onClick={onToggleLeft}
+            title={leftOpen ? 'Hide navigation' : 'Show navigation'}
+            className={cn(
+              'hidden place-items-center rounded-[8px] p-1.5 transition lg:grid',
+              'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
+              !leftOpen && 'text-[var(--color-accent)]',
+            )}
+          >
+            {panelLeftIcon}
+          </button>
+        )}
+
         <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
           <span className="brand-mark relative grid h-8 w-8 place-items-center rounded-[9px] text-[16px] font-bold text-[#061218]">
             N
@@ -130,6 +166,22 @@ export function Navbar() {
                 Sign up
               </Link>
             </>
+          )}
+
+          {/* Right sidebar toggle */}
+          {onToggleRight && (
+            <button
+              type="button"
+              onClick={onToggleRight}
+              title={rightOpen ? 'Hide sidebar' : 'Show sidebar'}
+              className={cn(
+                'hidden place-items-center rounded-[8px] p-1.5 transition lg:grid',
+                'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
+                !rightOpen && 'text-[var(--color-accent)]',
+              )}
+            >
+              {panelRightIcon}
+            </button>
           )}
         </div>
       </div>

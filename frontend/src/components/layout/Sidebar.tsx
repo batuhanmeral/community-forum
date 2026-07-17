@@ -86,7 +86,7 @@ export function Sidebar() {
   }, [isAuthed, location.pathname]);
 
   return (
-    <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col overflow-y-auto pb-10 pr-1.5 pt-6 max-[960px]:hidden lg:flex">
+    <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col overflow-y-auto pb-10 pr-1 pt-5 max-[960px]:hidden lg:flex">
       <SidebarSection>
         {navItems.map((it) => (
           <SidebarItem key={it.to} {...it} />
@@ -125,10 +125,11 @@ export function Sidebar() {
       {!isAuthed && (
         <NavLink
           to="/register"
-          className="mx-3 mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[#061218]"
+          className="mx-2.5 mt-1.5 inline-flex h-8 w-fit items-center justify-center gap-1.5 self-start rounded-full bg-[var(--color-accent)] px-3.5 text-[12.5px] font-semibold text-[#061218]"
           style={{ boxShadow: '0 4px 16px rgba(97, 218, 251, 0.28), inset 0 1px 0 rgba(255,255,255,0.4)' }}
         >
-          {plusIcon} Create account
+          <span className="h-[13px] w-[13px]">{plusIcon}</span>
+          Create account
         </NavLink>
       )}
     </aside>
@@ -137,14 +138,14 @@ export function Sidebar() {
 
 function SidebarSection({ title, children, action }: { title?: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="mb-5">
+    <div className="mb-3.5">
       {title && (
-        <div className="mb-2 flex items-center justify-between px-3.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
+        <div className="mb-1.5 flex items-center justify-between px-3 text-[10.5px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
           <span>{title}</span>
           {action}
         </div>
       )}
-      <div className="flex flex-col gap-0.5">{children}</div>
+      <div className="flex flex-col">{children}</div>
     </div>
   );
 }
@@ -156,10 +157,10 @@ function SidebarItem({ to, label, icon, suffix }: NavItem & { suffix?: React.Rea
       end={to === '/'}
       className={({ isActive }) =>
         cn(
-          'group relative flex items-center gap-3 rounded-[10px] px-3.5 py-2.5 text-[14px] font-normal transition-all',
+          'group relative flex w-[170px] items-center gap-2.5 rounded-[8px] px-3 py-[7px] text-[13.5px] font-normal transition-all',
           isActive
-            ? 'bg-[var(--color-surface)] text-[var(--color-text)]'
-            : 'text-[var(--color-text-soft)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]',
+            ? 'text-white'
+            : 'text-[rgba(255,255,255,0.7)] hover:text-white',
         )
       }
     >
@@ -167,17 +168,14 @@ function SidebarItem({ to, label, icon, suffix }: NavItem & { suffix?: React.Rea
         <>
           {isActive && (
             <span
-              className="absolute -left-2 top-1/2 h-[18px] w-[3px] -translate-y-1/2 rounded-full bg-[var(--color-accent)]"
+              className="absolute -left-1.5 top-1/2 h-[16px] w-[2.5px] -translate-y-1/2 rounded-full bg-[var(--color-accent)]"
               style={{ boxShadow: '0 0 12px var(--color-accent-glow)' }}
             />
           )}
-          <span className={cn(
-            'grid h-[26px] w-[26px] place-items-center rounded-[7px] text-[var(--color-text-soft)]',
-            isActive ? 'bg-[var(--color-bg-3)]' : 'bg-[var(--color-surface)] group-hover:bg-[var(--color-bg-3)]',
-          )}>
-            <span className="h-[15px] w-[15px]">{icon}</span>
+          <span className="grid h-[22px] w-[22px] place-items-center">
+            <span className="h-[13px] w-[13px]">{icon}</span>
           </span>
-          <span className="flex-1 truncate">{label}</span>
+          <span className="truncate">{label}</span>
           {suffix}
         </>
       )}
@@ -191,21 +189,21 @@ function CommunityItem({ community }: { community: Community }) {
       to={`/c/${community.slug}`}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 rounded-[10px] px-3.5 py-2.5 text-[14px] transition-all',
+          'flex w-[170px] items-center gap-2.5 rounded-[8px] px-3 py-[7px] text-[13.5px] transition-all',
           isActive
-            ? 'bg-[var(--color-surface)] text-[var(--color-text)]'
-            : 'text-[var(--color-text-soft)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]',
+            ? 'text-white'
+            : 'text-[rgba(255,255,255,0.7)] hover:text-white',
         )
       }
     >
       <span
-        className="grid h-[26px] w-[26px] place-items-center rounded-full border border-[var(--color-border)] text-[12px] font-semibold text-[var(--color-accent)]"
+        className="grid h-[22px] w-[22px] place-items-center rounded-full border border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-accent)]"
         style={{ background: 'linear-gradient(135deg, #2a3540, #1a2128)' }}
       >
         {community.slug[0]?.toUpperCase()}
       </span>
       <span className="flex-1 truncate">c/{community.slug}</span>
-      <span className="font-mono text-[11px] text-[var(--color-text-dim)]">
+      <span className="font-mono text-[10.5px] text-[var(--color-text-dim)]">
         {formatCount(community.member_count)}
       </span>
     </NavLink>
