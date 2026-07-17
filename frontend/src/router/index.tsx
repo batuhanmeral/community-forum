@@ -7,6 +7,8 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { CommunityListPage } from '@/pages/CommunityListPage';
 import { CommunityCreatePage } from '@/pages/CommunityCreatePage';
 import { CommunityDetailPage } from '@/pages/CommunityDetailPage';
+import { PostCreatePage } from '@/pages/PostCreatePage';
+import { PostDetailPage } from '@/pages/PostDetailPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -22,10 +24,13 @@ export const router = createBrowserRouter([
       { path: 'all', element: <HomePage /> },
       { path: 'c', element: <CommunityListPage /> },
       { path: 'c/:slug', element: <CommunityDetailPage /> },
+      { path: 'posts/:id', element: <PostDetailPage /> },
       {
         element: <ProtectedRoute />,
         children: [
           { path: 'c/create', element: <CommunityCreatePage /> },
+          { path: 'submit', element: <PostCreatePage /> },
+          { path: 'c/:slug/submit', element: <PostCreatePage /> },
           { path: 'settings', element: <div className="p-4">Settings (coming soon)</div> },
         ],
       },

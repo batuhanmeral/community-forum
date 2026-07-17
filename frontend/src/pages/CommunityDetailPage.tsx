@@ -7,16 +7,20 @@ import {
   listRules,
   updateNotifyLevel,
 } from '@/api/communities';
+import { listCommunityPosts, type SortOption } from '@/api/posts';
 import type {
   Community,
   CommunityRule,
   NotifyLevel,
 } from '@/features/communities/types';
+import type { Post } from '@/features/posts/types';
 import { useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { PostCard } from '@/components/posts/PostCard';
+import { PostSortTabs } from '@/components/posts/PostSortTabs';
 import { cn } from '@/lib/cn';
 
 const notifyLabels: Record<NotifyLevel, string> = {
@@ -31,6 +35,9 @@ export function CommunityDetailPage() {
 
   const [community, setCommunity] = useState<Community | null>(null);
   const [rules, setRules] = useState<CommunityRule[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [sort, setSort] = useState<SortOption>('hot');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState<NotifyLevel>('all');
@@ -56,6 +63,23 @@ export function CommunityDetailPage() {
       cancelled = true;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    setPostsLoading(true);
+    listCommunityPosts(slug, { sort })
+      .then((d) => {
+        if (!cancelled) setPosts(d.results);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setPostsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, sort]);
 
   async function handleJoinLeave() {
     if (!community) return;
@@ -164,11 +188,33 @@ export function CommunityDetailPage() {
               </p>
             </Card>
           )}
-          <Card>
-            <p className="text-sm text-[var(--color-text-muted)]">
-              Posts will appear here once the post UI is wired up.
-            </p>
-          </Card>
+
+          <div className="flex items-center justify-between gap-2">
+            <PostSortTabs value={sort} onChange={setSort} />
+            {isAuthed && (
+              <Link to={`/c/${community.slug}/submit`}>
+                <Button variant="primary" size="sm">
+                  Create post
+                </Button>
+              </Link>
+            )}
+          </div>
+
+          {postsLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="h-28 animate-pulse" />
+              ))}
+            </div>
+          ) : posts.length === 0 ? (
+            <Card>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                No posts in this community yet.
+              </p>
+            </Card>
+          ) : (
+            posts.map((p) => <PostCard key={p.id} post={p} hideCommunity />)
+          )}
         </div>
 
         <aside className="flex flex-col gap-3">
