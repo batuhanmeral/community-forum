@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listFeed, type SortOption } from '@/api/posts';
+import { listFeed, listFollowingFeed, type SortOption } from '@/api/posts';
 import { listCommunities } from '@/api/communities';
 import type { Post } from '@/features/posts/types';
 import { useAppSelector } from '@/app/hooks';
@@ -37,6 +37,8 @@ const SORT_TABS: SortTab[] = [
   { id: 'top', label: 'Top', icon: topIcon },
 ];
 
+type FeedKind = 'home' | 'following';
+
 type KindFilter = 'all' | 'text' | 'image' | 'link' | 'poll';
 
 const KIND_FILTERS: Array<{ id: KindFilter; label: string }> = [
@@ -47,21 +49,37 @@ const KIND_FILTERS: Array<{ id: KindFilter; label: string }> = [
   { id: 'poll', label: 'Polls' },
 ];
 
+const NSFW_KEY = 'nexus.nsfwShown';
+
 export function HomePage() {
   const user = useAppSelector((s) => s.auth.user);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [posts, setPosts] = useState<Post[]>([]);
   const [memberCount, setMemberCount] = useState<number>(0);
+  const [feedKind, setFeedKind] = useState<FeedKind>('home');
   const [sort, setSort] = useState<SortOption>('hot');
   const [kind, setKind] = useState<KindFilter>('all');
+  const [nsfwShown, setNsfwShown] = useState<boolean>(() => localStorage.getItem(NSFW_KEY) === '1');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  useEffect(() => {
+    localStorage.setItem(NSFW_KEY, nsfwShown ? '1' : '0');
+  }, [nsfwShown]);
+
+  // Reset and load page 1 when filters change
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    listFeed({ sort })
+    setPage(1);
+    const fetcher = feedKind === 'following' ? listFollowingFeed : listFeed;
+    fetcher({ sort, nsfw: nsfwShown ? 'show' : undefined, page: 1 })
       .then((d) => {
-        if (!cancelled) setPosts(d.results);
+        if (cancelled) return;
+        setPosts(d.results);
+        setHasMore(Boolean(d.next));
       })
       .catch(() => undefined)
       .finally(() => {
@@ -70,7 +88,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [sort]);
+  }, [feedKind, sort, nsfwShown]);
 
   useEffect(() => {
     if (!isAuthed) {
@@ -93,39 +111,79 @@ export function HomePage() {
     return posts.filter((p) => p.kind === kind);
   }, [posts, kind]);
 
+  async function loadMore() {
+    if (loadingMore || !hasMore) return;
+    const next = page + 1;
+    setLoadingMore(true);
+    const fetcher = feedKind === 'following' ? listFollowingFeed : listFeed;
+    try {
+      const d = await fetcher({ sort, nsfw: nsfwShown ? 'show' : undefined, page: next });
+      setPosts((p) => [...p, ...d.results]);
+      setHasMore(Boolean(d.next));
+      setPage(next);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   return (
     <div className="min-w-0">
       {/* Feed header */}
       <div className="mb-[18px] flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
-          <span>{isAuthed ? 'Your feed' : 'Popular feed'}</span>
+          <span>{feedKind === 'following' ? 'Following' : isAuthed ? 'Your feed' : 'Popular feed'}</span>
           <span className="font-mono text-[14px] font-normal text-[var(--color-text-dim)]">
-            / home{isAuthed && memberCount > 0 ? ` · ${memberCount} ${memberCount === 1 ? 'community' : 'communities'}` : ''}
+            / {feedKind}
+            {isAuthed && feedKind === 'home' && memberCount > 0
+              ? ` · ${memberCount} ${memberCount === 1 ? 'community' : 'communities'}`
+              : ''}
           </span>
         </div>
 
-        <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
-          {SORT_TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setSort(t.id)}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
-                sort === t.id
-                  ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
-              )}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          {isAuthed && (
+            <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+              {(['home', 'following'] as FeedKind[]).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setFeedKind(k)}
+                  className={cn(
+                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
+                    feedKind === k
+                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
+                  )}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+            {SORT_TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSort(t.id)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
+                  sort === t.id
+                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
+                )}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Filter pills */}
-      <div className="mb-3.5 flex gap-1.5 overflow-x-auto pb-1">
+      {/* Filter pills + NSFW */}
+      <div className="mb-3.5 flex items-center gap-1.5 overflow-x-auto pb-1">
         {KIND_FILTERS.map((f) => (
           <button
             key={f.id}
@@ -142,6 +200,35 @@ export function HomePage() {
             <span className="font-mono text-[11px] opacity-80">{counts[f.id]}</span>
           </button>
         ))}
+
+        <div className="ml-auto pr-1">
+          <button
+            type="button"
+            onClick={() => setNsfwShown((v) => !v)}
+            title={nsfwShown ? 'Hide NSFW' : 'Show NSFW'}
+            className={cn(
+              'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-[7px] text-[12px] font-medium transition',
+              nsfwShown
+                ? 'border-[rgba(255,106,138,0.3)] bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)]'
+                : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
+            )}
+          >
+            <span
+              className={cn(
+                'relative inline-block h-3 w-5 rounded-full transition-colors',
+                nsfwShown ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-bg-3)]',
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 h-2 w-2 rounded-full bg-white transition-all',
+                  nsfwShown ? 'left-2.5' : 'left-0.5',
+                )}
+              />
+            </span>
+            NSFW
+          </button>
+        </div>
       </div>
 
       {/* Compose */}
@@ -188,7 +275,14 @@ export function HomePage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-5 py-16 text-center text-[13px] text-[var(--color-text-dim)]">
           {kind === 'all' ? (
-            isAuthed ? (
+            feedKind === 'following' ? (
+              <>
+                You aren't following anyone yet.{' '}
+                <Link to="/explore" className="text-[var(--color-accent)] hover:underline">
+                  Discover users →
+                </Link>
+              </>
+            ) : isAuthed ? (
               <>
                 Your feed is empty.{' '}
                 <Link to="/c" className="text-[var(--color-accent)] hover:underline">
@@ -206,13 +300,15 @@ export function HomePage() {
         filtered.map((p) => <PostCard key={p.id} post={p} />)
       )}
 
-      {filtered.length > 0 && (
+      {filtered.length > 0 && hasMore && (
         <div className="py-6 text-center text-[13px] text-[var(--color-text-dim)]">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
-            Load more
+            {loadingMore ? 'Loading…' : 'Load more posts'}
           </button>
         </div>
       )}
