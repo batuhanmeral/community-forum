@@ -10,6 +10,7 @@ import { CommunityDetailPage } from '@/pages/CommunityDetailPage';
 import { PostCreatePage } from '@/pages/PostCreatePage';
 import { PostDetailPage } from '@/pages/PostDetailPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
+import { MessagesPage } from '@/pages/MessagesPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -33,6 +34,8 @@ export const router = createBrowserRouter([
           { path: 'c/create', element: <CommunityCreatePage /> },
           { path: 'submit', element: <PostCreatePage /> },
           { path: 'c/:slug/submit', element: <PostCreatePage /> },
+          { path: 'messages', element: <MessagesPage /> },
+          { path: 'messages/:id', element: <MessagesPage /> },
           { path: 'settings', element: <div className="p-4">Settings (coming soon)</div> },
         ],
       },

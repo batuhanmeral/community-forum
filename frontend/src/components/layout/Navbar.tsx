@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { logout } from '@/features/auth/authSlice';
 import { logoutRequest } from '@/api/auth';
+import { listConversations } from '@/api/messaging';
+import { setDMUnreadCount } from '@/features/messaging/messagingSlice';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 
@@ -30,8 +32,16 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { user, refreshToken, status } = useAppSelector((s) => s.auth);
+  const dmUnread = useAppSelector((s) => s.messaging.dmUnreadCount);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    listConversations()
+      .then((convs) => dispatch(setDMUnreadCount(convs.reduce((acc, c) => acc + c.unread_count, 0))))
+      .catch(() => undefined);
+  }, [status, dispatch]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -99,7 +109,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
         <div className="flex items-center justify-end gap-2.5">
           {isAuthed && user ? (
             <>
-              <IconButton title="Messages">
+              <IconButton title="Messages" to="/messages" count={dmUnread}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
                   <path d="M4 6h16v11h-7l-4 3v-3H4z" />
                 </svg>
@@ -221,26 +231,44 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
 interface IconButtonProps {
   title: string;
   dot?: boolean;
+  count?: number;
+  to?: string;
   children: React.ReactNode;
 }
 
-function IconButton({ title, dot, children }: IconButtonProps) {
-  return (
-    <button
-      type="button"
-      title={title}
-      className={cn(
-        'relative grid h-[38px] w-[38px] place-items-center rounded-[11px]',
-        'text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
-      )}
-    >
+function IconButton({ title, dot, count, to, children }: IconButtonProps) {
+  const className = cn(
+    'relative grid h-[38px] w-[38px] place-items-center rounded-[11px]',
+    'text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
+  );
+  const inner = (
+    <>
       {children}
-      {dot && (
+      {count !== undefined && count > 0 ? (
+        <span
+          className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[#061218]"
+          style={{ boxShadow: '0 0 0 2px var(--color-bg)' }}
+        >
+          {count > 99 ? '99+' : count}
+        </span>
+      ) : dot ? (
         <span
           className="absolute right-[9px] top-[9px] block h-[7px] w-[7px] rounded-full bg-[var(--color-accent)]"
           style={{ boxShadow: '0 0 0 2px var(--color-bg), 0 0 8px var(--color-accent-glow)' }}
         />
-      )}
+      ) : null}
+    </>
+  );
+  if (to) {
+    return (
+      <Link to={to} title={title} className={className} aria-label={title}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" title={title} className={className}>
+      {inner}
     </button>
   );
 }
