@@ -11,6 +11,7 @@ import { PostCreatePage } from '@/pages/PostCreatePage';
 import { PostDetailPage } from '@/pages/PostDetailPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
 import { MessagesPage } from '@/pages/MessagesPage';
+import { InboxPage } from '@/pages/InboxPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
           { path: 'c/:slug/submit', element: <PostCreatePage /> },
           { path: 'messages', element: <MessagesPage /> },
           { path: 'messages/:id', element: <MessagesPage /> },
+          { path: 'inbox', element: <InboxPage /> },
           { path: 'settings', element: <div className="p-4">Settings (coming soon)</div> },
         ],
       },

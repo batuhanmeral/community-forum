@@ -5,6 +5,9 @@ import { logout } from '@/features/auth/authSlice';
 import { logoutRequest } from '@/api/auth';
 import { listConversations } from '@/api/messaging';
 import { setDMUnreadCount } from '@/features/messaging/messagingSlice';
+import { listNotifications } from '@/api/notifications';
+import { setUnreadCount } from '@/features/notifications/notificationSlice';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 
@@ -33,14 +36,23 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
   const navigate = useNavigate();
   const { user, refreshToken, status } = useAppSelector((s) => s.auth);
   const dmUnread = useAppSelector((s) => s.messaging.dmUnreadCount);
+  const notifUnread = useAppSelector((s) => s.notifications.unreadCount);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
-    listConversations()
-      .then((convs) => dispatch(setDMUnreadCount(convs.reduce((acc, c) => acc + c.unread_count, 0))))
-      .catch(() => undefined);
+    const fetchCounts = () => {
+      listConversations()
+        .then((convs) => dispatch(setDMUnreadCount(convs.reduce((acc, c) => acc + c.unread_count, 0))))
+        .catch(() => undefined);
+      listNotifications({ unread: true })
+        .then((d) => dispatch(setUnreadCount(d.count)))
+        .catch(() => undefined);
+    };
+    fetchCounts();
+    const interval = window.setInterval(fetchCounts, 30000);
+    return () => window.clearInterval(interval);
   }, [status, dispatch]);
 
   useEffect(() => {
@@ -114,11 +126,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
                   <path d="M4 6h16v11h-7l-4 3v-3H4z" />
                 </svg>
               </IconButton>
-              <IconButton title="Notifications" dot>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-                  <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6zM10 19a2 2 0 0 0 4 0" />
-                </svg>
-              </IconButton>
+              <NotificationDropdown unreadCount={notifUnread} />
               <Link
                 to="/submit"
                 className="btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold tracking-tight"
