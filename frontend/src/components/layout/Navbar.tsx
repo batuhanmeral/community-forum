@@ -131,6 +131,9 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
                   <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] shadow-2xl">
                     <div className="px-4 py-2.5 text-xs text-[var(--color-text-muted)]">
                       Signed in as <span className="font-semibold text-[var(--color-text)]">{user.username}</span>
+                      <div className="font-mono mt-1 flex gap-3 text-[11px] text-[var(--color-text-dim)]">
+                        <span>↑ <span className="text-[var(--color-accent)]">{user.post_karma + user.comment_karma}</span> karma</span>
+                      </div>
                     </div>
                     <div className="border-t border-[var(--color-border)]" />
                     <Link to={`/u/${user.username}`} onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">

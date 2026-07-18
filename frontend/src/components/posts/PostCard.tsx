@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Post } from '@/features/posts/types';
+import type { VoteValue } from '@/api/votes';
+import { VoteCluster } from '@/components/votes/VoteCluster';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -162,27 +164,12 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
 
       {/* Actions bar */}
       <div className="flex items-center gap-1.5 pt-1.5">
-        <div className="font-mono inline-flex items-center gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
-          <VoteBtn
-            kind="up"
-            active={post.user_vote === 1}
-            onClick={(e) => e.preventDefault()}
-          />
-          <span
-            className={cn(
-              'min-w-[36px] text-center text-[13px] font-medium tracking-tight',
-              post.user_vote === 1 && 'text-[var(--color-accent)]',
-              post.user_vote === -1 && 'text-[var(--color-danger)]',
-            )}
-          >
-            {formatScore(post.score + (post.user_vote ?? 0))}
-          </span>
-          <VoteBtn
-            kind="down"
-            active={post.user_vote === -1}
-            onClick={(e) => e.preventDefault()}
-          />
-        </div>
+        <VoteCluster
+          target="post"
+          objectId={post.id}
+          score={post.score}
+          userVote={post.user_vote as VoteValue | null}
+        />
 
         <ActionBtn href={`/posts/${post.id}`} icon={
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
@@ -220,26 +207,6 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         </ActionBtn>
       </div>
     </article>
-  );
-}
-
-function VoteBtn({ kind, active, onClick }: { kind: 'up' | 'down'; active?: boolean; onClick?: (e: React.MouseEvent) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={kind === 'up' ? 'upvote' : 'downvote'}
-      className={cn(
-        'grid h-7 w-7 place-items-center rounded-full text-[var(--color-text-muted)] transition',
-        'hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
-        active && kind === 'up' && 'bg-[var(--color-accent-dim)] text-[var(--color-accent)]',
-        active && kind === 'down' && 'bg-[rgba(255,106,138,0.12)] text-[var(--color-danger)]',
-      )}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-        {kind === 'up' ? <path d="M12 19V5m-6 6l6-6 6 6" /> : <path d="M12 5v14m6-6l-6 6-6-6" />}
-      </svg>
-    </button>
   );
 }
 

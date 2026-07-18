@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
+import { VoteCluster } from '@/components/votes/VoteCluster';
+import type { VoteValue } from '@/api/votes';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -156,9 +158,14 @@ export function PostDetailPage() {
               </Card>
             )}
 
-            <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3 text-sm text-[var(--color-text-muted)]">
-              <span className="font-semibold text-[var(--color-text)]">{post.score}</span>
-              <span>points</span>
+            <div className="mt-4 flex items-center gap-3 border-t border-[var(--color-border)] pt-3 text-sm text-[var(--color-text-muted)]">
+              <VoteCluster
+                target="post"
+                objectId={post.id}
+                score={post.score}
+                userVote={post.user_vote as VoteValue | null}
+                onChange={({ score, userVote }) => setPost({ ...post, score, user_vote: userVote })}
+              />
               {isAuthor && (
                 <div className="ml-auto flex gap-2">
                   {canEdit && (

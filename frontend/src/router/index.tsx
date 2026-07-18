@@ -9,6 +9,7 @@ import { CommunityCreatePage } from '@/pages/CommunityCreatePage';
 import { CommunityDetailPage } from '@/pages/CommunityDetailPage';
 import { PostCreatePage } from '@/pages/PostCreatePage';
 import { PostDetailPage } from '@/pages/PostDetailPage';
+import { UserProfilePage } from '@/pages/UserProfilePage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
       { path: 'c', element: <CommunityListPage /> },
       { path: 'c/:slug', element: <CommunityDetailPage /> },
       { path: 'posts/:id', element: <PostDetailPage /> },
+      { path: 'u/:username', element: <UserProfilePage /> },
       {
         element: <ProtectedRoute />,
         children: [

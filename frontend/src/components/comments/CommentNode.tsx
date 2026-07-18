@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Comment } from '@/features/comments/types';
 import { createComment, deleteComment, updateComment } from '@/api/comments';
+import { VoteCluster } from '@/components/votes/VoteCluster';
+import type { VoteValue } from '@/api/votes';
 import { useAppSelector } from '@/app/hooks';
 import { CommentForm } from './CommentForm';
 import { timeAgo } from '@/lib/time';
@@ -64,9 +66,6 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
             <span className="italic">[deleted]</span>
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
-          <span className="font-medium">{node.score}</span>
-          <span>point{node.score === 1 ? '' : 's'}</span>
-          <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(node.created_at)}</span>
           {node.edited_at && <span className="italic">(edited)</span>}
         </div>
@@ -91,7 +90,14 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
             )}
 
             {!editing && !node.is_deleted && (
-              <div className="mt-1 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+              <div className="mt-1.5 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+                <VoteCluster
+                  target="comment"
+                  objectId={node.id}
+                  score={node.score}
+                  userVote={node.user_vote as VoteValue | null}
+                  size="sm"
+                />
                 <button
                   type="button"
                   onClick={() => setReplying((r) => !r)}
