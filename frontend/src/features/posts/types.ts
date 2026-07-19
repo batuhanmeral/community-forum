@@ -13,7 +13,7 @@ export interface Poll {
   closes_at: string;
   is_closed: boolean;
   total_votes: number;
-  user_vote: number | null;
+  user_option: number | null;
   options: PollOption[];
 }
 

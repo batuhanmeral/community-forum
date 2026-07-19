@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
+import { PollCard } from '@/components/posts/PollCard';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { timeAgo } from '@/lib/time';
@@ -129,33 +130,12 @@ export function PostDetailPage() {
             )}
 
             {post.kind === 'poll' && post.poll && (
-              <Card className="mt-3 bg-[var(--color-bg-elevated)]">
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  Poll · {post.poll.total_votes} vote{post.poll.total_votes === 1 ? '' : 's'} ·{' '}
-                  {post.poll.is_closed ? 'Closed' : `closes ${timeAgo(post.poll.closes_at)}`}
-                </p>
-                <ul className="mt-3 space-y-2">
-                  {post.poll.options.map((opt) => (
-                    <li
-                      key={opt.id}
-                      className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{opt.text}</span>
-                        <span className="text-xs text-[var(--color-text-muted)]">
-                          {opt.percent.toFixed(0)}% · {opt.vote_count}
-                        </span>
-                      </div>
-                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-hover)]">
-                        <div
-                          className="h-full bg-[var(--color-accent)]"
-                          style={{ width: `${opt.percent}%` }}
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
+              <div className="mt-3">
+                <PollCard
+                  poll={post.poll}
+                  onUpdate={(updated) => setPost({ ...post, poll: updated })}
+                />
+              </div>
             )}
 
             <div className="mt-4 flex items-center gap-3 border-t border-[var(--color-border)] pt-3 text-sm text-[var(--color-text-muted)]">
