@@ -1,0 +1,107 @@
+import { useState, type MouseEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toggleSave, type SaveTarget } from '@/api/saves';
+import { useAppSelector } from '@/app/hooks';
+import { cn } from '@/lib/cn';
+
+interface SaveButtonProps {
+  target: SaveTarget;
+  objectId: number;
+  initialSaved: boolean;
+  size?: 'sm' | 'md';
+  variant?: 'pill' | 'inline';
+  onChange?: (saved: boolean) => void;
+}
+
+const bookmarkIcon = (filled: boolean) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-[15px] w-[15px]"
+  >
+    <path d="M6 4h12v17l-6-4-6 4z" />
+  </svg>
+);
+
+export function SaveButton({
+  target,
+  objectId,
+  initialSaved,
+  size = 'md',
+  variant = 'inline',
+  onChange,
+}: SaveButtonProps) {
+  const navigate = useNavigate();
+  const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
+  const [saved, setSaved] = useState(initialSaved);
+  const [busy, setBusy] = useState(false);
+
+  async function handleClick(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (busy) return;
+    if (!isAuthed) {
+      navigate('/login');
+      return;
+    }
+    const prev = saved;
+    const next = !prev;
+    setSaved(next);
+    onChange?.(next);
+    setBusy(true);
+    try {
+      const res = await toggleSave(target, objectId);
+      if (res.is_saved !== next) {
+        setSaved(res.is_saved);
+        onChange?.(res.is_saved);
+      }
+    } catch {
+      setSaved(prev);
+      onChange?.(prev);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (variant === 'inline') {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={busy}
+        className={cn(
+          'inline-flex items-center gap-[7px] rounded-full px-3 py-2 text-[13px] transition disabled:opacity-60',
+          saved
+            ? 'text-[var(--color-accent)]'
+            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
+        )}
+      >
+        {bookmarkIcon(saved)}
+        <span>{saved ? 'Saved' : 'Save'}</span>
+      </button>
+    );
+  }
+
+  const heightCls = size === 'sm' ? 'h-7 px-2.5 text-[11.5px]' : 'h-8 px-3 text-[12px]';
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={busy}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-60',
+        heightCls,
+        saved
+          ? 'border-[var(--color-accent)] bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+          : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
+      )}
+    >
+      {bookmarkIcon(saved)}
+      {saved ? 'Saved' : 'Save'}
+    </button>
+  );
+}

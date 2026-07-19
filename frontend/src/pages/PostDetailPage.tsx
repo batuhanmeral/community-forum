@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { PollCard } from '@/components/posts/PollCard';
+import { SaveButton } from '@/components/saves/SaveButton';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { timeAgo } from '@/lib/time';
@@ -145,6 +146,12 @@ export function PostDetailPage() {
                 score={post.score}
                 userVote={post.user_vote as VoteValue | null}
                 onChange={({ score, userVote }) => setPost({ ...post, score, user_vote: userVote })}
+              />
+              <SaveButton
+                target="post"
+                objectId={post.id}
+                initialSaved={post.is_saved}
+                onChange={(saved) => setPost({ ...post, is_saved: saved })}
               />
               {isAuthor && (
                 <div className="ml-auto flex gap-2">

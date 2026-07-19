@@ -4,6 +4,7 @@ import type { Comment } from '@/features/comments/types';
 import { createComment, deleteComment, updateComment } from '@/api/comments';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
+import { toggleSave } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
 import { CommentForm } from './CommentForm';
 import { timeAgo } from '@/lib/time';
@@ -105,6 +106,7 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
                 >
                   Reply
                 </button>
+                <CommentSaveLink commentId={node.id} initialSaved={node.is_saved} />
                 {canModify && (
                   <>
                     <button
@@ -171,6 +173,35 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
         )}
       </div>
     </div>
+  );
+}
+
+function CommentSaveLink({ commentId, initialSaved }: { commentId: number; initialSaved: boolean }) {
+  const [saved, setSaved] = useState(initialSaved);
+  const [busy, setBusy] = useState(false);
+  async function handleClick() {
+    if (busy) return;
+    const prev = saved;
+    setSaved(!prev);
+    setBusy(true);
+    try {
+      const res = await toggleSave('comment', commentId);
+      if (res.is_saved !== !prev) setSaved(res.is_saved);
+    } catch {
+      setSaved(prev);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={busy}
+      className={saved ? 'text-[var(--color-accent)] hover:opacity-80' : 'hover:text-[var(--color-text)]'}
+    >
+      {saved ? 'Saved' : 'Save'}
+    </button>
   );
 }
 

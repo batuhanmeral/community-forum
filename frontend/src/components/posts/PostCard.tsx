@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Post } from '@/features/posts/types';
 import type { VoteValue } from '@/api/votes';
 import { VoteCluster } from '@/components/votes/VoteCluster';
+import { SaveButton } from '@/components/saves/SaveButton';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -187,13 +188,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           <span>Share</span>
         </ActionBtn>
 
-        <ActionBtn icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-            <path d="M5 4h11l4 4v12H5zM5 4v6h11" />
-          </svg>
-        }>
-          <span>{post.is_saved ? 'Saved' : 'Save'}</span>
-        </ActionBtn>
+        <SaveButton target="post" objectId={post.id} initialSaved={post.is_saved} />
 
         <div className="flex-1" />
 
