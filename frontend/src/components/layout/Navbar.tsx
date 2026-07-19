@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { logout } from '@/features/auth/authSlice';
 import { logoutRequest } from '@/api/auth';
@@ -39,6 +39,36 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
   const notifUnread = useAppSelector((s) => s.notifications.unreadCount);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
+
+  // Keep the box in sync when navigating between search result pages.
+  useEffect(() => {
+    setQuery(searchParams.get('q') ?? '');
+  }, [searchParams]);
+
+  // ⌘K / Ctrl+K focuses the search box.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    const type = searchParams.get('type') ?? 'post';
+    navigate(`/search?q=${encodeURIComponent(q)}&type=${type}`);
+    searchRef.current?.blur();
+  }
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -103,20 +133,28 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
           </span>
         </Link>
 
-        <div className="mx-auto flex w-full max-w-xl items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[rgba(97,218,251,0.4)] focus-within:bg-[var(--color-bg-3)] focus-within:shadow-[0_0_0_4px_rgba(97,218,251,0.08)]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4 shrink-0 text-[var(--color-text-dim)]">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-3.5-3.5" />
-          </svg>
+        <form
+          onSubmit={handleSearch}
+          className="mx-auto flex w-full max-w-xl items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[rgba(97,218,251,0.4)] focus-within:bg-[var(--color-bg-3)] focus-within:shadow-[0_0_0_4px_rgba(97,218,251,0.08)]"
+        >
+          <button type="submit" aria-label="Search" className="shrink-0 text-[var(--color-text-dim)] transition hover:text-[var(--color-accent)]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+          </button>
           <input
+            ref={searchRef}
             type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Search Nexus — communities, posts, people…"
             className="flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:outline-none"
           />
           <span className="font-mono inline-flex items-center gap-0.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-3)] px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)]">
             ⌘ K
           </span>
-        </div>
+        </form>
 
         <div className="flex items-center justify-end gap-2.5">
           {isAuthed && user ? (

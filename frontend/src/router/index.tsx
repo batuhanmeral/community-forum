@@ -13,6 +13,7 @@ import { UserProfilePage } from '@/pages/UserProfilePage';
 import { MessagesPage } from '@/pages/MessagesPage';
 import { InboxPage } from '@/pages/InboxPage';
 import { SavedPage } from '@/pages/SavedPage';
+import { SearchPage } from '@/pages/SearchPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { path: 'c/:slug', element: <CommunityDetailPage /> },
       { path: 'posts/:id', element: <PostDetailPage /> },
       { path: 'u/:username', element: <UserProfilePage /> },
+      { path: 'search', element: <SearchPage /> },
       {
         element: <ProtectedRoute />,
         children: [
