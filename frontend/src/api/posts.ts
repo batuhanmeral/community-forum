@@ -90,3 +90,10 @@ export async function updatePost(id: number, payload: UpdatePostPayload): Promis
 export async function deletePost(id: number): Promise<void> {
   await api.delete(`/posts/${id}/`);
 }
+
+export async function setPostSticky(id: number, pinned: boolean): Promise<{ is_pinned: boolean }> {
+  const res = pinned
+    ? await api.post<{ is_pinned: boolean }>(`/posts/${id}/sticky/`)
+    : await api.delete<{ is_pinned: boolean }>(`/posts/${id}/sticky/`);
+  return res.data;
+}

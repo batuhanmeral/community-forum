@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getUserProfile, type UserProfile } from '@/api/users';
+import { useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
 import { FollowButton } from '@/components/follow/FollowButton';
 import { FollowListModal } from '@/components/follow/FollowListModal';
+import { ReportModal } from '@/components/moderation/ReportModal';
 
 export function UserProfilePage() {
   const { username = '' } = useParams<{ username: string }>();
@@ -12,6 +14,8 @@ export function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [listMode, setListMode] = useState<'followers' | 'following' | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const myUsername = useAppSelector((s) => s.auth.user?.username);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,21 +61,36 @@ export function UserProfilePage() {
                   Joined {new Date(profile.date_joined).toLocaleDateString()}
                 </p>
               </div>
-              <FollowButton
-                username={profile.username}
-                initialFollowing={profile.is_following}
-                onChange={(following) =>
-                  setProfile((p) =>
-                    p
-                      ? {
-                          ...p,
-                          is_following: following,
-                          followers_count: p.followers_count + (following ? 1 : -1),
-                        }
-                      : p,
-                  )
-                }
-              />
+              <div className="flex items-center gap-2">
+                <FollowButton
+                  username={profile.username}
+                  initialFollowing={profile.is_following}
+                  onChange={(following) =>
+                    setProfile((p) =>
+                      p
+                        ? {
+                            ...p,
+                            is_following: following,
+                            followers_count: p.followers_count + (following ? 1 : -1),
+                          }
+                        : p,
+                    )
+                  }
+                />
+                {myUsername && myUsername !== profile.username && (
+                  <button
+                    type="button"
+                    onClick={() => setReporting(true)}
+                    title="Report user"
+                    aria-label="Report user"
+                    className="grid h-9 w-9 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
+                      <path d="M4 21V4h12l-2 4 2 4H4" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
             {profile.bio && (
               <p className="mt-2 text-sm text-[var(--color-text-soft)] whitespace-pre-wrap">
@@ -126,6 +145,14 @@ export function UserProfilePage() {
         onClose={() => setListMode(null)}
         username={profile.username}
         mode={listMode ?? 'followers'}
+      />
+
+      <ReportModal
+        open={reporting}
+        onClose={() => setReporting(false)}
+        target="user"
+        objectId={profile.id}
+        label="user"
       />
     </div>
   );

@@ -6,6 +6,7 @@ import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { toggleSave } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
+import { ReportModal } from '@/components/moderation/ReportModal';
 import { CommentForm } from './CommentForm';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
@@ -25,12 +26,15 @@ interface CommentNodeProps {
 
 export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }: CommentNodeProps) {
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
+  const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [reporting, setReporting] = useState(false);
 
   const isAuthor = currentUserId !== undefined && node.author === currentUserId;
   const canModify = isAuthor && !node.is_deleted;
+  const canReport = isAuthed && !isAuthor && !node.is_deleted;
 
   async function handleEdit(body: string) {
     const updated = await updateComment(node.id, body);
@@ -107,6 +111,15 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
                   Reply
                 </button>
                 <CommentSaveLink commentId={node.id} initialSaved={node.is_saved} />
+                {canReport && (
+                  <button
+                    type="button"
+                    onClick={() => setReporting(true)}
+                    className="hover:text-[var(--color-danger)]"
+                  >
+                    Report
+                  </button>
+                )}
                 {canModify && (
                   <>
                     <button
@@ -172,6 +185,14 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
           </button>
         )}
       </div>
+
+      <ReportModal
+        open={reporting}
+        onClose={() => setReporting(false)}
+        target="comment"
+        objectId={node.id}
+        label="comment"
+      />
     </div>
   );
 }

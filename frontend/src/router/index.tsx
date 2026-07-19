@@ -14,6 +14,7 @@ import { MessagesPage } from '@/pages/MessagesPage';
 import { InboxPage } from '@/pages/InboxPage';
 import { SavedPage } from '@/pages/SavedPage';
 import { SearchPage } from '@/pages/SearchPage';
+import { ModPage } from '@/pages/ModPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: 'c/create', element: <CommunityCreatePage /> },
+          { path: 'c/:slug/mod', element: <ModPage /> },
           { path: 'submit', element: <PostCreatePage /> },
           { path: 'c/:slug/submit', element: <PostCreatePage /> },
           { path: 'messages', element: <MessagesPage /> },

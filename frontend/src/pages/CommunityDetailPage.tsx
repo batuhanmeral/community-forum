@@ -164,6 +164,16 @@ export function CommunityDetailPage() {
 
           {isAuthed && (
             <div className="flex items-center gap-2 self-start">
+              {(community.my_role === 'admin' || community.my_role === 'moderator') && (
+                <Link to={`/c/${community.slug}/mod`}>
+                  <Button variant="secondary" size="md">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
+                    </svg>
+                    Mod tools
+                  </Button>
+                </Link>
+              )}
               {community.is_member && (
                 <NotifyDropdown value={notifyLevel} onChange={handleNotifyChange} />
               )}

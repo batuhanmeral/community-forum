@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { deletePost, getPost, updatePost } from '@/api/posts';
+import { deletePost, getPost, setPostSticky, updatePost } from '@/api/posts';
+import { getCommunity } from '@/api/communities';
 import type { Post } from '@/features/posts/types';
+import type { CommunityRole } from '@/features/communities/types';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { PollCard } from '@/components/posts/PollCard';
 import { SaveButton } from '@/components/saves/SaveButton';
+import { ReportModal } from '@/components/moderation/ReportModal';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { timeAgo } from '@/lib/time';
@@ -20,21 +23,34 @@ export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
+  const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
 
   const [post, setPost] = useState<Post | null>(null);
+  const [myRole, setMyRole] = useState<CommunityRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [stickyBusy, setStickyBusy] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
     setNotFound(false);
+    setMyRole(null);
     getPost(Number(id))
       .then((p) => {
-        if (!cancelled) setPost(p);
+        if (cancelled) return;
+        setPost(p);
+        if (isAuthed) {
+          getCommunity(p.community)
+            .then((c) => {
+              if (!cancelled) setMyRole(c.my_role);
+            })
+            .catch(() => undefined);
+        }
       })
       .catch(() => {
         if (!cancelled) setNotFound(true);
@@ -45,12 +61,24 @@ export function PostDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, isAuthed]);
 
   async function handleDelete() {
     if (!post) return;
     await deletePost(post.id);
     navigate(`/c/${post.community}`, { replace: true });
+  }
+
+  async function handleSticky() {
+    if (!post || stickyBusy) return;
+    const next = !post.is_pinned;
+    setStickyBusy(true);
+    try {
+      const res = await setPostSticky(post.id, next);
+      setPost({ ...post, is_pinned: res.is_pinned });
+    } finally {
+      setStickyBusy(false);
+    }
   }
 
   if (loading) return <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>;
@@ -67,6 +95,8 @@ export function PostDetailPage() {
 
   const isAuthor = currentUserId !== undefined && post.author === currentUserId;
   const canEdit = isAuthor && (post.kind === 'text' || post.kind === 'link');
+  const isMod = myRole === 'admin' || myRole === 'moderator';
+  const canReport = isAuthed && !isAuthor;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -153,18 +183,33 @@ export function PostDetailPage() {
                 initialSaved={post.is_saved}
                 onChange={(saved) => setPost({ ...post, is_saved: saved })}
               />
-              {isAuthor && (
-                <div className="ml-auto flex gap-2">
-                  {canEdit && (
-                    <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-                      Edit
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>
-                    Delete
+              <div className="ml-auto flex items-center gap-2">
+                {isMod && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleSticky}
+                    loading={stickyBusy}
+                  >
+                    {post.is_pinned ? 'Unpin' : 'Pin'}
                   </Button>
-                </div>
-              )}
+                )}
+                {canReport && (
+                  <Button variant="ghost" size="sm" onClick={() => setReporting(true)}>
+                    Report
+                  </Button>
+                )}
+                {canEdit && (
+                  <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                    Edit
+                  </Button>
+                )}
+                {(isAuthor || isMod) && (
+                  <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>
+                    {isAuthor ? 'Delete' : 'Remove'}
+                  </Button>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -191,6 +236,13 @@ export function PostDetailPage() {
           This action cannot be undone. The post will be removed from your community.
         </p>
       </Modal>
+
+      <ReportModal
+        open={reporting}
+        onClose={() => setReporting(false)}
+        target="post"
+        objectId={post.id}
+      />
     </div>
   );
 }
