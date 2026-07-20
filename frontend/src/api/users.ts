@@ -1,4 +1,8 @@
 import { api } from './client';
+import type { Paginated } from '@/features/communities/types';
+import type { Post } from '@/features/posts/types';
+import type { Comment } from '@/features/comments/types';
+import type { User } from '@/features/auth/types';
 
 export interface UserProfile {
   id: number;
@@ -17,5 +21,38 @@ export interface UserProfile {
 
 export async function getUserProfile(username: string): Promise<UserProfile> {
   const res = await api.get<UserProfile>(`/users/${username}/`);
+  return res.data;
+}
+
+export async function getUserPosts(username: string, page = 1): Promise<Paginated<Post>> {
+  const res = await api.get<Paginated<Post>>(`/users/${username}/posts/`, {
+    params: { page },
+  });
+  return res.data;
+}
+
+export async function getUserComments(username: string, page = 1): Promise<Paginated<Comment>> {
+  const res = await api.get<Paginated<Comment>>(`/users/${username}/comments/`, {
+    params: { page },
+  });
+  return res.data;
+}
+
+export interface UpdateProfilePayload {
+  bio?: string;
+  avatar?: File | null;
+}
+
+export async function updateProfile(payload: UpdateProfilePayload): Promise<User> {
+  if (payload.avatar) {
+    const form = new FormData();
+    if (payload.bio !== undefined) form.append('bio', payload.bio);
+    form.append('avatar', payload.avatar);
+    const res = await api.patch<User>('/users/me/', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  }
+  const res = await api.patch<User>('/users/me/', { bio: payload.bio ?? '' });
   return res.data;
 }

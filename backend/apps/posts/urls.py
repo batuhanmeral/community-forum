@@ -8,6 +8,7 @@ from .views import (
     PostDetailView,
     PostRevisionListView,
     PostStickyView,
+    UserPostListView,
 )
 
 community_posts_urlpatterns = [
@@ -35,6 +36,11 @@ posts_urlpatterns = [
         "posts/<int:pk>/approve/",
         PostApprovalView.as_view(),
         name="post-approve",
+    ),
+    path(
+        "users/<str:username>/posts/",
+        UserPostListView.as_view(),
+        name="user-posts",
     ),
 ]
 

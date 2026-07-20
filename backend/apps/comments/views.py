@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
@@ -11,6 +12,8 @@ from apps.posts.permissions import IsAuthorOrModeratorForDelete, is_moderator
 from .lib.mentions import resolve_mentions
 from .models import Comment, CommentRevision
 from .serializers import CommentRevisionSerializer, CommentSerializer
+
+User = get_user_model()
 
 
 def _annotate_score(qs):
@@ -77,6 +80,19 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
                 community=community,
             )
         notify_mentions(comment.body, actor=self.request.user, target=comment)
+
+
+class UserCommentListView(generics.ListAPIView):
+    """Public list of a user's (non-deleted) comments, newest first."""
+
+    serializer_class = CommentSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        author = get_object_or_404(User, username__iexact=self.kwargs["username"])
+        return _annotate_score(
+            Comment.objects.filter(author=author, deleted_at__isnull=True)
+        ).select_related("author").order_by("-created_at")
 
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):

@@ -1,12 +1,26 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { getUserProfile, type UserProfile } from '@/api/users';
-import { useAppSelector } from '@/app/hooks';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import {
+  getUserComments,
+  getUserPosts,
+  getUserProfile,
+  updateProfile,
+  type UserProfile,
+} from '@/api/users';
+import type { Post } from '@/features/posts/types';
+import type { Comment } from '@/features/comments/types';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { setUser } from '@/features/auth/authSlice';
 import { Avatar } from '@/components/ui/Avatar';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
+import { PostCard } from '@/components/posts/PostCard';
 import { FollowButton } from '@/components/follow/FollowButton';
 import { FollowListModal } from '@/components/follow/FollowListModal';
 import { ReportModal } from '@/components/moderation/ReportModal';
+import { timeAgo } from '@/lib/time';
+import { cn } from '@/lib/cn';
 
 export function UserProfilePage() {
   const { username = '' } = useParams<{ username: string }>();
@@ -15,7 +29,9 @@ export function UserProfilePage() {
   const [notFound, setNotFound] = useState(false);
   const [listMode, setListMode] = useState<'followers' | 'following' | null>(null);
   const [reporting, setReporting] = useState(false);
+  const [editing, setEditing] = useState(false);
   const myUsername = useAppSelector((s) => s.auth.user?.username);
+  const isOwnProfile = Boolean(myUsername) && myUsername === profile?.username;
 
   useEffect(() => {
     let cancelled = false;
@@ -62,33 +78,41 @@ export function UserProfilePage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <FollowButton
-                  username={profile.username}
-                  initialFollowing={profile.is_following}
-                  onChange={(following) =>
-                    setProfile((p) =>
-                      p
-                        ? {
-                            ...p,
-                            is_following: following,
-                            followers_count: p.followers_count + (following ? 1 : -1),
-                          }
-                        : p,
-                    )
-                  }
-                />
-                {myUsername && myUsername !== profile.username && (
-                  <button
-                    type="button"
-                    onClick={() => setReporting(true)}
-                    title="Report user"
-                    aria-label="Report user"
-                    className="grid h-9 w-9 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                      <path d="M4 21V4h12l-2 4 2 4H4" />
-                    </svg>
-                  </button>
+                {isOwnProfile ? (
+                  <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                    Edit profile
+                  </Button>
+                ) : (
+                  <>
+                    <FollowButton
+                      username={profile.username}
+                      initialFollowing={profile.is_following}
+                      onChange={(following) =>
+                        setProfile((p) =>
+                          p
+                            ? {
+                                ...p,
+                                is_following: following,
+                                followers_count: p.followers_count + (following ? 1 : -1),
+                              }
+                            : p,
+                        )
+                      }
+                    />
+                    {myUsername && (
+                      <button
+                        type="button"
+                        onClick={() => setReporting(true)}
+                        title="Report user"
+                        aria-label="Report user"
+                        className="grid h-9 w-9 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
+                          <path d="M4 21V4h12l-2 4 2 4H4" />
+                        </svg>
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -134,11 +158,7 @@ export function UserProfilePage() {
         </div>
       </Card>
 
-      <Card>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          Posts &amp; comments by u/{profile.username} will appear here.
-        </p>
-      </Card>
+      <ProfileContent username={profile.username} />
 
       <FollowListModal
         open={listMode !== null}
@@ -154,7 +174,212 @@ export function UserProfilePage() {
         objectId={profile.id}
         label="user"
       />
+
+      {isOwnProfile && (
+        <ProfileEditModal
+          open={editing}
+          onClose={() => setEditing(false)}
+          initialBio={profile.bio}
+          onSaved={(updated) => {
+            setProfile((p) => (p ? { ...p, bio: updated.bio, avatar: updated.avatar } : p));
+            setEditing(false);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+type ProfileTab = 'posts' | 'comments';
+
+function ProfileContent({ username }: { username: string }) {
+  const [tab, setTab] = useState<ProfileTab>('posts');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Reset to the Posts tab whenever the profile changes.
+  useEffect(() => {
+    setTab('posts');
+  }, [username]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const req = tab === 'posts' ? getUserPosts(username) : getUserComments(username);
+    req
+      .then((d) => {
+        if (cancelled) return;
+        if (tab === 'posts') setPosts(d.results as Post[]);
+        else setComments(d.results as Comment[]);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (tab === 'posts') setPosts([]);
+        else setComments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, username]);
+
+  const items = tab === 'posts' ? posts : comments;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-0.5 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+        {(['posts', 'comments'] as ProfileTab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={cn(
+              'rounded-full px-4 py-1.5 text-[13px] font-medium capitalize transition',
+              tab === t
+                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
+            )}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <Card>
+          <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>
+        </Card>
+      ) : items.length === 0 ? (
+        <Card>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            u/{username} has no {tab} yet.
+          </p>
+        </Card>
+      ) : tab === 'posts' ? (
+        posts.map((p) => <PostCard key={p.id} post={p} />)
+      ) : (
+        comments.map((c) => <ProfileCommentRow key={c.id} comment={c} />)
+      )}
+    </div>
+  );
+}
+
+function ProfileCommentRow({ comment }: { comment: Comment }) {
+  return (
+    <Link
+      to={`/posts/${comment.post}`}
+      className="block rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-4 py-3 transition hover:border-[var(--color-border-strong)]"
+    >
+      <div className="font-mono mb-1 flex items-center gap-2 text-[11.5px] text-[var(--color-text-dim)]">
+        <span>Comment</span>
+        <span>·</span>
+        <span>{timeAgo(comment.created_at)}</span>
+        {comment.edited_at && <span className="italic">(edited)</span>}
+        <span>·</span>
+        <span className="text-[var(--color-text-soft)]">
+          ↑ {comment.score.toLocaleString()}
+        </span>
+      </div>
+      <p className="line-clamp-3 text-sm text-[var(--color-text-soft)] whitespace-pre-wrap">
+        {comment.body}
+      </p>
+    </Link>
+  );
+}
+
+interface ProfileEditModalProps {
+  open: boolean;
+  onClose: () => void;
+  initialBio: string;
+  onSaved: (updated: { bio: string; avatar: string | null }) => void;
+}
+
+function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditModalProps) {
+  const dispatch = useAppDispatch();
+  const [bio, setBio] = useState(initialBio);
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setBio(initialBio);
+      setAvatar(null);
+      setPreview(null);
+      setError(null);
+      setSaving(false);
+    }
+  }, [open, initialBio]);
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setAvatar(file);
+    setPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateProfile({ bio, avatar });
+      dispatch(setUser(updated));
+      onSaved({ bio: updated.bio, avatar: updated.avatar });
+    } catch {
+      setError('Could not save your profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Edit profile"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} loading={saving}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar src={preview} alt="avatar preview" size="lg" />
+          <label className="cursor-pointer rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
+            {avatar ? 'Change image' : 'Upload avatar'}
+            <input type="file" accept="image/*" onChange={onFile} className="hidden" />
+          </label>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+            Bio
+          </label>
+          <textarea
+            rows={4}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={500}
+            placeholder="Tell the community about yourself…"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+          />
+          <span className="font-mono self-end text-[11px] text-[var(--color-text-dim)]">
+            {bio.length}/500
+          </span>
+        </div>
+        {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
+      </form>
+    </Modal>
   );
 }
 

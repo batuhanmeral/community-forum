@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.db.models import ExpressionWrapper, FloatField, Sum
 from django.db.models.expressions import RawSQL
 from django.db.models.functions import Coalesce, Extract
@@ -21,6 +22,8 @@ from .permissions import (
     is_moderator,
 )
 from .serializers import PostRevisionSerializer, PostSerializer
+
+User = get_user_model()
 
 MAX_STICKY_PER_COMMUNITY = 2
 
@@ -118,6 +121,20 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
         from apps.comments.views import notify_mentions
 
         notify_mentions(post.body, actor=self.request.user, target=post)
+
+
+class UserPostListView(generics.ListAPIView):
+    """Public list of a user's (non-deleted, approved) posts, newest first."""
+
+    serializer_class = PostSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        author = get_object_or_404(User, username__iexact=self.kwargs["username"])
+        qs = _annotate_score(
+            Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True)
+        )
+        return _apply_sort(qs, self.request.query_params.get("sort", "new"))
 
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
