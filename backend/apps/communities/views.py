@@ -11,6 +11,7 @@ from .permissions import IsCreatorOrReadOnly
 from .serializers import (
     CommunityRuleSerializer,
     CommunitySerializer,
+    FlairSerializer,
     MembershipSerializer,
 )
 
@@ -117,6 +118,42 @@ class CommunityRuleDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return self.get_community().rules.all()
+
+    def perform_update(self, serializer):
+        _require_mod(self.request.user, self.get_community())
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        _require_mod(self.request.user, self.get_community())
+        instance.delete()
+
+
+class FlairListCreateView(generics.ListCreateAPIView):
+    serializer_class = FlairSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    pagination_class = None
+
+    def get_community(self) -> Community:
+        return get_object_or_404(Community, slug=self.kwargs["slug"])
+
+    def get_queryset(self):
+        return self.get_community().flairs.order_by("name")
+
+    def perform_create(self, serializer):
+        community = self.get_community()
+        _require_mod(self.request.user, community)
+        serializer.save(community=community)
+
+
+class FlairDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = FlairSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+    def get_community(self) -> Community:
+        return get_object_or_404(Community, slug=self.kwargs["slug"])
+
+    def get_queryset(self):
+        return self.get_community().flairs.all()
 
     def perform_update(self, serializer):
         _require_mod(self.request.user, self.get_community())

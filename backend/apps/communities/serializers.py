@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Community, CommunityRule, Membership
+from .models import Community, CommunityRule, Flair, Membership
 
 
 class CommunitySerializer(serializers.ModelSerializer):
@@ -46,6 +46,13 @@ class CommunityRuleSerializer(serializers.ModelSerializer):
         model = CommunityRule
         fields = ("id", "order", "short", "description", "created_at")
         read_only_fields = ("id", "created_at")
+
+
+class FlairSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Flair
+        fields = ("id", "name", "color")
+        read_only_fields = ("id",)
 
 
 class MembershipSerializer(serializers.ModelSerializer):

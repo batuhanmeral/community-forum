@@ -5,6 +5,8 @@ from .views import (
     CommunityRuleDetailView,
     CommunityRuleListCreateView,
     CommunityViewSet,
+    FlairDetailView,
+    FlairListCreateView,
 )
 
 router = DefaultRouter()
@@ -20,5 +22,15 @@ urlpatterns = router.urls + [
         "communities/<slug:slug>/rules/<int:pk>/",
         CommunityRuleDetailView.as_view(),
         name="community-rule-detail",
+    ),
+    path(
+        "communities/<slug:slug>/flairs/",
+        FlairListCreateView.as_view(),
+        name="community-flairs",
+    ),
+    path(
+        "communities/<slug:slug>/flairs/<int:pk>/",
+        FlairDetailView.as_view(),
+        name="community-flair-detail",
     ),
 ]
