@@ -11,6 +11,10 @@ psycopg[binary]>=3.2,<4.0
 python-decouple>=3.8,<4.0
 Pillow>=10.4
 
+# ─── Production server & static ───────────────
+gunicorn>=23.0
+whitenoise>=6.7
+
 # ─── Content rendering ────────────────────────
 markdown>=3.7
 nh3>=0.2

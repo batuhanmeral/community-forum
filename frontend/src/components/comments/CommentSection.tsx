@@ -5,7 +5,8 @@ import type { Comment, CommentSort } from '@/features/comments/types';
 import { useAppSelector } from '@/app/hooks';
 import { Card } from '@/components/ui/Card';
 import { CommentForm } from './CommentForm';
-import { CommentNode, buildCommentTree } from './CommentNode';
+import { CommentNode } from './CommentNode';
+import { buildCommentTree } from './tree';
 import { cn } from '@/lib/cn';
 
 interface CommentSectionProps {

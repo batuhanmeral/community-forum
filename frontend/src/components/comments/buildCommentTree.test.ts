@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCommentTree } from './CommentNode';
+import { buildCommentTree } from './tree';
 import type { Comment } from '@/features/comments/types';
 
 function c(id: number, parent: number | null): Comment {

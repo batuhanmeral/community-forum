@@ -18,5 +18,10 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // This codebase intentionally sets loading/reset state synchronously inside
+      // effects; the v7 recommended rule flags that pervasive, deliberate pattern.
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])
