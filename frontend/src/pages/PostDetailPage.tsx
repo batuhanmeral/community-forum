@@ -106,8 +106,28 @@ export function PostDetailPage() {
             c/{post.community}
           </Link>
           <span className="text-[var(--color-text-dim)]">·</span>
+          {post.author_username ? (
+            <Link to={`/u/${post.author_username}`} className="hover:underline">
+              u/{post.author_username}
+            </Link>
+          ) : (
+            <span>u/[deleted]</span>
+          )}
+          <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(post.created_at)}</span>
           {post.edited_at && <span className="italic">(edited)</span>}
+          {post.flair_detail && (
+            <span
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
+              style={{
+                color: post.flair_detail.color,
+                borderColor: `${post.flair_detail.color}44`,
+                background: `${post.flair_detail.color}14`,
+              }}
+            >
+              {post.flair_detail.name}
+            </span>
+          )}
           {post.is_pinned && <Badge tone="accent">Pinned</Badge>}
           {post.is_nsfw && <Badge tone="danger">NSFW</Badge>}
         </div>

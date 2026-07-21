@@ -1,3 +1,5 @@
+import type { Flair } from '@/features/communities/types';
+
 export type PostKind = 'text' | 'link' | 'image' | 'poll';
 
 export interface PollOption {
@@ -20,8 +22,10 @@ export interface Poll {
 export interface Post {
   id: number;
   author: number | null;
+  author_username: string | null;
   community: string;
   flair: number | null;
+  flair_detail: Flair | null;
   kind: PostKind;
   title: string;
   body: string;
@@ -32,6 +36,7 @@ export interface Post {
   is_nsfw: boolean;
   is_pinned: boolean;
   score: number;
+  comment_count: number;
   user_vote: number | null;
   is_saved: boolean;
   poll: Poll | null;

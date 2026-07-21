@@ -51,13 +51,27 @@ const KIND_FILTERS: Array<{ id: KindFilter; label: string }> = [
 
 const NSFW_KEY = 'nexus.nsfwShown';
 
-export function HomePage() {
+export type FeedVariant = 'home' | 'popular' | 'all';
+
+const VARIANT_DEFAULT_SORT: Record<FeedVariant, SortOption> = {
+  home: 'hot',
+  popular: 'top',
+  all: 'new',
+};
+
+export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
   const user = useAppSelector((s) => s.auth.user);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [posts, setPosts] = useState<Post[]>([]);
   const [memberCount, setMemberCount] = useState<number>(0);
   const [feedKind, setFeedKind] = useState<FeedKind>('home');
-  const [sort, setSort] = useState<SortOption>('hot');
+  const [sort, setSort] = useState<SortOption>(VARIANT_DEFAULT_SORT[variant]);
+
+  // Reset feed state when navigating between /, /popular and /all
+  useEffect(() => {
+    setSort(VARIANT_DEFAULT_SORT[variant]);
+    setFeedKind('home');
+  }, [variant]);
   const [kind, setKind] = useState<KindFilter>('all');
   const [nsfwShown, setNsfwShown] = useState<boolean>(() => localStorage.getItem(NSFW_KEY) === '1');
   const [page, setPage] = useState(1);
@@ -75,7 +89,12 @@ export function HomePage() {
     setLoading(true);
     setPage(1);
     const fetcher = feedKind === 'following' ? listFollowingFeed : listFeed;
-    fetcher({ sort, nsfw: nsfwShown ? 'show' : undefined, page: 1 })
+    fetcher({
+      sort,
+      nsfw: nsfwShown ? 'show' : undefined,
+      page: 1,
+      scope: variant !== 'home' ? 'all' : undefined,
+    })
       .then((d) => {
         if (cancelled) return;
         setPosts(d.results);
@@ -88,14 +107,14 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [feedKind, sort, nsfwShown]);
+  }, [feedKind, sort, nsfwShown, variant]);
 
   useEffect(() => {
     if (!isAuthed) {
       setMemberCount(0);
       return;
     }
-    listCommunities({ ordering: '-member_count' })
+    listCommunities({ ordering: '-member_count', page_size: 100 })
       .then((d) => setMemberCount(d.results.filter((c) => c.is_member).length))
       .catch(() => undefined);
   }, [isAuthed]);
@@ -117,7 +136,12 @@ export function HomePage() {
     setLoadingMore(true);
     const fetcher = feedKind === 'following' ? listFollowingFeed : listFeed;
     try {
-      const d = await fetcher({ sort, nsfw: nsfwShown ? 'show' : undefined, page: next });
+      const d = await fetcher({
+        sort,
+        nsfw: nsfwShown ? 'show' : undefined,
+        page: next,
+        scope: variant !== 'home' ? 'all' : undefined,
+      });
       setPosts((p) => [...p, ...d.results]);
       setHasMore(Boolean(d.next));
       setPage(next);
@@ -131,17 +155,27 @@ export function HomePage() {
       {/* Feed header */}
       <div className="mb-[18px] flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
-          <span>{feedKind === 'following' ? 'Following' : isAuthed ? 'Your feed' : 'Popular feed'}</span>
+          <span>
+            {variant === 'popular'
+              ? 'Popular'
+              : variant === 'all'
+                ? 'All posts'
+                : feedKind === 'following'
+                  ? 'Following'
+                  : isAuthed
+                    ? 'Your feed'
+                    : 'Popular feed'}
+          </span>
           <span className="font-mono text-[14px] font-normal text-[var(--color-text-dim)]">
-            / {feedKind}
-            {isAuthed && feedKind === 'home' && memberCount > 0
+            / {variant === 'home' ? feedKind : variant}
+            {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0
               ? ` · ${memberCount} ${memberCount === 1 ? 'community' : 'communities'}`
               : ''}
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {isAuthed && (
+          {isAuthed && variant === 'home' && (
             <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
               {(['home', 'following'] as FeedKind[]).map((k) => (
                 <button
@@ -242,19 +276,19 @@ export function HomePage() {
             What's on your mind{user ? `, ${user.username}` : ''}?
           </div>
           <div className="flex gap-1">
-            <ComposeTool title="Image">
+            <ComposeTool title="Image" kind="image">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
                 <rect x="3" y="5" width="18" height="14" rx="2" />
                 <circle cx="9" cy="10" r="1.5" />
                 <path d="M21 16l-5-5-9 8" />
               </svg>
             </ComposeTool>
-            <ComposeTool title="Link">
+            <ComposeTool title="Link" kind="link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
                 <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11 7M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7L13 17" />
               </svg>
             </ComposeTool>
-            <ComposeTool title="Poll">
+            <ComposeTool title="Poll" kind="poll">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
                 <rect x="3" y="11" width="4" height="9" rx="1" />
                 <rect x="10" y="6" width="4" height="14" rx="1" />
@@ -267,9 +301,9 @@ export function HomePage() {
 
       {/* Posts */}
       {loading ? (
-        <div className="flex flex-col gap-3.5">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-32 animate-pulse rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)]" />
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-1)]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -278,7 +312,7 @@ export function HomePage() {
             feedKind === 'following' ? (
               <>
                 You aren't following anyone yet.{' '}
-                <Link to="/explore" className="text-[var(--color-accent)] hover:underline">
+                <Link to="/search?type=user" className="text-[var(--color-accent)] hover:underline">
                   Discover users →
                 </Link>
               </>
@@ -316,15 +350,14 @@ export function HomePage() {
   );
 }
 
-function ComposeTool({ title, children }: { title: string; children: React.ReactNode }) {
+function ComposeTool({ title, kind, children }: { title: string; kind: string; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
+    <Link
+      to={`/submit?kind=${kind}`}
       title={title}
-      onClick={(e) => e.preventDefault()}
       className="grid h-9 w-9 place-items-center rounded-[10px] text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-accent)]"
     >
       {children}
-    </button>
+    </Link>
   );
 }

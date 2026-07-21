@@ -26,7 +26,7 @@ export function HomeRightSidebar() {
     <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col gap-3.5 overflow-y-auto pb-10 pl-1 pt-5 lg:flex">
       {/* Trending */}
       <Card>
-        <CardHead title={<><span className="live-dot" /> Trending now</>} more="/explore" />
+        <CardHead title={<><span className="live-dot" /> Trending now</>} more="/popular" />
         {trendPosts.length === 0 ? (
           <p className="px-4 py-2.5 text-[12.5px] text-[var(--color-text-muted)]">No trending posts yet.</p>
         ) : (
@@ -83,11 +83,6 @@ export function HomeRightSidebar() {
 
       {/* Footer */}
       <div className="px-3 pt-1 text-[10.5px] leading-[1.6] text-[var(--color-text-dim)]">
-        <a href="#" className="mr-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">About</a>
-        <a href="#" className="mr-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Help</a>
-        <a href="#" className="mr-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Terms</a>
-        <a href="#" className="mr-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Privacy</a>
-        <a href="#" className="mr-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">API</a>
         <div className="font-mono mt-1.5 text-[10px]">© 2026 Nexus Forum · v0.1.0</div>
       </div>
 

@@ -16,12 +16,6 @@ const homeIcon = (
     <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z" />
   </svg>
 );
-const compassIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M16 8l-2 6-6 2 2-6z" />
-  </svg>
-);
 const trendIcon = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 17l6-6 4 4 8-9M14 6h7v7" />
@@ -38,21 +32,10 @@ const bookmarkIcon = (
     <path d="M6 4h12v17l-6-4-6 4z" />
   </svg>
 );
-const clockIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </svg>
-);
 const settingsIcon = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
     <circle cx="12" cy="12" r="9" />
-  </svg>
-);
-const sparkleIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3v6m0 6v6M3 12h6m6 0h6M6 6l4 4m4 4l4 4M18 6l-4 4m-4 4l-4 4" />
   </svg>
 );
 const plusIcon = (
@@ -63,14 +46,12 @@ const plusIcon = (
 
 const navItems: NavItem[] = [
   { to: '/', label: 'Home', icon: homeIcon },
-  { to: '/explore', label: 'Explore', icon: compassIcon },
   { to: '/popular', label: 'Popular', icon: trendIcon },
   { to: '/all', label: 'All', icon: globeIcon },
 ];
 
 const personalItems: NavItem[] = [
   { to: '/saved', label: 'Saved', icon: bookmarkIcon },
-  { to: '/history', label: 'History', icon: clockIcon },
 ];
 
 export function Sidebar() {
@@ -119,7 +100,6 @@ export function Sidebar() {
 
       <SidebarSection title="Resources">
         <SidebarItem to="/settings" label="Settings" icon={settingsIcon} />
-        <SidebarItem to="/whats-new" label="What's new" icon={sparkleIcon} suffix={<span className="font-mono text-[11px] text-[var(--color-accent)]">v0.1</span>} />
       </SidebarSection>
 
       {!isAuthed && (

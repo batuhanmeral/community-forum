@@ -25,9 +25,8 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'popular', element: <HomePage /> },
-      { path: 'explore', element: <HomePage /> },
-      { path: 'all', element: <HomePage /> },
+      { path: 'popular', element: <HomePage variant="popular" /> },
+      { path: 'all', element: <HomePage variant="all" /> },
       { path: 'c', element: <CommunityListPage /> },
       { path: 'c/:slug', element: <CommunityDetailPage /> },
       { path: 'posts/:id', element: <PostDetailPage /> },
