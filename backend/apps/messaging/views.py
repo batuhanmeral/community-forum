@@ -59,9 +59,15 @@ class MessageListCreateView(_ConversationScopedView, generics.ListCreateAPIView)
         )
 
     def perform_create(self, serializer):
+        from rest_framework.exceptions import PermissionDenied
+
+        from apps.social.models import is_blocked_between
+
         conv = self.get_conversation()
-        msg = serializer.save(sender=self.request.user, conversation=conv)
         recipient = conv.participant_b if conv.participant_a_id == self.request.user.id else conv.participant_a
+        if is_blocked_between(self.request.user, recipient):
+            raise PermissionDenied("You cannot message this user.")
+        msg = serializer.save(sender=self.request.user, conversation=conv)
         notify(recipient, actor=self.request.user, verb="dm", target=msg)
 
 

@@ -75,6 +75,10 @@ class ConversationCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("User not found.") from exc
         if other.id == request.user.id:
             raise serializers.ValidationError("Cannot start a conversation with yourself.")
+        from apps.social.models import is_blocked_between
+
+        if is_blocked_between(request.user, other):
+            raise serializers.ValidationError("You cannot message this user.")
         self._other = other
         return value
 

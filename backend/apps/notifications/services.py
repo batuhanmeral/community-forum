@@ -28,6 +28,12 @@ def _suppressed_by_notify_level(recipient, community, verb: str) -> bool:
     return False
 
 
+def _recipient_blocked_actor(recipient, actor) -> bool:
+    from apps.social.models import Block
+
+    return Block.objects.filter(blocker=recipient, blocked=actor).exists()
+
+
 def notify(
     recipient,
     *,
@@ -40,6 +46,8 @@ def notify(
     if recipient is None:
         return None
     if actor is not None and getattr(actor, "id", None) == getattr(recipient, "id", None):
+        return None
+    if actor is not None and _recipient_blocked_actor(recipient, actor):
         return None
     if _suppressed_by_notify_level(recipient, community, verb):
         return None
