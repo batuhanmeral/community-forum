@@ -57,7 +57,11 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
         return self._post
 
     def get_queryset(self):
-        qs = _annotate_score(Comment.objects.filter(post=self.get_post())).select_related("author")
+        qs = (
+            _annotate_score(Comment.objects.filter(post=self.get_post()))
+            .select_related("author")
+            .prefetch_related("votes", "saves")
+        )
         sort = self.request.query_params.get("sort", "best")
         return _apply_comment_sort(qs, sort)
 
@@ -90,15 +94,20 @@ class UserCommentListView(generics.ListAPIView):
 
     def get_queryset(self):
         author = get_object_or_404(User, username__iexact=self.kwargs["username"])
-        return _annotate_score(
-            Comment.objects.filter(author=author, deleted_at__isnull=True)
-        ).select_related("author").order_by("-created_at")
+        return (
+            _annotate_score(Comment.objects.filter(author=author, deleted_at__isnull=True))
+            .select_related("author")
+            .prefetch_related("votes", "saves")
+            .order_by("-created_at")
+        )
 
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
-    queryset = _annotate_score(Comment.objects.select_related("author"))
+    queryset = _annotate_score(
+        Comment.objects.select_related("author").prefetch_related("votes", "saves")
+    )
 
     def perform_update(self, serializer):
         instance = self.get_object()

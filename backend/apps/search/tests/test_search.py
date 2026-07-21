@@ -104,3 +104,49 @@ class TestSearchUsers:
     def test_user_results_hide_email(self, api, alice):
         resp = api.get(SEARCH, {"q": "alice", "type": "user"})
         assert "email" not in resp.data["results"][0]
+
+
+@pytest.mark.django_db
+class TestSearchLeaks:
+    def _ids(self, api, q="pythonic"):
+        return [p["id"] for p in api.get(SEARCH, {"q": q, "type": "post"}).data["results"]]
+
+    def test_deleted_posts_hidden(self, api, alice, community):
+        from django.utils import timezone
+
+        post = Post.objects.create(
+            author=alice, community=community, kind="text", title="Pythonic secrets"
+        )
+        assert post.id in self._ids(api)
+        post.deleted_at = timezone.now()
+        post.deleted_by = alice
+        post.save()
+        assert post.id not in self._ids(api)
+
+    def test_unapproved_posts_hidden(self, api, alice, community):
+        post = Post.objects.create(
+            author=alice,
+            community=community,
+            kind="text",
+            title="Pythonic pending",
+            is_approved=False,
+        )
+        assert post.id not in self._ids(api)
+
+    def test_nsfw_hidden_for_anonymous(self, api, alice, community):
+        post = Post.objects.create(
+            author=alice,
+            community=community,
+            kind="text",
+            title="Pythonic nsfw",
+            is_nsfw=True,
+        )
+        assert post.id not in self._ids(api)
+        api.force_authenticate(alice)
+        ids = [
+            p["id"]
+            for p in api.get(SEARCH, {"q": "pythonic", "type": "post", "nsfw": "show"}).data[
+                "results"
+            ]
+        ]
+        assert post.id in ids

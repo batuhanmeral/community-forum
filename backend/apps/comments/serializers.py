@@ -69,7 +69,7 @@ class CommentSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return False
-        return obj.saves.filter(user=request.user).exists()
+        return any(s.user_id == request.user.id for s in obj.saves.all())
 
     def get_user_vote(self, obj: Comment) -> int | None:
         request = self.context.get("request")

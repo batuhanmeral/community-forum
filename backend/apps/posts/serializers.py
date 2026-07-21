@@ -2,6 +2,7 @@ from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 
 from apps.common.markdown import render_markdown
+from apps.communities.serializers import FlairSerializer
 from apps.polls.serializers import PollCreateInputSerializer, PollSerializer
 
 from .models import Post, PostRevision
@@ -22,8 +23,11 @@ def _mask_body(obj) -> str:
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
+    author_username = serializers.SerializerMethodField()
     community = serializers.SlugRelatedField(read_only=True, slug_field="slug")
+    flair_detail = FlairSerializer(source="flair", read_only=True)
     score = serializers.IntegerField(read_only=True, default=0)
+    comment_count = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
     body = serializers.SerializerMethodField()
@@ -38,8 +42,10 @@ class PostSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "author",
+            "author_username",
             "community",
             "flair",
+            "flair_detail",
             "kind",
             "title",
             "body",
@@ -50,6 +56,7 @@ class PostSerializer(serializers.ModelSerializer):
             "is_nsfw",
             "is_pinned",
             "score",
+            "comment_count",
             "user_vote",
             "is_saved",
             "poll",
@@ -63,6 +70,9 @@ class PostSerializer(serializers.ModelSerializer):
         if obj.deleted_at is not None:
             return None
         return obj.author_id
+
+    def get_author_username(self, obj: Post):
+        return None if obj.deleted_at is not None else obj.author.username
 
     def get_body(self, obj: Post) -> str:
         return _mask_body(obj)
@@ -78,7 +88,7 @@ class PostSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return False
-        return obj.saves.filter(user=request.user).exists()
+        return any(s.user_id == request.user.id for s in obj.saves.all())
 
     def get_poll(self, obj: Post):
         poll = getattr(obj, "poll", None)

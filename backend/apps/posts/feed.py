@@ -2,7 +2,7 @@ from rest_framework import generics, permissions
 
 from .models import Post
 from .serializers import PostSerializer
-from .views import _annotate_score, _apply_sort, _apply_time_window
+from .views import _annotate_score, _apply_sort, _apply_time_window, _base_post_qs
 
 
 def _apply_nsfw_filter(qs, request):
@@ -19,12 +19,13 @@ class FeedView(generics.ListAPIView):
 
     def get_queryset(self):
         request = self.request
-        if request.user.is_authenticated:
+        scope = request.query_params.get("scope")
+        if request.user.is_authenticated and scope != "all":
             qs = Post.objects.filter(community__memberships__user=request.user).distinct()
         else:
             qs = Post.objects.all()
-        qs = qs.filter(is_approved=True)
-        qs = _annotate_score(qs)
+        qs = qs.filter(is_approved=True, deleted_at__isnull=True)
+        qs = _annotate_score(_base_post_qs(qs))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new" if request.user.is_authenticated else "top")
         if sort == "top":
@@ -41,9 +42,11 @@ class FollowingFeedView(generics.ListAPIView):
     def get_queryset(self):
         request = self.request
         qs = Post.objects.filter(
-            author__followers__follower=request.user, is_approved=True
+            author__followers__follower=request.user,
+            is_approved=True,
+            deleted_at__isnull=True,
         ).distinct()
-        qs = _annotate_score(qs)
+        qs = _annotate_score(_base_post_qs(qs))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new")
         if sort == "top":

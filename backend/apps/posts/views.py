@@ -1,7 +1,15 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import ExpressionWrapper, FloatField, Sum
+from django.db.models import (
+    Count,
+    ExpressionWrapper,
+    FloatField,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    Sum,
+)
 from django.db.models.expressions import RawSQL
 from django.db.models.functions import Coalesce, Extract
 from django.shortcuts import get_object_or_404
@@ -38,7 +46,31 @@ TIME_WINDOWS = {
 
 
 def _annotate_score(qs):
-    return qs.annotate(score=Coalesce(Sum("votes__value"), 0))
+    from apps.comments.models import Comment
+
+    # comment_count as a subquery: a join here would inflate Sum("votes__value").
+    comment_count_sq = (
+        Comment.objects.filter(post=OuterRef("pk"))
+        .order_by()
+        .values("post")
+        .annotate(c=Count("pk"))
+        .values("c")
+    )
+    return qs.annotate(
+        score=Coalesce(Sum("votes__value"), 0),
+        comment_count=Coalesce(
+            Subquery(comment_count_sq, output_field=IntegerField()), 0
+        ),
+    )
+
+
+def _base_post_qs(qs=None):
+    """Common relations every PostSerializer render needs (avoids N+1)."""
+    if qs is None:
+        qs = Post.objects.all()
+    return qs.select_related("author", "community", "flair", "poll").prefetch_related(
+        "votes", "saves", "poll__options"
+    )
 
 
 def _apply_time_window(qs, t: str | None):
@@ -97,7 +129,13 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = _annotate_score(
-            Post.objects.filter(community=self.get_community(), is_approved=True)
+            _base_post_qs(
+                Post.objects.filter(
+                    community=self.get_community(),
+                    is_approved=True,
+                    deleted_at__isnull=True,
+                )
+            )
         )
         sort = self.request.query_params.get("sort", "new")
         if sort == "top":
@@ -132,7 +170,11 @@ class UserPostListView(generics.ListAPIView):
     def get_queryset(self):
         author = get_object_or_404(User, username__iexact=self.kwargs["username"])
         qs = _annotate_score(
-            Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True)
+            _base_post_qs(
+                Post.objects.filter(
+                    author=author, is_approved=True, deleted_at__isnull=True
+                )
+            )
         )
         return _apply_sort(qs, self.request.query_params.get("sort", "new"))
 
@@ -141,7 +183,7 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
-    queryset = _annotate_score(Post.objects.all())
+    queryset = _annotate_score(_base_post_qs())
 
     def perform_destroy(self, instance):
         if instance.deleted_at is not None:
@@ -230,7 +272,7 @@ class ApprovalQueueView(generics.ListAPIView):
         if not is_moderator(self.request.user, community):
             raise PermissionDenied("Moderator role required.")
         return _annotate_score(
-            Post.objects.filter(community=community, is_approved=False)
+            _base_post_qs(Post.objects.filter(community=community, is_approved=False))
         ).order_by("created_at")
 
 

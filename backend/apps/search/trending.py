@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Count, OuterRef, Q, Subquery, Sum
+from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -61,9 +61,16 @@ class TrendingPostsView(ListAPIView):
     permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
+        from apps.posts.views import _annotate_score, _base_post_qs
+
         since = _since()
-        return (
-            Post.objects.filter(created_at__gte=since, is_nsfw=False)
-            .annotate(score=Coalesce(Sum("votes__value"), 0))
-            .order_by("-score", "-created_at")[:20]
-        )
+        return _annotate_score(
+            _base_post_qs(
+                Post.objects.filter(
+                    created_at__gte=since,
+                    is_nsfw=False,
+                    is_approved=True,
+                    deleted_at__isnull=True,
+                )
+            )
+        ).order_by("-score", "-created_at")[:20]
