@@ -3,8 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { createPost } from '@/api/posts';
 import type { PostKind } from '@/features/posts/types';
-import { getCommunity, listCommunities } from '@/api/communities';
-import type { Community } from '@/features/communities/types';
+import { getCommunity, listCommunities, listFlairs } from '@/api/communities';
+import type { Community, Flair } from '@/features/communities/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -61,9 +61,15 @@ export function PostCreatePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  const kindParam = searchParams.get('kind');
+  const isValidKind = (k: string | null): k is PostKind =>
+    k === 'text' || k === 'link' || k === 'image' || k === 'poll';
+
   const [communities, setCommunities] = useState<Community[]>([]);
   const [communitySlug, setCommunitySlug] = useState(params.slug ?? searchParams.get('c') ?? '');
-  const [kind, setKind] = useState<PostKind>('text');
+  const [kind, setKind] = useState<PostKind>(isValidKind(kindParam) ? kindParam : 'text');
+  const [flairs, setFlairs] = useState<Flair[]>([]);
+  const [flairId, setFlairId] = useState<number | ''>('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [url, setUrl] = useState('');
@@ -86,6 +92,17 @@ export function PostCreatePage() {
         .catch(() => undefined);
     }
   }, [params.slug]);
+
+  useEffect(() => {
+    setFlairId('');
+    if (!communitySlug) {
+      setFlairs([]);
+      return;
+    }
+    listFlairs(communitySlug)
+      .then(setFlairs)
+      .catch(() => setFlairs([]));
+  }, [communitySlug]);
 
   useEffect(() => {
     if (!image) {
@@ -113,6 +130,7 @@ export function PostCreatePage() {
         url: kind === 'link' ? url.trim() : undefined,
         image: kind === 'image' ? image : null,
         is_nsfw: isNsfw,
+        flair: flairId === '' ? null : flairId,
         poll_options: kind === 'poll' ? pollOptions : undefined,
         poll_closes_at: kind === 'poll' ? new Date(pollClosesAt).toISOString() : undefined,
       });
@@ -307,6 +325,34 @@ export function PostCreatePage() {
               {errors.poll_input && (
                 <p className="text-xs text-[var(--color-danger)]">{errors.poll_input}</p>
               )}
+            </div>
+          )}
+
+          {flairs.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+                Flair (optional)
+              </label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {flairs.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFlairId(flairId === f.id ? '' : f.id)}
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium transition',
+                      flairId === f.id ? 'ring-2 ring-[var(--color-accent)]/40' : 'opacity-75 hover:opacity-100',
+                    )}
+                    style={{
+                      color: f.color,
+                      borderColor: `${f.color}44`,
+                      background: `${f.color}14`,
+                    }}
+                  >
+                    {f.name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

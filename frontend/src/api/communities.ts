@@ -2,6 +2,7 @@ import { api } from './client';
 import type {
   Community,
   CommunityRule,
+  Flair,
   Membership,
   NotifyLevel,
   Paginated,
@@ -10,6 +11,7 @@ import type {
 export interface ListParams {
   search?: string;
   page?: number;
+  page_size?: number;
   ordering?: string;
 }
 
@@ -77,4 +79,18 @@ export async function listRules(slug: string): Promise<CommunityRule[]> {
     `/communities/${slug}/rules/`,
   );
   return Array.isArray(res.data) ? res.data : res.data.results;
+}
+
+export async function listFlairs(slug: string): Promise<Flair[]> {
+  const res = await api.get<Flair[]>(`/communities/${slug}/flairs/`);
+  return res.data;
+}
+
+export async function createFlair(slug: string, name: string, color: string): Promise<Flair> {
+  const res = await api.post<Flair>(`/communities/${slug}/flairs/`, { name, color });
+  return res.data;
+}
+
+export async function deleteFlair(slug: string, id: number): Promise<void> {
+  await api.delete(`/communities/${slug}/flairs/${id}/`);
 }

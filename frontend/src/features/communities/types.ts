@@ -33,6 +33,12 @@ export interface CommunityRule {
   created_at: string;
 }
 
+export interface Flair {
+  id: number;
+  name: string;
+  color: string;
+}
+
 export interface Paginated<T> {
   count: number;
   next: string | null;

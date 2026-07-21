@@ -10,6 +10,7 @@ export interface ListPostsParams {
   t?: TimeWindow;
   nsfw?: 'show';
   page?: number;
+  scope?: 'all';
 }
 
 export async function listCommunityPosts(
@@ -42,6 +43,7 @@ export interface CreatePostPayload {
   url?: string;
   image?: File | null;
   is_nsfw?: boolean;
+  flair?: number | null;
   poll_options?: string[];
   poll_closes_at?: string;
 }
@@ -53,6 +55,7 @@ export async function createPost(slug: string, payload: CreatePostPayload): Prom
     form.append('title', payload.title);
     if (payload.body) form.append('body', payload.body);
     if (payload.is_nsfw) form.append('is_nsfw', 'true');
+    if (payload.flair) form.append('flair', String(payload.flair));
     form.append('image', payload.image);
     const res = await api.post<Post>(`/communities/${slug}/posts/`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -65,6 +68,7 @@ export async function createPost(slug: string, payload: CreatePostPayload): Prom
     body: payload.body ?? '',
     is_nsfw: payload.is_nsfw ?? false,
   };
+  if (payload.flair) body.flair = payload.flair;
   if (payload.kind === 'link') body.url = payload.url ?? '';
   if (payload.kind === 'poll' && payload.poll_options && payload.poll_closes_at) {
     body.poll_input = {

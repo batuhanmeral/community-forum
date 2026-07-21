@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getCommunity } from '@/api/communities';
+import { createFlair, deleteFlair, getCommunity, listFlairs } from '@/api/communities';
+import type { Flair } from '@/features/communities/types';
 import {
   banUser,
   dismissReport,
@@ -76,6 +77,7 @@ export function ModPage() {
       </div>
 
       <ReportQueue slug={community.slug} />
+      <FlairCard slug={community.slug} />
       <BanUserCard slug={community.slug} />
       {isAdmin && <RoleCard slug={community.slug} />}
     </div>
@@ -195,6 +197,103 @@ function ReportQueue({ slug }: { slug: string }) {
           ))
         )}
       </div>
+    </Card>
+  );
+}
+
+function FlairCard({ slug }: { slug: string }) {
+  const [flairs, setFlairs] = useState<Flair[]>([]);
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#61dafb');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listFlairs(slug)
+      .then(setFlairs)
+      .catch(() => setFlairs([]));
+  }, [slug]);
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault();
+    const n = name.trim();
+    if (!n || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const flair = await createFlair(slug, n, color);
+      setFlairs((arr) => [...arr, flair]);
+      setName('');
+    } catch (err) {
+      const data = (err as { response?: { data?: Record<string, string[] | string> } })?.response
+        ?.data;
+      const first = data && Object.values(data)[0];
+      setError(Array.isArray(first) ? first[0] : (first ?? 'Could not create flair.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    try {
+      await deleteFlair(slug, id);
+      setFlairs((arr) => arr.filter((f) => f.id !== id));
+    } catch {
+      // keep the list as-is; a failed delete just leaves the flair visible
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="text-base font-semibold tracking-tight">Post flairs</h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+        Flairs help members categorize their posts.
+      </p>
+      {flairs.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {flairs.map((f) => (
+            <span
+              key={f.id}
+              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium"
+              style={{ color: f.color, borderColor: `${f.color}44`, background: `${f.color}14` }}
+            >
+              {f.name}
+              <button
+                type="button"
+                onClick={() => handleDelete(f.id)}
+                aria-label={`Delete flair ${f.name}`}
+                className="opacity-60 transition hover:opacity-100"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
+                  <path d="M6 6l12 12M6 18 18 6" />
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <form onSubmit={handleCreate} className="mt-3 flex flex-wrap items-end gap-2">
+        <div className="min-w-[180px] flex-1">
+          <Input
+            name="flair-name"
+            placeholder="Flair name"
+            value={name}
+            maxLength={50}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => setColor(e.target.value)}
+          aria-label="Flair color"
+          className="h-10 w-12 cursor-pointer rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1"
+        />
+        <Button type="submit" loading={busy} disabled={!name.trim()}>
+          Add flair
+        </Button>
+      </form>
+      {error && <p className="mt-2 text-sm text-[var(--color-danger)]">{error}</p>}
     </Card>
   );
 }
