@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listFeed, listFollowingFeed, type SortOption } from '@/api/posts';
 import { listCommunities } from '@/api/communities';
+import { updatePreferences } from '@/api/users';
 import type { Post } from '@/features/posts/types';
-import { useAppSelector } from '@/app/hooks';
+import { setUser } from '@/features/auth/authSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { PostCard } from '@/components/posts/PostCard';
 import { cn } from '@/lib/cn';
@@ -49,8 +51,6 @@ const KIND_FILTERS: Array<{ id: KindFilter; label: string }> = [
   { id: 'poll', label: 'Polls' },
 ];
 
-const NSFW_KEY = 'nexus.nsfwShown';
-
 export type FeedVariant = 'home' | 'popular' | 'all';
 
 const VARIANT_DEFAULT_SORT: Record<FeedVariant, SortOption> = {
@@ -62,6 +62,7 @@ const VARIANT_DEFAULT_SORT: Record<FeedVariant, SortOption> = {
 export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
   const user = useAppSelector((s) => s.auth.user);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
+  const dispatch = useAppDispatch();
   const [posts, setPosts] = useState<Post[]>([]);
   const [memberCount, setMemberCount] = useState<number>(0);
   const [feedKind, setFeedKind] = useState<FeedKind>('home');
@@ -73,15 +74,25 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     setFeedKind('home');
   }, [variant]);
   const [kind, setKind] = useState<KindFilter>('all');
-  const [nsfwShown, setNsfwShown] = useState<boolean>(() => localStorage.getItem(NSFW_KEY) === '1');
+  const [nsfwBusy, setNsfwBusy] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem(NSFW_KEY, nsfwShown ? '1' : '0');
-  }, [nsfwShown]);
+  // Server-stored preference; anon users never see NSFW (enforced server-side).
+  const nsfwShown = user?.show_nsfw ?? false;
+
+  async function toggleNsfw() {
+    if (!user || nsfwBusy) return;
+    setNsfwBusy(true);
+    try {
+      const updated = await updatePreferences({ show_nsfw: !nsfwShown });
+      dispatch(setUser(updated));
+    } finally {
+      setNsfwBusy(false);
+    }
+  }
 
   // Reset and load page 1 when filters change
   useEffect(() => {
@@ -91,7 +102,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     const fetcher = feedKind === 'following' ? listFollowingFeed : listFeed;
     fetcher({
       sort,
-      nsfw: nsfwShown ? 'show' : undefined,
+      nsfw: isAuthed ? (nsfwShown ? 'show' : 'hide') : undefined,
       page: 1,
       scope: variant !== 'home' ? 'all' : undefined,
     })
@@ -107,7 +118,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     return () => {
       cancelled = true;
     };
-  }, [feedKind, sort, nsfwShown, variant]);
+  }, [feedKind, sort, nsfwShown, variant, isAuthed]);
 
   useEffect(() => {
     if (!isAuthed) {
@@ -138,7 +149,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     try {
       const d = await fetcher({
         sort,
-        nsfw: nsfwShown ? 'show' : undefined,
+        nsfw: isAuthed ? (nsfwShown ? 'show' : 'hide') : undefined,
         page: next,
         scope: variant !== 'home' ? 'all' : undefined,
       });
@@ -236,9 +247,11 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
         ))}
 
         <div className="ml-auto pr-1">
+          {isAuthed && (
           <button
             type="button"
-            onClick={() => setNsfwShown((v) => !v)}
+            onClick={toggleNsfw}
+            disabled={nsfwBusy}
             title={nsfwShown ? 'Hide NSFW' : 'Show NSFW'}
             className={cn(
               'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-[7px] text-[12px] font-medium transition',
@@ -262,6 +275,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             </span>
             NSFW
           </button>
+          )}
         </div>
       </div>
 

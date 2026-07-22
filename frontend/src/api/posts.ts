@@ -8,7 +8,7 @@ export type TimeWindow = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
 export interface ListPostsParams {
   sort?: SortOption;
   t?: TimeWindow;
-  nsfw?: 'show';
+  nsfw?: 'show' | 'hide';
   page?: number;
   scope?: 'all';
 }

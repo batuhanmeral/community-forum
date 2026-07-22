@@ -16,6 +16,7 @@ export interface UserProfile {
   followers_count: number;
   following_count: number;
   is_following: boolean;
+  is_blocked: boolean;
   date_joined: string;
 }
 
@@ -55,4 +56,20 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<User
   }
   const res = await api.patch<User>('/users/me/', { bio: payload.bio ?? '' });
   return res.data;
+}
+
+export async function updatePreferences(payload: { show_nsfw: boolean }): Promise<User> {
+  const res = await api.patch<User>('/users/me/', payload);
+  return res.data;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await api.post('/users/me/password/', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+}
+
+export async function deactivateAccount(): Promise<void> {
+  await api.delete('/users/me/');
 }

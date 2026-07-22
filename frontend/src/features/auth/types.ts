@@ -4,6 +4,7 @@ export interface User {
   email: string;
   avatar: string | null;
   bio: string;
+  show_nsfw: boolean;
   post_karma: number;
   comment_karma: number;
 }

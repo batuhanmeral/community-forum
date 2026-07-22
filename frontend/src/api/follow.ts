@@ -25,3 +25,16 @@ export async function listFollowing(username: string, page = 1): Promise<Paginat
   const res = await api.get<Paginated<FollowUser>>(`/users/${username}/following/`, { params: { page } });
   return res.data;
 }
+
+export async function blockUser(username: string): Promise<void> {
+  await api.post(`/users/${username}/block/`);
+}
+
+export async function unblockUser(username: string): Promise<void> {
+  await api.delete(`/users/${username}/block/`);
+}
+
+export async function listBlocked(page = 1): Promise<Paginated<FollowUser>> {
+  const res = await api.get<Paginated<FollowUser>>('/users/me/blocked/', { params: { page } });
+  return res.data;
+}

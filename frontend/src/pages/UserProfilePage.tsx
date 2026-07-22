@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { PostCard } from '@/components/posts/PostCard';
+import { blockUser, unblockUser } from '@/api/follow';
 import { FollowButton } from '@/components/follow/FollowButton';
 import { FollowListModal } from '@/components/follow/FollowListModal';
 import { ReportModal } from '@/components/moderation/ReportModal';
@@ -30,8 +31,35 @@ export function UserProfilePage() {
   const [listMode, setListMode] = useState<'followers' | 'following' | null>(null);
   const [reporting, setReporting] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
   const myUsername = useAppSelector((s) => s.auth.user?.username);
   const isOwnProfile = Boolean(myUsername) && myUsername === profile?.username;
+
+  async function handleBlockToggle() {
+    if (!profile || blockBusy) return;
+    setBlockBusy(true);
+    try {
+      if (profile.is_blocked) {
+        await unblockUser(profile.username);
+        setProfile((p) => (p ? { ...p, is_blocked: false } : p));
+      } else {
+        await blockUser(profile.username);
+        // Blocking severs follows in both directions server-side.
+        setProfile((p) =>
+          p
+            ? {
+                ...p,
+                is_blocked: true,
+                is_following: false,
+                followers_count: p.followers_count - (p.is_following ? 1 : 0),
+              }
+            : p,
+        );
+      }
+    } finally {
+      setBlockBusy(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -84,21 +112,33 @@ export function UserProfilePage() {
                   </Button>
                 ) : (
                   <>
-                    <FollowButton
-                      username={profile.username}
-                      initialFollowing={profile.is_following}
-                      onChange={(following) =>
-                        setProfile((p) =>
-                          p
-                            ? {
-                                ...p,
-                                is_following: following,
-                                followers_count: p.followers_count + (following ? 1 : -1),
-                              }
-                            : p,
-                        )
-                      }
-                    />
+                    {!profile.is_blocked && (
+                      <FollowButton
+                        username={profile.username}
+                        initialFollowing={profile.is_following}
+                        onChange={(following) =>
+                          setProfile((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  is_following: following,
+                                  followers_count: p.followers_count + (following ? 1 : -1),
+                                }
+                              : p,
+                          )
+                        }
+                      />
+                    )}
+                    {myUsername && (
+                      <Button
+                        variant={profile.is_blocked ? 'secondary' : 'ghost'}
+                        size="sm"
+                        loading={blockBusy}
+                        onClick={handleBlockToggle}
+                      >
+                        {profile.is_blocked ? 'Unblock' : 'Block'}
+                      </Button>
+                    )}
                     {myUsername && (
                       <button
                         type="button"

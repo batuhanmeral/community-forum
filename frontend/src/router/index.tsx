@@ -14,6 +14,7 @@ import { MessagesPage } from '@/pages/MessagesPage';
 import { InboxPage } from '@/pages/InboxPage';
 import { SavedPage } from '@/pages/SavedPage';
 import { SearchPage } from '@/pages/SearchPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { ModPage } from '@/pages/ModPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
@@ -43,7 +44,7 @@ export const router = createBrowserRouter([
           { path: 'messages/:id', element: <MessagesPage /> },
           { path: 'inbox', element: <InboxPage /> },
           { path: 'saved', element: <SavedPage /> },
-          { path: 'settings', element: <div className="p-4">Settings (coming soon)</div> },
+          { path: 'settings', element: <SettingsPage /> },
         ],
       },
       { path: '*', element: <NotFoundPage /> },
