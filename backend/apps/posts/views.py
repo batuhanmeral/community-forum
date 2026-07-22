@@ -11,7 +11,7 @@ from django.db.models import (
     Sum,
 )
 from django.db.models.expressions import RawSQL
-from django.db.models.functions import Coalesce, Extract
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status

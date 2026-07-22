@@ -81,3 +81,7 @@ class PostRevision(models.Model):
     class Meta:
         ordering = ("-edited_at",)
         indexes = [models.Index(fields=("post", "-edited_at"))]
+
+    def __str__(self) -> str:
+        return f"rev of post {self.post_id} @ {self.edited_at:%Y-%m-%d %H:%M}"
+

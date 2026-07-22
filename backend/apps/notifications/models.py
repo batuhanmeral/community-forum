@@ -40,3 +40,7 @@ class Notification(models.Model):
         indexes = [
             models.Index(fields=("recipient", "read_at")),
         ]
+
+    def __str__(self) -> str:
+        return f"{self.verb} → {self.recipient_id}"
+

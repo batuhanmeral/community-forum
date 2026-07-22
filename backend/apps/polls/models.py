@@ -20,6 +20,10 @@ class PollOption(models.Model):
     class Meta:
         ordering = ("order", "id")
 
+    def __str__(self) -> str:
+        return self.text
+
+
 
 class PollVote(models.Model):
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="votes")
@@ -33,3 +37,7 @@ class PollVote(models.Model):
 
     class Meta:
         unique_together = ("poll", "user")
+
+    def __str__(self) -> str:
+        return f"user {self.user_id} → option {self.option_id}"
+

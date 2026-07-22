@@ -62,3 +62,7 @@ class CommentRevision(models.Model):
     class Meta:
         ordering = ("-edited_at",)
         indexes = [models.Index(fields=("comment", "-edited_at"))]
+
+    def __str__(self) -> str:
+        return f"rev of comment {self.comment_id} @ {self.edited_at:%Y-%m-%d %H:%M}"
+

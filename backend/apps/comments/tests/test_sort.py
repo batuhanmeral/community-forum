@@ -80,7 +80,7 @@ class TestCommentSort:
         assert ids.index(balanced.id) < ids.index(winner.id)
 
     def test_best_default(self, api, alice, bob, post):
-        a = Comment.objects.create(post=post, author=alice, body="a")
+        Comment.objects.create(post=post, author=alice, body="a")
         b = Comment.objects.create(post=post, author=alice, body="b")
         _vote(bob, b, 1)
         resp = api.get(list_url(post.id))  # no sort param → best

@@ -2,7 +2,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 
 from .models import SavedItem
-from .serializers import SaveRequestSerializer, SavedItemSerializer
+from .serializers import SavedItemSerializer, SaveRequestSerializer
 
 
 class SavedItemListCreateView(generics.ListCreateAPIView):

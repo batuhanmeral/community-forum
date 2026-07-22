@@ -30,3 +30,7 @@ class Report(models.Model):
             models.Index(fields=("content_type", "object_id")),
             models.Index(fields=("status",)),
         ]
+
+    def __str__(self) -> str:
+        return f"report #{self.pk} [{self.status}] {self.reason[:40]}"
+

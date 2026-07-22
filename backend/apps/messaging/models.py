@@ -19,16 +19,19 @@ class Conversation(models.Model):
     class Meta:
         unique_together = ("participant_a", "participant_b")
 
-    def clean(self) -> None:
-        if self.participant_a_id == self.participant_b_id:
-            raise ValidationError("Participants must differ.")
-        if self.participant_a_id and self.participant_b_id and self.participant_a_id > self.participant_b_id:
-            raise ValidationError("participant_a must have the lower id.")
+    def __str__(self) -> str:
+        return f"conversation {self.participant_a_id} ↔ {self.participant_b_id}"
 
     def save(self, *args, **kwargs):
         if self.participant_a_id and self.participant_b_id and self.participant_a_id > self.participant_b_id:
             self.participant_a_id, self.participant_b_id = self.participant_b_id, self.participant_a_id
         super().save(*args, **kwargs)
+
+    def clean(self) -> None:
+        if self.participant_a_id == self.participant_b_id:
+            raise ValidationError("Participants must differ.")
+        if self.participant_a_id and self.participant_b_id and self.participant_a_id > self.participant_b_id:
+            raise ValidationError("participant_a must have the lower id.")
 
 
 class Message(models.Model):
@@ -47,3 +50,6 @@ class Message(models.Model):
         indexes = [
             models.Index(fields=("conversation", "created_at")),
         ]
+
+    def __str__(self) -> str:
+        return f"message {self.pk} in conversation {self.conversation_id}"

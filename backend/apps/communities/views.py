@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from .models import Community, CommunityRule, Membership
+from .models import Community, Membership
 from .permissions import IsCreatorOrReadOnly
 from .serializers import (
     CommunityRuleSerializer,

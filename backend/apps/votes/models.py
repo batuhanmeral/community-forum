@@ -23,3 +23,7 @@ class Vote(models.Model):
         indexes = [
             models.Index(fields=("content_type", "object_id")),
         ]
+
+    def __str__(self) -> str:
+        return f"user {self.user_id} voted {self.value:+d} on {self.content_type_id}:{self.object_id}"
+
