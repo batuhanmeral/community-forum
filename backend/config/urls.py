@@ -4,19 +4,20 @@ from django.contrib import admin
 from django.urls import include, path
 
 from apps.comments.urls import comments_urlpatterns, post_comments_urlpatterns
+from apps.common.urls import urlpatterns as common_urlpatterns
 from apps.communities.urls import urlpatterns as communities_urlpatterns
 from apps.messaging.urls import urlpatterns as messaging_urlpatterns
 from apps.moderation.urls import urlpatterns as moderation_urlpatterns
 from apps.notifications.urls import urlpatterns as notifications_urlpatterns
 from apps.polls.urls import urlpatterns as polls_urlpatterns
-from apps.saves.urls import urlpatterns as saves_urlpatterns
-from apps.search.urls import urlpatterns as search_urlpatterns
-from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.posts.urls import (
     community_posts_urlpatterns,
     feed_urlpatterns,
     posts_urlpatterns,
 )
+from apps.saves.urls import urlpatterns as saves_urlpatterns
+from apps.search.urls import urlpatterns as search_urlpatterns
+from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
 from apps.votes.urls import urlpatterns as votes_urlpatterns
 
@@ -37,6 +38,7 @@ api_v1_patterns = [
     path("", include((saves_urlpatterns, "saves"))),
     path("", include((moderation_urlpatterns, "moderation"))),
     path("", include((search_urlpatterns, "search"))),
+    path("", include((common_urlpatterns, "common"))),
 ]
 
 urlpatterns = [
