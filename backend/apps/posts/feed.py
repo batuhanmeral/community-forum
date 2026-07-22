@@ -6,8 +6,11 @@ from .views import _annotate_score, _apply_sort, _apply_time_window, _base_post_
 
 
 def _apply_nsfw_filter(qs, request):
-    if request.query_params.get("nsfw") == "show" and request.user.is_authenticated:
-        return qs
+    """Hide NSFW unless an authed user opts in via ?nsfw=show or their profile pref."""
+    if request.user.is_authenticated:
+        param = request.query_params.get("nsfw")
+        if param == "show" or (param is None and request.user.show_nsfw):
+            return qs
     return qs.exclude(is_nsfw=True)
 
 

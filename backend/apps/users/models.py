@@ -9,6 +9,7 @@ class User(AbstractUser):
     bio = models.TextField(blank=True, default="")
     post_karma = models.IntegerField(default=0)
     comment_karma = models.IntegerField(default=0)
+    show_nsfw = models.BooleanField(default=False)
     search_vector = SearchVectorField(null=True, blank=True)
 
     class Meta(AbstractUser.Meta):

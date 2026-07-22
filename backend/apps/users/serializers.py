@@ -19,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "avatar",
             "bio",
+            "show_nsfw",
             "post_karma",
             "comment_karma",
             "total_karma",
@@ -48,8 +49,39 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class PublicUserSerializer(UserSerializer):
+    is_blocked = serializers.SerializerMethodField()
+
     class Meta(UserSerializer.Meta):
-        fields = tuple(f for f in UserSerializer.Meta.fields if f != "email")
+        fields = tuple(
+            f for f in UserSerializer.Meta.fields if f not in ("email", "show_nsfw")
+        ) + ("is_blocked",)
+
+    def get_is_blocked(self, obj: User) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated or request.user.id == obj.id:
+            return False
+        return request.user.blocks.filter(blocked=obj).exists()
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value: str) -> str:
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect.")
+        return value
+
+    def validate_new_password(self, value: str) -> str:
+        validate_password(value, user=self.context["request"].user)
+        return value
+
+    def save(self, **kwargs) -> User:
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return user
 
 
 class RegisterSerializer(serializers.ModelSerializer):
