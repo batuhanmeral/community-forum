@@ -8,6 +8,9 @@ import type { Community, Flair } from '@/features/communities/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { MarkdownEditor } from '@/components/posts/MarkdownEditor';
+import { clearDraft, loadDraft, saveDraft } from '@/lib/draft';
+import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
 const KIND_TABS: Array<{ value: PostKind; label: string; icon: React.ReactNode }> = [
@@ -65,14 +68,24 @@ export function PostCreatePage() {
   const isValidKind = (k: string | null): k is PostKind =>
     k === 'text' || k === 'link' || k === 'image' || k === 'poll';
 
+  // A pending draft seeds the form unless the URL explicitly picks community/kind.
+  const [draft] = useState(loadDraft);
+
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [communitySlug, setCommunitySlug] = useState(params.slug ?? searchParams.get('c') ?? '');
-  const [kind, setKind] = useState<PostKind>(isValidKind(kindParam) ? kindParam : 'text');
+  const [communitySlug, setCommunitySlug] = useState(
+    params.slug ?? searchParams.get('c') ?? draft?.community ?? '',
+  );
+  const [kind, setKind] = useState<PostKind>(
+    isValidKind(kindParam) ? kindParam : isValidKind(draft?.kind ?? null) ? (draft!.kind as PostKind) : 'text',
+  );
   const [flairs, setFlairs] = useState<Flair[]>([]);
   const [flairId, setFlairId] = useState<number | ''>('');
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState(draft?.title ?? '');
+  const [body, setBody] = useState(draft?.body ?? '');
+  const [url, setUrl] = useState(draft?.url ?? '');
+  const [draftNotice, setDraftNotice] = useState<string | null>(
+    draft ? `Draft restored (saved ${timeAgo(draft.savedAt)})` : null,
+  );
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isNsfw, setIsNsfw] = useState(false);
@@ -92,6 +105,22 @@ export function PostCreatePage() {
         .catch(() => undefined);
     }
   }, [params.slug]);
+
+  // Autosave the draft (debounced) while the user types.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      saveDraft({ community: communitySlug, kind, title, body, url });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [communitySlug, kind, title, body, url]);
+
+  function discardDraft() {
+    clearDraft();
+    setTitle('');
+    setBody('');
+    setUrl('');
+    setDraftNotice(null);
+  }
 
   useEffect(() => {
     setFlairId('');
@@ -134,6 +163,7 @@ export function PostCreatePage() {
         poll_options: kind === 'poll' ? pollOptions : undefined,
         poll_closes_at: kind === 'poll' ? new Date(pollClosesAt).toISOString() : undefined,
       });
+      clearDraft();
       navigate(`/posts/${post.id}`, { replace: true });
     } catch (err) {
       const ax = err as AxiosError<Record<string, string[] | string>>;
@@ -208,6 +238,18 @@ export function PostCreatePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
+          {draftNotice && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(97,218,251,0.25)] bg-[var(--color-accent-dim)] px-3 py-2 text-[13px] text-[var(--color-accent)]">
+              <span>{draftNotice}</span>
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="font-medium underline-offset-2 hover:underline"
+              >
+                Discard draft
+              </button>
+            </div>
+          )}
           <Input
             name="title"
             label="Title"
@@ -219,18 +261,7 @@ export function PostCreatePage() {
           />
 
           {kind === 'text' && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-                Body (Markdown supported)
-              </label>
-              <textarea
-                rows={8}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-              />
-              {errors.body && <p className="text-xs text-[var(--color-danger)]">{errors.body}</p>}
-            </div>
+            <MarkdownEditor value={body} onChange={setBody} error={errors.body} />
           )}
 
           {kind === 'link' && (
