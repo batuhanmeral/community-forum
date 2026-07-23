@@ -51,6 +51,7 @@ def community(alice):
 def join(community):
     def _join(user, role=Membership.Role.MEMBER):
         Membership.objects.get_or_create(user=user, community=community, defaults={"role": role})
+
     return _join
 
 
@@ -80,7 +81,9 @@ class TestPostCreate:
     def test_member_creates_text_post(self, api, community, bob, join):
         join(bob)
         api.force_authenticate(bob)
-        resp = api.post(list_url("python"), {"title": "hi", "kind": "text", "body": "x"}, format="json")
+        resp = api.post(
+            list_url("python"), {"title": "hi", "kind": "text", "body": "x"}, format="json"
+        )
         assert resp.status_code == 201
         assert resp.data["author"] == bob.id
         assert resp.data["community"] == "python"
@@ -165,7 +168,9 @@ class TestPostListSort:
 @pytest.mark.django_db
 class TestPostDetail:
     def test_author_can_update(self, api, community, alice):
-        post = Post.objects.create(author=alice, community=community, kind="text", title="t", body="x")
+        post = Post.objects.create(
+            author=alice, community=community, kind="text", title="t", body="x"
+        )
         api.force_authenticate(alice)
         resp = api.patch(detail_url(post.id), {"body": "y"}, format="json")
         assert resp.status_code == 200

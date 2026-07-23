@@ -76,7 +76,9 @@ class TestCommentSort:
         balanced = Comment.objects.create(post=post, author=alice, body="b")
         _vote(bob, balanced, 1)
         _vote(carol, balanced, -1)
-        ids = [c["id"] for c in api.get(list_url(post.id), {"sort": "controversial"}).data["results"]]
+        ids = [
+            c["id"] for c in api.get(list_url(post.id), {"sort": "controversial"}).data["results"]
+        ]
         assert ids.index(balanced.id) < ids.index(winner.id)
 
     def test_best_default(self, api, alice, bob, post):

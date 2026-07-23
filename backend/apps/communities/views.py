@@ -17,12 +17,15 @@ from .serializers import (
 
 
 def _require_mod(user, community):
-    if not user.is_authenticated or not Membership.objects.filter(
-        user=user,
-        community=community,
-        role__in=(Membership.Role.ADMIN, Membership.Role.MODERATOR),
-        is_banned=False,
-    ).exists():
+    if (
+        not user.is_authenticated
+        or not Membership.objects.filter(
+            user=user,
+            community=community,
+            role__in=(Membership.Role.ADMIN, Membership.Role.MODERATOR),
+            is_banned=False,
+        ).exists()
+    ):
         raise PermissionDenied("Moderator role required.")
 
 
@@ -70,9 +73,7 @@ class CommunityViewSet(viewsets.ModelViewSet):
             )
 
         if request.method == "DELETE":
-            membership = Membership.objects.filter(
-                user=request.user, community=community
-            ).first()
+            membership = Membership.objects.filter(user=request.user, community=community).first()
             if not membership:
                 return Response(status=status.HTTP_204_NO_CONTENT)
             if community.creator_id == request.user.id:
@@ -82,9 +83,7 @@ class CommunityViewSet(viewsets.ModelViewSet):
 
         # PATCH — update notify_level
         try:
-            membership = Membership.objects.get(
-                user=request.user, community=community
-            )
+            membership = Membership.objects.get(user=request.user, community=community)
         except Membership.DoesNotExist as exc:
             raise ValidationError("You are not a member of this community.") from exc
         serializer = MembershipSerializer(membership, data=request.data, partial=True)

@@ -85,7 +85,12 @@ def comment(post, alice):
 @pytest.mark.django_db
 class TestReportCreate:
     def test_anonymous_rejected(self, api, post):
-        assert api.post(REPORT_URL, {"content_type": "post", "object_id": post.id, "reason": "x"}).status_code == 401
+        assert (
+            api.post(
+                REPORT_URL, {"content_type": "post", "object_id": post.id, "reason": "x"}
+            ).status_code
+            == 401
+        )
 
     def test_create_report(self, api, carol, post):
         api.force_authenticate(carol)
@@ -99,18 +104,32 @@ class TestReportCreate:
 
     def test_duplicate_within_24h_rejected(self, api, carol, post):
         api.force_authenticate(carol)
-        api.post(REPORT_URL, {"content_type": "post", "object_id": post.id, "reason": "spam"}, format="json")
-        resp = api.post(REPORT_URL, {"content_type": "post", "object_id": post.id, "reason": "spam"}, format="json")
+        api.post(
+            REPORT_URL,
+            {"content_type": "post", "object_id": post.id, "reason": "spam"},
+            format="json",
+        )
+        resp = api.post(
+            REPORT_URL,
+            {"content_type": "post", "object_id": post.id, "reason": "spam"},
+            format="json",
+        )
         assert resp.status_code == 400
 
     def test_unknown_target_400(self, api, carol):
         api.force_authenticate(carol)
-        resp = api.post(REPORT_URL, {"content_type": "post", "object_id": 9999, "reason": "x"}, format="json")
+        resp = api.post(
+            REPORT_URL, {"content_type": "post", "object_id": 9999, "reason": "x"}, format="json"
+        )
         assert resp.status_code == 400
 
     def test_user_target_supported(self, api, carol, bob):
         api.force_authenticate(carol)
-        resp = api.post(REPORT_URL, {"content_type": "user", "object_id": bob.id, "reason": "harassment"}, format="json")
+        resp = api.post(
+            REPORT_URL,
+            {"content_type": "user", "object_id": bob.id, "reason": "harassment"},
+            format="json",
+        )
         assert resp.status_code == 201
 
 
@@ -125,9 +144,17 @@ class TestModQueue:
         other_post = Post.objects.create(author=carol, community=other, kind="text", title="o")
         # report inside py
         api.force_authenticate(carol)
-        api.post(REPORT_URL, {"content_type": "post", "object_id": post.id, "reason": "spam"}, format="json")
+        api.post(
+            REPORT_URL,
+            {"content_type": "post", "object_id": post.id, "reason": "spam"},
+            format="json",
+        )
         # report outside py
-        api.post(REPORT_URL, {"content_type": "post", "object_id": other_post.id, "reason": "spam"}, format="json")
+        api.post(
+            REPORT_URL,
+            {"content_type": "post", "object_id": other_post.id, "reason": "spam"},
+            format="json",
+        )
         api.force_authenticate(mod)
         resp = api.get(queue("py"))
         assert resp.data["count"] == 1
@@ -135,7 +162,9 @@ class TestModQueue:
 
     def test_status_filter(self, api, mod, post, carol):
         api.force_authenticate(carol)
-        api.post(REPORT_URL, {"content_type": "post", "object_id": post.id, "reason": "x"}, format="json")
+        api.post(
+            REPORT_URL, {"content_type": "post", "object_id": post.id, "reason": "x"}, format="json"
+        )
         api.force_authenticate(mod)
         resp = api.get(queue("py"), {"status": "open"})
         assert resp.data["count"] == 1

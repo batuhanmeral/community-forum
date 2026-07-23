@@ -124,15 +124,11 @@ class TestMembership:
     def test_patch_notify_level(self, api, community, bob):
         api.force_authenticate(bob)
         api.post(membership_url("python"))
-        resp = api.patch(
-            membership_url("python"), {"notify_level": "posts_only"}, format="json"
-        )
+        resp = api.patch(membership_url("python"), {"notify_level": "posts_only"}, format="json")
         assert resp.status_code == 200
         assert resp.data["notify_level"] == "posts_only"
 
     def test_patch_requires_membership(self, api, community, bob):
         api.force_authenticate(bob)
-        resp = api.patch(
-            membership_url("python"), {"notify_level": "off"}, format="json"
-        )
+        resp = api.patch(membership_url("python"), {"notify_level": "off"}, format="json")
         assert resp.status_code == 400

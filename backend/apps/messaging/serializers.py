@@ -12,7 +12,15 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ("id", "conversation", "sender", "sender_username", "body", "created_at", "read_at")
+        fields = (
+            "id",
+            "conversation",
+            "sender",
+            "sender_username",
+            "body",
+            "created_at",
+            "read_at",
+        )
         read_only_fields = ("id", "conversation", "sender", "created_at", "read_at")
 
     def validate_body(self, value: str) -> str:

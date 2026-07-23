@@ -25,5 +25,6 @@ class Vote(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"user {self.user_id} voted {self.value:+d} on {self.content_type_id}:{self.object_id}"
-
+        return (
+            f"user {self.user_id} voted {self.value:+d} on {self.content_type_id}:{self.object_id}"
+        )

@@ -1,17 +1,3 @@
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-exclude = '''
-/(
-    \.git
-  | \.venv
-  | venv
-  | migrations
-  | build
-  | dist
-)/
-'''
-
 [tool.ruff]
 line-length = 100
 target-version = "py311"
@@ -29,7 +15,7 @@ select = [
   "DJ",  # flake8-django
 ]
 ignore = [
-  "E501",  # satır uzunluğu — black yönetiyor
+  "E501",  # satır uzunluğu — ruff format yönetiyor
 ]
 
 [tool.ruff.lint.isort]

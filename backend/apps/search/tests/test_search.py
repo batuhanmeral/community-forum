@@ -44,9 +44,7 @@ class TestSearchPosts:
         match = Post.objects.create(
             author=alice, community=community, kind="text", title="Pythonic generators"
         )
-        Post.objects.create(
-            author=alice, community=community, kind="text", title="Rust ownership"
-        )
+        Post.objects.create(author=alice, community=community, kind="text", title="Rust ownership")
         resp = api.get(SEARCH, {"q": "pythonic", "type": "post"})
         assert resp.status_code == 200
         ids = [p["id"] for p in resp.data["results"]]

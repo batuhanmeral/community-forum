@@ -34,7 +34,7 @@ class NotificationMarkAllReadView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
-        updated = Notification.objects.filter(
-            recipient=request.user, read_at__isnull=True
-        ).update(read_at=timezone.now())
+        updated = Notification.objects.filter(recipient=request.user, read_at__isnull=True).update(
+            read_at=timezone.now()
+        )
         return Response({"marked_read": updated})

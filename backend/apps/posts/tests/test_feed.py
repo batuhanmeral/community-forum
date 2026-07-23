@@ -53,7 +53,9 @@ def _post(author, community, **kwargs):
 
 @pytest.mark.django_db
 class TestFeed:
-    def test_authed_sees_only_joined_communities(self, api, alice, bob, carol, joined_community, other_community):
+    def test_authed_sees_only_joined_communities(
+        self, api, alice, bob, carol, joined_community, other_community
+    ):
         Membership.objects.create(user=alice, community=joined_community)
         mine = _post(bob, joined_community, title="in-feed")
         _post(carol, other_community, title="not-in-feed")
@@ -124,7 +126,9 @@ class TestFollowingFeed:
     def test_anonymous_rejected(self, api):
         assert api.get(FOLLOWING).status_code == 401
 
-    def test_returns_only_followed_authors(self, api, alice, bob, carol, joined_community, other_community):
+    def test_returns_only_followed_authors(
+        self, api, alice, bob, carol, joined_community, other_community
+    ):
         Follow.objects.create(follower=alice, followed=bob)
         from_bob = _post(bob, joined_community, title="from-bob")
         _post(carol, other_community, title="from-carol")
@@ -192,7 +196,9 @@ class TestFeedContent:
         assert row["score"] == 1
         assert row["comment_count"] == 3
 
-    def test_scope_all_ignores_membership(self, api, alice, bob, carol, joined_community, other_community):
+    def test_scope_all_ignores_membership(
+        self, api, alice, bob, carol, joined_community, other_community
+    ):
         _post(bob, joined_community, title="a")
         outside = _post(carol, other_community, title="b")
         api.force_authenticate(alice)  # alice is member of nothing
@@ -200,7 +206,9 @@ class TestFeedContent:
         ids = [p["id"] for p in api.get(FEED, {"scope": "all"}).data["results"]]
         assert outside.id in ids
 
-    def test_feed_query_count_is_constant(self, api, alice, bob, joined_community, django_assert_max_num_queries):
+    def test_feed_query_count_is_constant(
+        self, api, alice, bob, joined_community, django_assert_max_num_queries
+    ):
         Membership.objects.create(user=alice, community=joined_community)
         for i in range(15):
             p = _post(bob, joined_community, title=f"p{i}")

@@ -90,7 +90,10 @@ class TestInbox:
 
     def test_unread_filter(self, api, alice, bob):
         from django.utils import timezone
-        Notification.objects.create(recipient=alice, actor=bob, verb="follow", read_at=timezone.now())
+
+        Notification.objects.create(
+            recipient=alice, actor=bob, verb="follow", read_at=timezone.now()
+        )
         Notification.objects.create(recipient=alice, actor=bob, verb="follow")
         api.force_authenticate(alice)
         resp = api.get(LIST, {"unread": "true"})

@@ -21,4 +21,3 @@ class SavedItem(models.Model):
 
     def __str__(self) -> str:
         return f"user {self.user_id} saved {self.content_type_id}:{self.object_id}"
-

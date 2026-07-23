@@ -26,9 +26,7 @@ class FollowToggleView(APIView):
             raise ValidationError("You cannot follow yourself.")
         if is_blocked_between(request.user, target):
             raise ValidationError("You cannot follow this user.")
-        follow, created = Follow.objects.get_or_create(
-            follower=request.user, followed=target
-        )
+        follow, created = Follow.objects.get_or_create(follower=request.user, followed=target)
         if created:
             notify(target, actor=request.user, verb="follow", target=request.user)
         return Response(

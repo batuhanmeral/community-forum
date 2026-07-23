@@ -44,7 +44,9 @@ def comment(alice, post):
 class TestPostEdit:
     def test_edit_creates_revision_and_sets_edited_at(self, api, alice, post):
         api.force_authenticate(alice)
-        resp = api.patch(reverse("api_v1:posts:post-detail", args=[post.id]), {"body": "v2"}, format="json")
+        resp = api.patch(
+            reverse("api_v1:posts:post-detail", args=[post.id]), {"body": "v2"}, format="json"
+        )
         assert resp.status_code == 200
         post.refresh_from_db()
         assert post.body == "v2"
@@ -56,7 +58,9 @@ class TestPostEdit:
 
     def test_no_change_does_not_create_revision(self, api, alice, post):
         api.force_authenticate(alice)
-        api.patch(reverse("api_v1:posts:post-detail", args=[post.id]), {"body": "v1"}, format="json")
+        api.patch(
+            reverse("api_v1:posts:post-detail", args=[post.id]), {"body": "v1"}, format="json"
+        )
         assert PostRevision.objects.count() == 0
         post.refresh_from_db()
         assert post.edited_at is None
@@ -79,7 +83,11 @@ class TestPostEdit:
 class TestCommentEdit:
     def test_edit_creates_revision(self, api, alice, comment):
         api.force_authenticate(alice)
-        resp = api.patch(reverse("api_v1:comments:comment-detail", args=[comment.id]), {"body": "v2"}, format="json")
+        resp = api.patch(
+            reverse("api_v1:comments:comment-detail", args=[comment.id]),
+            {"body": "v2"},
+            format="json",
+        )
         assert resp.status_code == 200
         comment.refresh_from_db()
         assert comment.body == "v2"

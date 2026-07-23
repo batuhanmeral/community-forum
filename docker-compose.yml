@@ -1,3 +1,7 @@
+# Pin the compose project name so container/volume names stay stable
+# regardless of the checkout folder name (brand is "nexus").
+name: nexus
+
 services:
   postgres:
     image: postgres:16-alpine

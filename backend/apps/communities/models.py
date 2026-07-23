@@ -64,9 +64,7 @@ class Membership(models.Model):
 
 
 class CommunityRule(models.Model):
-    community = models.ForeignKey(
-        Community, on_delete=models.CASCADE, related_name="rules"
-    )
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="rules")
     order = models.PositiveSmallIntegerField(default=0)
     short = models.CharField(max_length=100)
     description = models.TextField(blank=True, default="")
@@ -81,9 +79,7 @@ class CommunityRule(models.Model):
 
 
 class Flair(models.Model):
-    community = models.ForeignKey(
-        Community, on_delete=models.CASCADE, related_name="flairs"
-    )
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="flairs")
     name = models.CharField(max_length=50)
     color = models.CharField(max_length=7, default="#888888")
 

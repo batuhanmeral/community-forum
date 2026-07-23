@@ -24,12 +24,9 @@ class PollOption(models.Model):
         return self.text
 
 
-
 class PollVote(models.Model):
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="votes")
-    option = models.ForeignKey(
-        PollOption, on_delete=models.CASCADE, related_name="votes"
-    )
+    option = models.ForeignKey(PollOption, on_delete=models.CASCADE, related_name="votes")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="poll_votes"
     )
@@ -40,4 +37,3 @@ class PollVote(models.Model):
 
     def __str__(self) -> str:
         return f"user {self.user_id} → option {self.option_id}"
-

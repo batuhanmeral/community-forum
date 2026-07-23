@@ -27,9 +27,7 @@ class Notification(models.Model):
         related_name="actions",
     )
     verb = models.CharField(max_length=16, choices=Verb.choices)
-    target_ct = models.ForeignKey(
-        ContentType, on_delete=models.CASCADE, null=True, blank=True
-    )
+    target_ct = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     target_id = models.PositiveBigIntegerField(null=True, blank=True)
     target = GenericForeignKey("target_ct", "target_id")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -43,4 +41,3 @@ class Notification(models.Model):
 
     def __str__(self) -> str:
         return f"{self.verb} → {self.recipient_id}"
-

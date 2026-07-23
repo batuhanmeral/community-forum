@@ -1,6 +1,8 @@
 # Production-ish stack: Postgres + Django (gunicorn) + React (nginx).
 # Copy .env.prod.example to .env and fill in real secrets before running:
 #   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+name: nexus
+
 services:
   postgres:
     image: postgres:16-alpine

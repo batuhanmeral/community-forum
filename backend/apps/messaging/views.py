@@ -28,7 +28,11 @@ class ConversationListCreateView(generics.ListCreateAPIView):
         )
 
     def get_serializer_class(self):
-        return ConversationCreateSerializer if self.request.method == "POST" else ConversationSerializer
+        return (
+            ConversationCreateSerializer
+            if self.request.method == "POST"
+            else ConversationSerializer
+        )
 
     def create(self, request, *args, **kwargs):
         ser = ConversationCreateSerializer(data=request.data, context={"request": request})
@@ -64,7 +68,11 @@ class MessageListCreateView(_ConversationScopedView, generics.ListCreateAPIView)
         from apps.social.models import is_blocked_between
 
         conv = self.get_conversation()
-        recipient = conv.participant_b if conv.participant_a_id == self.request.user.id else conv.participant_a
+        recipient = (
+            conv.participant_b
+            if conv.participant_a_id == self.request.user.id
+            else conv.participant_a
+        )
         if is_blocked_between(self.request.user, recipient):
             raise PermissionDenied("You cannot message this user.")
         msg = serializer.save(sender=self.request.user, conversation=conv)
@@ -74,7 +82,9 @@ class MessageListCreateView(_ConversationScopedView, generics.ListCreateAPIView)
 class ConversationReadView(_ConversationScopedView, APIView):
     def post(self, request, pk):
         conv = self.get_conversation()
-        updated = Message.objects.filter(
-            conversation=conv, read_at__isnull=True
-        ).exclude(sender=request.user).update(read_at=timezone.now())
+        updated = (
+            Message.objects.filter(conversation=conv, read_at__isnull=True)
+            .exclude(sender=request.user)
+            .update(read_at=timezone.now())
+        )
         return Response({"marked_read": updated})

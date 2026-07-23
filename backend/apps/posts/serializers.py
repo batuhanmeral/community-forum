@@ -100,9 +100,7 @@ class PostSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None
-        vote = next(
-            (v for v in obj.votes.all() if v.user_id == request.user.id), None
-        )
+        vote = next((v for v in obj.votes.all() if v.user_id == request.user.id), None)
         return vote.value if vote else None
 
     def validate_image(self, value):
@@ -128,16 +126,18 @@ class PostSerializer(serializers.ModelSerializer):
             self.instance.community if self.instance else None
         )
         if community and value.community_id != community.id:
-            raise serializers.ValidationError(
-                "Flair does not belong to this community."
-            )
+            raise serializers.ValidationError("Flair does not belong to this community.")
         return value
 
     def validate(self, attrs):
         kind = attrs.get("kind") or (self.instance.kind if self.instance else Post.Kind.TEXT)
-        if kind == Post.Kind.LINK and not (attrs.get("url") or (self.instance and self.instance.url)):
+        if kind == Post.Kind.LINK and not (
+            attrs.get("url") or (self.instance and self.instance.url)
+        ):
             raise serializers.ValidationError({"url": "URL is required for link posts."})
-        if kind == Post.Kind.IMAGE and not (attrs.get("image") or (self.instance and self.instance.image)):
+        if kind == Post.Kind.IMAGE and not (
+            attrs.get("image") or (self.instance and self.instance.image)
+        ):
             raise serializers.ValidationError({"image": "Image is required for image posts."})
         if kind == Post.Kind.POLL and not self.instance and not attrs.get("poll_input"):
             raise serializers.ValidationError(
@@ -173,7 +173,9 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class PostRevisionSerializer(serializers.ModelSerializer):
-    edited_by_username = serializers.CharField(source="edited_by.username", read_only=True, default=None)
+    edited_by_username = serializers.CharField(
+        source="edited_by.username", read_only=True, default=None
+    )
 
     class Meta:
         model = PostRevision

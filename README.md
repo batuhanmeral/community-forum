@@ -1,36 +1,116 @@
 # Nexus
 
-> Topluluk odaklı, REST API tabanlı bir forum/Q&A platformu (Reddit klonu).
+> A community-driven forum / Q&A platform (Reddit clone) built as a decoupled REST API + SPA.
 
-## Teknoloji Yığını
+Nexus lets people create and join communities, share text, link, image, and poll posts, and discuss them in nested comment threads. Voting drives both content ranking (hot/top feeds) and user karma, while follows, direct messages, and notifications keep members connected. Communities are self-governed: creators appoint moderators who manage flairs, handle reports, ban users, and pin posts.
 
-- **Backend:** Python, Django, Django REST Framework, SimpleJWT
-- **Veritabanı:** PostgreSQL
-- **Frontend:** React (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS
+The project is split into two independent applications: a Django REST Framework backend exposing a versioned JSON API (`/api/v1/`) secured with JWT, and a React single-page app that consumes it. Everything runs on PostgreSQL — including full-text search — and ships with Docker images and a production compose stack.
 
-## Dokümantasyon
+## Features
 
-- [.docs/ARCHITECTURE.md](./.docs/ARCHITECTURE.md) — Mimari, ER modeli, klasör yapısı, API konvansiyonları
-- [.docs/PROGRESS.md](./.docs/PROGRESS.md) — Geliştirme yol haritası (fazlı, checkbox'lı)
+**Content & Communities**
+- Communities with membership roles (admin / moderator / member), icons, and NSFW flags
+- Four post kinds: text, link, image (with upload validation), and poll
+- Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
+- Nested comment trees with inline replies and `@username` mention autocomplete
+- Markdown editor with server-rendered, sanitized preview
+- Post drafts — debounced autosave to localStorage with restore/discard
 
-## Geliştirme
+**Voting & Feeds**
+- Up/down voting on posts and comments with optimistic UI and rollback
+- User karma (post + comment) kept in sync via signals, plus a `recalculate_karma` management command
+- Home feed (joined communities), Following feed, Popular/All feeds for anonymous visitors
+- `new` / `top` / `hot` sorting, NSFW filtering, pagination
+
+**Social**
+- Follow system with followers/following lists
+- Direct messages: conversations, read receipts (✓ / ✓✓), unread counters
+- Notifications (comment, reply, mention, follow, DM, mod action) with bell dropdown, inbox page, and 30s polling
+- User blocking — cuts DMs and follows both ways, suppresses notifications
+- Public user profiles with karma badges, post/comment tabs, and profile editing
+
+**Discovery**
+- Full-text search (PostgreSQL `SearchVector` + GIN, ranked with `SearchRank`) across posts, communities, and people
+- Trending widgets: most active communities and top posts of the last 24h (cached)
+
+**Moderation**
+- Generic reporting (posts, comments, users) with a 24h per-target rate limit
+- Mod panel: report queue (resolve/dismiss), community bans, moderator assignment, pin/remove actions
+
+**Platform**
+- JWT auth (SimpleJWT) with refresh rotation and blacklist, register/login/logout
+- Account settings: NSFW preference, password change, account deactivation
+- Rate throttling per scope (auth, write, vote), pagination, and permission classes throughout
+
+## Tech Stack
+
+| Layer    | Technology |
+|----------|------------|
+| Backend  | Python, Django, Django REST Framework, SimpleJWT |
+| Database | PostgreSQL (full-text search, GIN indexes) |
+| Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4 |
+| Testing  | pytest + pytest-cov (backend), Vitest + React Testing Library (frontend) |
+| Tooling  | ruff (lint + format), ESLint |
+| Deploy   | Docker (gunicorn + WhiteNoise, nginx SPA + API proxy), docker-compose |
+
+## Project Structure
+
+```
+backend/    Django project — config/ (settings, urls) + apps/ (users, communities,
+            posts, comments, votes, messaging, notifications, social, polls,
+            saves, moderation, search, common)
+frontend/   React SPA — src/ (api, app, components, features, lib, pages, router)
+```
+
+## Getting Started
+
+Requirements: Python 3.12+, Node 22+, Docker (or a local PostgreSQL 16).
+
+```bash
+# Database
+docker compose up -d          # starts PostgreSQL on :5432
+
+# Backend — http://localhost:8000
+cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # fill in values
+python manage.py migrate
+python manage.py runserver
+
+# Frontend — http://localhost:5173
+cd frontend
+npm install
+cp .env.example .env          # VITE_API_URL
+npm run dev
+```
+
+## Tests & Linting
 
 ```bash
 # Backend
 cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # değerleri doldur
-python manage.py migrate
-python manage.py runserver
+pytest                        # full suite with coverage
+ruff check . && ruff format --check .
 
 # Frontend
 cd frontend
-npm install
-cp .env.example .env  # değerleri doldur
-npm run dev
+npm run test                  # vitest
+npm run lint                  # eslint
+npm run build                 # tsc -b && vite build
 ```
 
-## Lisans
+## Production
+
+A production-ish stack (Postgres + gunicorn backend + nginx frontend with API/media proxy) is provided:
+
+```bash
+cp .env.prod.example .env     # set real secrets
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+```
+
+TLS is expected to be terminated by an edge proxy in front of nginx (`SECURE_SSL_REDIRECT` env).
+
+## License
 
 MIT

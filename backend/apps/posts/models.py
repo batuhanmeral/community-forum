@@ -17,9 +17,7 @@ class Post(models.Model):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="posts"
     )
-    community = models.ForeignKey(
-        Community, on_delete=models.CASCADE, related_name="posts"
-    )
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="posts")
     flair = models.ForeignKey(
         Flair,
         on_delete=models.SET_NULL,
@@ -84,4 +82,3 @@ class PostRevision(models.Model):
 
     def __str__(self) -> str:
         return f"rev of post {self.post_id} @ {self.edited_at:%Y-%m-%d %H:%M}"
-

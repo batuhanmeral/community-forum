@@ -45,14 +45,11 @@ class TrendingCommunitiesView(ListAPIView):
             .annotate(c=Count("*"))
             .values("c")
         )
-        return (
-            Community.objects.annotate(
-                member_count=Count("memberships", distinct=True),
-                recent_posts=Coalesce(Subquery(recent_posts), 0),
-                recent_comments=Coalesce(Subquery(recent_comments), 0),
-            )
-            .order_by("-recent_posts", "-recent_comments", "-id")[:20]
-        )
+        return Community.objects.annotate(
+            member_count=Count("memberships", distinct=True),
+            recent_posts=Coalesce(Subquery(recent_posts), 0),
+            recent_comments=Coalesce(Subquery(recent_comments), 0),
+        ).order_by("-recent_posts", "-recent_comments", "-id")[:20]
 
 
 @method_decorator(cache_page(CACHE_SECONDS), name="dispatch")

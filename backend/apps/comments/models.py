@@ -65,4 +65,3 @@ class CommentRevision(models.Model):
 
     def __str__(self) -> str:
         return f"rev of comment {self.comment_id} @ {self.edited_at:%Y-%m-%d %H:%M}"
-

@@ -7,9 +7,7 @@ ALLOWED_TARGETS = {"post", "comment"}
 
 
 class VoteRequestSerializer(serializers.Serializer):
-    content_type = serializers.CharField(
-        help_text="Lowercase model name: 'post' or 'comment'."
-    )
+    content_type = serializers.CharField(help_text="Lowercase model name: 'post' or 'comment'.")
     object_id = serializers.IntegerField(min_value=1)
     value = serializers.ChoiceField(choices=(-1, 1))
 

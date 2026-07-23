@@ -19,9 +19,7 @@ class Report(models.Model):
     object_id = models.PositiveBigIntegerField()
     target = GenericForeignKey("content_type", "object_id")
     reason = models.CharField(max_length=255)
-    status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.OPEN
-    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.OPEN)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -33,4 +31,3 @@ class Report(models.Model):
 
     def __str__(self) -> str:
         return f"report #{self.pk} [{self.status}] {self.reason[:40]}"
-

@@ -75,9 +75,7 @@ class CommentSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None
-        vote = next(
-            (v for v in obj.votes.all() if v.user_id == request.user.id), None
-        )
+        vote = next((v for v in obj.votes.all() if v.user_id == request.user.id), None)
         return vote.value if vote else None
 
     def to_internal_value(self, data):
@@ -104,7 +102,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class CommentRevisionSerializer(serializers.ModelSerializer):
-    edited_by_username = serializers.CharField(source="edited_by.username", read_only=True, default=None)
+    edited_by_username = serializers.CharField(
+        source="edited_by.username", read_only=True, default=None
+    )
 
     class Meta:
         model = CommentRevision

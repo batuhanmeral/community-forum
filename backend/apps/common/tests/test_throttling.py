@@ -15,7 +15,11 @@ def tight_auth_throttle(monkeypatch):
     """Force the 'auth' scope rate down to 2/min for this test."""
     from rest_framework.throttling import ScopedRateThrottle
 
-    monkeypatch.setattr(ScopedRateThrottle, "THROTTLE_RATES", {"auth": "2/min", "vote": "100/min", "write": "100/min"})
+    monkeypatch.setattr(
+        ScopedRateThrottle,
+        "THROTTLE_RATES",
+        {"auth": "2/min", "vote": "100/min", "write": "100/min"},
+    )
 
 
 @pytest.mark.django_db

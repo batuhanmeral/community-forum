@@ -47,7 +47,9 @@ def comment_url(pk):
 @pytest.mark.django_db
 class TestPostSoftDelete:
     def test_author_delete_marks_as_deleted(self, api, alice, community):
-        post = Post.objects.create(author=alice, community=community, kind="text", title="t", body="x")
+        post = Post.objects.create(
+            author=alice, community=community, kind="text", title="t", body="x"
+        )
         api.force_authenticate(alice)
         resp = api.delete(post_url(post.id))
         assert resp.status_code == 204
@@ -56,7 +58,9 @@ class TestPostSoftDelete:
         assert post.deleted_by == alice
 
     def test_author_deleted_shows_deleted_marker(self, api, alice, community):
-        post = Post.objects.create(author=alice, community=community, kind="text", title="t", body="secret")
+        post = Post.objects.create(
+            author=alice, community=community, kind="text", title="t", body="secret"
+        )
         api.force_authenticate(alice)
         api.delete(post_url(post.id))
         resp = api.get(post_url(post.id))
@@ -66,7 +70,9 @@ class TestPostSoftDelete:
         assert "secret" not in resp.data["body_html"]
 
     def test_mod_deleted_shows_removed_marker(self, api, alice, mod, community):
-        post = Post.objects.create(author=alice, community=community, kind="text", title="t", body="hi")
+        post = Post.objects.create(
+            author=alice, community=community, kind="text", title="t", body="hi"
+        )
         api.force_authenticate(mod)
         api.delete(post_url(post.id))
         resp = api.get(post_url(post.id))

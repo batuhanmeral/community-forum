@@ -28,7 +28,9 @@ class IsAuthorOrModeratorForDelete(permissions.BasePermission):
             return True
         if obj.author_id == request.user.id:
             return True
-        community = getattr(obj, "community", None) or getattr(getattr(obj, "post", None), "community", None)
+        community = getattr(obj, "community", None) or getattr(
+            getattr(obj, "post", None), "community", None
+        )
         if request.method == "DELETE" and community is not None:
             return is_moderator(request.user, community)
         return False

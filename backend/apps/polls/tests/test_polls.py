@@ -37,6 +37,7 @@ def community(alice):
 def join(community):
     def _join(user):
         Membership.objects.get_or_create(user=user, community=community)
+
     return _join
 
 
@@ -132,7 +133,10 @@ def closed_poll(alice, community):
 class TestPollVote:
     def test_anonymous_rejected(self, api, open_poll):
         poll, opt_a, _ = open_poll
-        assert api.post(poll_vote_url(poll.id), {"option_id": opt_a.id}, format="json").status_code == 401
+        assert (
+            api.post(poll_vote_url(poll.id), {"option_id": opt_a.id}, format="json").status_code
+            == 401
+        )
 
     def test_vote_records(self, api, bob, open_poll):
         poll, opt_a, _ = open_poll

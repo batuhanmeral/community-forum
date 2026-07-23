@@ -142,6 +142,7 @@ class TestCommentNotifications:
         url = reverse("api_v1:community-posts:community-posts", args=[community.slug])
         # bob must join the community to post
         from apps.communities.models import Membership
+
         Membership.objects.create(user=bob, community=community)
         api.post(url, {"title": "t", "kind": "text", "body": "hi @carol"}, format="json")
         assert Notification.objects.filter(recipient=carol, verb="mention").exists()

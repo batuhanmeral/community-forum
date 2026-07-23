@@ -58,9 +58,7 @@ def _annotate_score(qs):
     )
     return qs.annotate(
         score=Coalesce(Sum("votes__value"), 0),
-        comment_count=Coalesce(
-            Subquery(comment_count_sq, output_field=IntegerField()), 0
-        ),
+        comment_count=Coalesce(Subquery(comment_count_sq, output_field=IntegerField()), 0),
     )
 
 
@@ -171,9 +169,7 @@ class UserPostListView(generics.ListAPIView):
         author = get_object_or_404(User, username__iexact=self.kwargs["username"])
         qs = _annotate_score(
             _base_post_qs(
-                Post.objects.filter(
-                    author=author, is_approved=True, deleted_at__isnull=True
-                )
+                Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True)
             )
         )
         return _apply_sort(qs, self.request.query_params.get("sort", "new"))
@@ -212,7 +208,9 @@ class PostRevisionListView(generics.ListAPIView):
 
     def get_queryset(self):
         post = get_object_or_404(Post, pk=self.kwargs["pk"])
-        if post.author_id != self.request.user.id and not is_moderator(self.request.user, post.community):
+        if post.author_id != self.request.user.id and not is_moderator(
+            self.request.user, post.community
+        ):
             raise PermissionDenied("Only the author or a moderator can view edit history.")
         return post.revisions.select_related("edited_by")
 
@@ -234,9 +232,7 @@ class PostStickyView(APIView):
         self._require_mod(request, post)
         if post.is_pinned:
             return Response({"is_pinned": True}, status=status.HTTP_200_OK)
-        pinned_count = Post.objects.filter(
-            community=post.community, is_pinned=True
-        ).count()
+        pinned_count = Post.objects.filter(community=post.community, is_pinned=True).count()
         if pinned_count >= MAX_STICKY_PER_COMMUNITY:
             raise ValidationError(
                 f"Sticky limit reached ({MAX_STICKY_PER_COMMUNITY} per community)."

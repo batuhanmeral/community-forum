@@ -42,9 +42,7 @@ def bob(db):
 
 def _old(obj, days=2):
     """Push created_at into the past for objects in the queryset."""
-    obj.__class__.objects.filter(pk=obj.pk).update(
-        created_at=timezone.now() - timedelta(days=days)
-    )
+    obj.__class__.objects.filter(pk=obj.pk).update(created_at=timezone.now() - timedelta(days=days))
 
 
 @pytest.mark.django_db

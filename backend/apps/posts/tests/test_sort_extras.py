@@ -54,7 +54,9 @@ class TestTimeTop:
         stale = Post.objects.create(author=alice, community=community, kind="text", title="stale")
         _vote(bob, stale, 1)
         Post.objects.filter(pk=stale.pk).update(created_at=timezone.now() - timedelta(days=40))
-        ids = [p["id"] for p in api.get(list_url("c"), {"sort": "top", "t": "week"}).data["results"]]
+        ids = [
+            p["id"] for p in api.get(list_url("c"), {"sort": "top", "t": "week"}).data["results"]
+        ]
         assert fresh.id in ids
         assert stale.id not in ids
 

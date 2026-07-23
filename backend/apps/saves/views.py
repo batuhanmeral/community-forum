@@ -29,10 +29,11 @@ class SavedItemListCreateView(generics.ListCreateAPIView):
             existing.delete()
             return Response({"is_saved": False}, status=status.HTTP_200_OK)
 
-        item = SavedItem.objects.create(
-            user=request.user, content_type=ct, object_id=object_id
-        )
+        item = SavedItem.objects.create(user=request.user, content_type=ct, object_id=object_id)
         return Response(
-            {"is_saved": True, "saved": SavedItemSerializer(item, context={"request": request}).data},
+            {
+                "is_saved": True,
+                "saved": SavedItemSerializer(item, context={"request": request}).data,
+            },
             status=status.HTTP_201_CREATED,
         )

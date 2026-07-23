@@ -52,9 +52,9 @@ class PublicUserSerializer(UserSerializer):
     is_blocked = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
-        fields = tuple(
-            f for f in UserSerializer.Meta.fields if f not in ("email", "show_nsfw")
-        ) + ("is_blocked",)
+        fields = tuple(f for f in UserSerializer.Meta.fields if f not in ("email", "show_nsfw")) + (
+            "is_blocked",
+        )
 
     def get_is_blocked(self, obj: User) -> bool:
         request = self.context.get("request")
