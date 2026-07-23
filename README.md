@@ -58,7 +58,7 @@ The project is split into two independent applications: a Django REST Framework 
 ```
 backend/    Django project — config/ (settings, urls) + apps/ (users, communities,
             posts, comments, votes, messaging, notifications, social, polls,
-            saves, moderation, search, common)
+            saves, moderation, search)
 frontend/   React SPA — src/ (api, app, components, features, lib, pages, router)
 ```
 
@@ -113,4 +113,4 @@ TLS is expected to be terminated by an edge proxy in front of nginx (`SECURE_SSL
 
 ## License
 
-MIT
+MIT — see [LICENSE](./LICENSE).
