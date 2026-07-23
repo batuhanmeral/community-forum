@@ -48,4 +48,4 @@ class UserProfileView(generics.RetrieveAPIView):
     permission_classes = (permissions.AllowAny,)
     lookup_field = "username__iexact"
     lookup_url_kwarg = "username"
-    queryset = User.objects.all()
+    queryset = User.objects.filter(is_active=True)

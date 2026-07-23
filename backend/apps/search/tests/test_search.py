@@ -84,6 +84,10 @@ class TestSearchCommunities:
         assert "python" in slugs
         assert "rust" not in slugs
 
+    def test_results_include_member_count(self, api, community):
+        resp = api.get(SEARCH, {"q": "python", "type": "community"})
+        assert resp.data["results"][0]["member_count"] == community.memberships.count()
+
 
 @pytest.mark.django_db
 class TestSearchUsers:
