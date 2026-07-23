@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { store } from '@/app/store';
-import { logout, setAccessToken } from '@/features/auth/authSlice';
+import { logout, setAccessToken, setTokens } from '@/features/auth/authSlice';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -25,7 +25,14 @@ async function refreshAccessToken(): Promise<string | null> {
   try {
     const res = await axios.post(`${BASE_URL}/auth/refresh/`, { refresh });
     const newAccess = res.data.access as string;
-    store.dispatch(setAccessToken(newAccess));
+    // ROTATE_REFRESH_TOKENS blacklists the old refresh token, so the rotated
+    // one returned here must replace it or the next refresh fails.
+    const newRefresh = res.data.refresh as string | undefined;
+    if (newRefresh) {
+      store.dispatch(setTokens({ access: newAccess, refresh: newRefresh }));
+    } else {
+      store.dispatch(setAccessToken(newAccess));
+    }
     return newAccess;
   } catch {
     store.dispatch(logout());
