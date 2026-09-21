@@ -124,13 +124,8 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
           </button>
         )}
 
-        <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
-          <span className="brand-mark relative grid h-8 w-8 place-items-center rounded-[9px] text-[16px] font-bold text-[#061218]">
-            N
-          </span>
-          <span className="text-lg">
-            Nexus<span className="text-[var(--color-accent)]">.</span>
-          </span>
+        <Link to="/" className="flex items-center font-semibold tracking-tight">
+          <span className="text-lg">Nexus</span>
         </Link>
 
         <form
@@ -246,18 +241,6 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
       </div>
 
       <style>{`
-        .brand-mark {
-          background: linear-gradient(135deg, var(--color-accent) 0%, #2faed0 100%);
-          box-shadow: 0 4px 18px rgba(97, 218, 251, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
-        }
-        .brand-mark::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: 9px;
-          border: 1px solid rgba(255,255,255,0.15);
-          pointer-events: none;
-        }
         .btn-primary {
           background: var(--color-accent);
           color: #061218;
