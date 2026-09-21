@@ -21,6 +21,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.communities.models import Community
+from apps.moderation.models import ModAction
+from apps.moderation.services import log_mod_action
 from apps.notifications.services import notify
 
 from .models import Post, PostRevision
@@ -147,13 +149,30 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         community = self.get_community()
+        author_is_mod = is_moderator(self.request.user, community)
         # If community requires approval, hide post until a mod approves.
-        is_approved = not community.requires_approval or is_moderator(self.request.user, community)
+        is_approved = not community.requires_approval or author_is_mod
+        # AutoMod: hold posts matching a banned keyword (mods bypass).
+        matched_kw = None
+        if is_approved and not author_is_mod:
+            matched_kw = community.matches_banned_keyword(
+                serializer.validated_data.get("title", ""),
+                serializer.validated_data.get("body", ""),
+            )
+            if matched_kw:
+                is_approved = False
         post = serializer.save(
             author=self.request.user,
             community=community,
             is_approved=is_approved,
         )
+        if matched_kw:
+            log_mod_action(
+                community,
+                action=ModAction.Action.AUTOMOD_HOLD,
+                target=post,
+                detail=f"matched keyword: {matched_kw}",
+            )
         from apps.comments.views import notify_mentions
 
         notify_mentions(post.body, actor=self.request.user, target=post)
@@ -188,6 +207,12 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.deleted_by = self.request.user
         instance.save(update_fields=["deleted_at", "deleted_by"])
         if instance.author_id != self.request.user.id:
+            log_mod_action(
+                instance.community,
+                actor=self.request.user,
+                action=ModAction.Action.POST_REMOVE,
+                target=instance,
+            )
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
 
     def perform_update(self, serializer):
@@ -239,6 +264,9 @@ class PostStickyView(APIView):
             )
         post.is_pinned = True
         post.save(update_fields=["is_pinned"])
+        log_mod_action(
+            post.community, actor=request.user, action=ModAction.Action.POST_PIN, target=post
+        )
         notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_pinned": True}, status=status.HTTP_200_OK)
 
@@ -248,6 +276,9 @@ class PostStickyView(APIView):
         if post.is_pinned:
             post.is_pinned = False
             post.save(update_fields=["is_pinned"])
+            log_mod_action(
+                post.community, actor=request.user, action=ModAction.Action.POST_UNPIN, target=post
+            )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_pinned": False}, status=status.HTTP_200_OK)
 
@@ -290,6 +321,12 @@ class PostApprovalView(APIView):
         if not post.is_approved:
             post.is_approved = True
             post.save(update_fields=["is_approved"])
+            log_mod_action(
+                post.community,
+                actor=request.user,
+                action=ModAction.Action.POST_APPROVE,
+                target=post,
+            )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_approved": True})
 
@@ -300,5 +337,11 @@ class PostApprovalView(APIView):
             post.deleted_at = timezone.now()
             post.deleted_by = request.user
             post.save(update_fields=["deleted_at", "deleted_by"])
+            log_mod_action(
+                post.community,
+                actor=request.user,
+                action=ModAction.Action.POST_REJECT,
+                target=post,
+            )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_approved": False, "deleted": True})

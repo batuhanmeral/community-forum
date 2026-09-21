@@ -75,6 +75,32 @@ class TestCommunityCRUD:
         resp = api.patch(detail("python"), {"description": "x"}, format="json")
         assert resp.status_code == 403
 
+    def test_admin_member_can_update(self, api, community, bob):
+        Membership.objects.create(user=bob, community=community, role=Membership.Role.ADMIN)
+        api.force_authenticate(bob)
+        resp = api.patch(detail("python"), {"description": "x"}, format="json")
+        assert resp.status_code == 200
+        community.refresh_from_db()
+        assert community.description == "x"
+
+    def test_moderator_cannot_update(self, api, community, bob):
+        Membership.objects.create(user=bob, community=community, role=Membership.Role.MODERATOR)
+        api.force_authenticate(bob)
+        resp = api.patch(detail("python"), {"description": "x"}, format="json")
+        assert resp.status_code == 403
+
+    def test_admin_member_cannot_delete(self, api, community, bob):
+        Membership.objects.create(user=bob, community=community, role=Membership.Role.ADMIN)
+        api.force_authenticate(bob)
+        resp = api.delete(detail("python"))
+        assert resp.status_code == 403
+
+    def test_slug_is_immutable(self, api, community, alice):
+        api.force_authenticate(alice)
+        resp = api.patch(detail("python"), {"slug": "snake"}, format="json")
+        assert resp.status_code == 400
+        assert "slug" in resp.data
+
     def test_creator_can_toggle_nsfw(self, api, community, alice):
         api.force_authenticate(alice)
         resp = api.patch(detail("python"), {"is_nsfw": True}, format="json")

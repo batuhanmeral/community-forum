@@ -11,6 +11,8 @@ class Community(models.Model):
     avatar = models.ImageField(upload_to="community_avatars/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
+    # AutoMod: newline-separated keywords; matching posts are held for mod approval.
+    banned_keywords = models.TextField(blank=True, default="")
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -26,6 +28,20 @@ class Community(models.Model):
 
     def __str__(self) -> str:
         return self.slug
+
+    def banned_keyword_list(self) -> list[str]:
+        return [kw.strip().lower() for kw in self.banned_keywords.splitlines() if kw.strip()]
+
+    def matches_banned_keyword(self, *texts: str) -> str | None:
+        """Return the first banned keyword found in any of the given texts, if any."""
+        keywords = self.banned_keyword_list()
+        if not keywords:
+            return None
+        haystack = " ".join(t.lower() for t in texts if t)
+        for kw in keywords:
+            if kw in haystack:
+                return kw
+        return None
 
 
 class Membership(models.Model):

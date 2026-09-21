@@ -12,13 +12,15 @@ from rest_framework.views import APIView
 from apps.communities.models import Community, Membership
 from apps.notifications.services import notify
 
-from .models import Report
+from .models import ModAction, Report
 from .permissions import IsCommunityAdmin, IsCommunityModerator
 from .serializers import (
     MembershipRoleSerializer,
+    ModActionSerializer,
     ReportCreateSerializer,
     ReportSerializer,
 )
+from .services import log_mod_action
 
 User = get_user_model()
 
@@ -113,6 +115,17 @@ class _ReportActionView(_CommunityModView, APIView):
             raise NotFound("Report not found in this community.")
         report.status = self.new_status
         report.save(update_fields=["status"])
+        log_mod_action(
+            community,
+            actor=request.user,
+            action=(
+                ModAction.Action.REPORT_RESOLVE
+                if self.new_status == Report.Status.RESOLVED
+                else ModAction.Action.REPORT_DISMISS
+            ),
+            target=target,
+            detail=report.reason,
+        )
         if self.new_status == Report.Status.RESOLVED:
             recipient = _report_target_user(report)
             notify(recipient, actor=request.user, verb="mod_action", target=target)
@@ -145,6 +158,9 @@ class CommunityBanView(_CommunityModView, APIView):
             community=community,
             defaults={"is_banned": True, "role": Membership.Role.MEMBER},
         )
+        log_mod_action(
+            community, actor=request.user, action=ModAction.Action.USER_BAN, target=target
+        )
         notify(target, actor=request.user, verb="mod_action", target=community)
         return Response(MembershipRoleSerializer(membership).data, status=status.HTTP_200_OK)
 
@@ -155,6 +171,9 @@ class CommunityBanView(_CommunityModView, APIView):
         if membership and membership.is_banned:
             membership.is_banned = False
             membership.save(update_fields=["is_banned"])
+            log_mod_action(
+                community, actor=request.user, action=ModAction.Action.USER_UNBAN, target=target
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -179,5 +198,25 @@ class MembershipRoleView(APIView):
             raise ValidationError({"role": "Cannot demote the community creator."})
         membership.role = new_role
         membership.save(update_fields=["role"])
+        log_mod_action(
+            community,
+            actor=request.user,
+            action=ModAction.Action.ROLE_CHANGE,
+            target=target,
+            detail=f"role → {new_role}",
+        )
         notify(target, actor=request.user, verb="mod_action", target=community)
         return Response(MembershipRoleSerializer(membership).data)
+
+
+class ModLogView(_CommunityModView, generics.ListAPIView):
+    """Paginated audit log of moderator actions in a community."""
+
+    serializer_class = ModActionSerializer
+
+    def get_queryset(self):
+        return (
+            ModAction.objects.filter(community=self.get_community())
+            .select_related("actor", "content_type")
+            .order_by("-created_at")
+        )

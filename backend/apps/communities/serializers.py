@@ -24,8 +24,22 @@ class CommunitySerializer(serializers.ModelSerializer):
             "member_count",
             "is_member",
             "my_role",
+            "banned_keywords",
         )
         read_only_fields = ("id", "creator", "created_at")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # AutoMod keywords are mod-only; hide them from regular members/visitors.
+        m = self._membership(instance)
+        if m is None or m.role not in (Membership.Role.ADMIN, Membership.Role.MODERATOR):
+            data.pop("banned_keywords", None)
+        return data
+
+    def validate_slug(self, value: str) -> str:
+        if self.instance is not None and value != self.instance.slug:
+            raise serializers.ValidationError("Slug cannot be changed after creation.")
+        return value
 
     def _membership(self, obj: Community):
         request = self.context.get("request")

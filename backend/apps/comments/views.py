@@ -128,6 +128,15 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.deleted_by = self.request.user
         instance.save(update_fields=["deleted_at", "deleted_by"])
         if instance.author_id != self.request.user.id:
+            from apps.moderation.models import ModAction
+            from apps.moderation.services import log_mod_action
+
+            log_mod_action(
+                instance.post.community,
+                actor=self.request.user,
+                action=ModAction.Action.COMMENT_REMOVE,
+                target=instance,
+            )
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
 
 

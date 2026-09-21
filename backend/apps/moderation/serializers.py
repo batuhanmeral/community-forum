@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.communities.models import Membership
 
-from .models import Report
+from .models import ModAction, Report
 
 ALLOWED_TARGETS = {"post", "comment", "user"}
 _APP_FOR = {"post": "posts", "comment": "comments", "user": "users"}
@@ -55,6 +55,28 @@ class ReportSerializer(serializers.ModelSerializer):
 
     def get_target_type(self, obj: Report) -> str:
         return obj.content_type.model
+
+
+class ModActionSerializer(serializers.ModelSerializer):
+    actor_username = serializers.CharField(source="actor.username", read_only=True, default=None)
+    target_type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ModAction
+        fields = (
+            "id",
+            "actor",
+            "actor_username",
+            "action",
+            "target_type",
+            "object_id",
+            "detail",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_target_type(self, obj: ModAction) -> str | None:
+        return obj.content_type.model if obj.content_type_id else None
 
 
 class MembershipRoleSerializer(serializers.ModelSerializer):

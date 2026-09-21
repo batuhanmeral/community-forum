@@ -4,6 +4,7 @@ from .views import (
     CommunityBanView,
     CommunityReportListView,
     MembershipRoleView,
+    ModLogView,
     ReportCreateView,
     ReportDismissView,
     ReportResolveView,
@@ -35,5 +36,10 @@ urlpatterns = [
         "communities/<slug:slug>/mod/members/<str:username>/",
         MembershipRoleView.as_view(),
         name="community-mod-member",
+    ),
+    path(
+        "communities/<slug:slug>/mod/log/",
+        ModLogView.as_view(),
+        name="community-mod-log",
     ),
 ]
