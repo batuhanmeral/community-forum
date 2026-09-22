@@ -20,6 +20,11 @@ export interface UserProfile {
   date_joined: string;
 }
 
+export async function getLeaderboard(): Promise<UserProfile[]> {
+  const res = await api.get<UserProfile[]>('/users/leaderboard/');
+  return res.data;
+}
+
 export async function getUserProfile(username: string): Promise<UserProfile> {
   const res = await api.get<UserProfile>(`/users/${username}/`);
   return res.data;

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { trendingCommunities, trendingPosts } from '@/api/trending';
 import { joinCommunity, leaveCommunity } from '@/api/communities';
+import { getLeaderboard, type UserProfile } from '@/api/users';
 import type { Community } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import { useAppSelector } from '@/app/hooks';
@@ -9,9 +11,11 @@ import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
 export function HomeRightSidebar() {
+  const { t } = useTranslation();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [trendPosts, setTrendPosts] = useState<Post[]>([]);
   const [topComms, setTopComms] = useState<Community[]>([]);
+  const [topUsers, setTopUsers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
     trendingPosts()
@@ -20,15 +24,18 @@ export function HomeRightSidebar() {
     trendingCommunities()
       .then((c) => setTopComms(c.slice(0, 5)))
       .catch(() => undefined);
+    getLeaderboard()
+      .then((u) => setTopUsers(u.slice(0, 5)))
+      .catch(() => undefined);
   }, []);
 
   return (
     <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col gap-3.5 overflow-y-auto pb-10 pl-1 pt-5 lg:flex">
       {/* Trending */}
       <Card>
-        <CardHead title={<><span className="live-dot" /> Trending now</>} more="/popular" />
+        <CardHead title={<><span className="live-dot" /> {t('rightbar.trendingNow')}</>} more="/popular" />
         {trendPosts.length === 0 ? (
-          <p className="px-4 py-2.5 text-[12.5px] text-[var(--color-text-muted)]">No trending posts yet.</p>
+          <p className="px-4 py-2.5 text-[12.5px] text-[var(--color-text-muted)]">{t('rightbar.noTrending')}</p>
         ) : (
           trendPosts.map((p, i) => (
             <Link
@@ -41,13 +48,13 @@ export function HomeRightSidebar() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="mb-0.5 text-[10px] uppercase tracking-[0.08em] text-[var(--color-text-dim)]">
-                  c/{p.community} · Hot
+                  c/{p.community} · {t('rightbar.hot')}
                 </div>
                 <div className="line-clamp-2 text-[13px] font-medium leading-snug text-[var(--color-text)]">
                   {p.title}
                 </div>
                 <div className="font-mono mt-0.5 text-[10.5px] text-[var(--color-text-dim)]">
-                  {p.score} pts · {timeAgo(p.created_at)}
+                  {p.score} {t('rightbar.pts')} · {timeAgo(p.created_at)}
                 </div>
               </div>
             </Link>
@@ -57,13 +64,39 @@ export function HomeRightSidebar() {
 
       {/* Top communities */}
       <Card>
-        <CardHead title="Top communities" more="/c" />
+        <CardHead title={t('rightbar.topCommunities')} more="/c" />
         {topComms.length === 0 ? (
-          <p className="px-4 py-2.5 text-[12.5px] text-[var(--color-text-muted)]">No active communities.</p>
+          <p className="px-4 py-2.5 text-[12.5px] text-[var(--color-text-muted)]">{t('rightbar.noCommunities')}</p>
         ) : (
           topComms.map((c, i) => <CommunityRow key={c.id} community={c} rank={i + 1} />)
         )}
       </Card>
+
+      {/* Karma leaderboard */}
+      {topUsers.length > 0 && (
+        <Card>
+          <CardHead title={t('rightbar.karmaLeaders')} />
+          {topUsers.map((u, i) => (
+            <Link
+              key={u.id}
+              to={`/u/${u.username}`}
+              className="flex items-center gap-2.5 border-t border-[var(--color-border)] px-4 py-2 text-[12.5px] transition hover:bg-[var(--color-surface)]"
+            >
+              <span className={cn('font-mono w-3 text-[10.5px]', i === 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-dim)]')}>
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-medium text-[var(--color-text)]">
+                  u/{u.username}
+                </div>
+              </div>
+              <span className="font-mono text-[10.5px] text-[var(--color-text-dim)]">
+                ↑ {formatCount(u.total_karma)}
+              </span>
+            </Link>
+          ))}
+        </Card>
+      )}
 
       {/* Quick create */}
       <Card>
@@ -76,7 +109,7 @@ export function HomeRightSidebar() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
               <path d="M12 5v14m-7-7h14" />
             </svg>
-            Create a community
+            {t('rightbar.createCommunity')}
           </Link>
         </div>
       </Card>
@@ -108,6 +141,7 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function CardHead({ title, more }: { title: React.ReactNode; more?: string }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
       <h3 className="m-0 inline-flex items-center gap-1.5 text-[12.5px] font-semibold tracking-tight text-[var(--color-text)]">
@@ -115,7 +149,7 @@ function CardHead({ title, more }: { title: React.ReactNode; more?: string }) {
       </h3>
       {more && (
         <Link to={more} className="text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)]">
-          See all →
+          {t('rightbar.seeAll')}
         </Link>
       )}
     </div>
@@ -123,6 +157,7 @@ function CardHead({ title, more }: { title: React.ReactNode; more?: string }) {
 }
 
 function CommunityRow({ community, rank }: { community: Community; rank: number }) {
+  const { t } = useTranslation();
   const [joined, setJoined] = useState(community.is_member);
   const [busy, setBusy] = useState(false);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
@@ -159,7 +194,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium text-[var(--color-text)]">c/{community.slug}</div>
         <div className="font-mono text-[10.5px] text-[var(--color-text-dim)]">
-          {formatCount(community.member_count)} members
+          {formatCount(community.member_count)} {t('rightbar.members')}
         </div>
       </div>
       <button
@@ -173,7 +208,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
             : 'border-[var(--color-border)] bg-[var(--color-bg-3)] text-[var(--color-text)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[#061218]',
         )}
       >
-        {joined ? 'Joined' : 'Join'}
+        {joined ? t('rightbar.joined') : t('rightbar.join')}
       </button>
     </Link>
   );
