@@ -55,6 +55,37 @@ export async function createCommunity(payload: CreateCommunityPayload): Promise<
   return res.data;
 }
 
+export interface UpdateCommunityPayload {
+  name?: string;
+  description?: string;
+  is_nsfw?: boolean;
+  avatar?: File | null;
+  banned_keywords?: string;
+}
+
+export async function updateCommunity(
+  slug: string,
+  payload: UpdateCommunityPayload,
+): Promise<Community> {
+  if (payload.avatar) {
+    const form = new FormData();
+    if (payload.name !== undefined) form.append('name', payload.name);
+    if (payload.description !== undefined) form.append('description', payload.description);
+    if (payload.is_nsfw !== undefined) form.append('is_nsfw', String(payload.is_nsfw));
+    if (payload.banned_keywords !== undefined)
+      form.append('banned_keywords', payload.banned_keywords);
+    form.append('avatar', payload.avatar);
+    const res = await api.patch<Community>(`/communities/${slug}/`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  }
+  const rest = { ...payload };
+  delete rest.avatar;
+  const res = await api.patch<Community>(`/communities/${slug}/`, rest);
+  return res.data;
+}
+
 export async function joinCommunity(slug: string): Promise<Membership> {
   const res = await api.post<Membership>(`/communities/${slug}/membership/`);
   return res.data;

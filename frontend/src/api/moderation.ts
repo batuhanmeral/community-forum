@@ -67,6 +67,38 @@ export async function unbanUser(slug: string, username: string): Promise<void> {
   await api.delete(`/communities/${slug}/mod/ban/${username}/`);
 }
 
+export type ModLogAction =
+  | 'post_pin'
+  | 'post_unpin'
+  | 'post_approve'
+  | 'post_reject'
+  | 'post_remove'
+  | 'comment_remove'
+  | 'user_ban'
+  | 'user_unban'
+  | 'role_change'
+  | 'report_resolve'
+  | 'report_dismiss'
+  | 'automod_hold';
+
+export interface ModLogEntry {
+  id: number;
+  actor: number | null;
+  actor_username: string | null;
+  action: ModLogAction;
+  target_type: string | null;
+  object_id: number | null;
+  detail: string;
+  created_at: string;
+}
+
+export async function listModLog(slug: string, page = 1): Promise<Paginated<ModLogEntry>> {
+  const res = await api.get<Paginated<ModLogEntry>>(`/communities/${slug}/mod/log/`, {
+    params: { page },
+  });
+  return res.data;
+}
+
 export async function setMemberRole(
   slug: string,
   username: string,

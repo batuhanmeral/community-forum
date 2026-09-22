@@ -14,6 +14,8 @@ export interface Community {
   member_count: number;
   is_member: boolean;
   my_role: CommunityRole | null;
+  /** AutoMod keywords, newline-separated. Only present for moderators/admins. */
+  banned_keywords?: string;
 }
 
 export interface Membership {

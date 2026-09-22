@@ -1,13 +1,22 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { createFlair, deleteFlair, getCommunity, listFlairs } from '@/api/communities';
+import {
+  createFlair,
+  deleteFlair,
+  getCommunity,
+  listFlairs,
+  updateCommunity,
+} from '@/api/communities';
+import { Avatar } from '@/components/ui/Avatar';
 import type { Flair } from '@/features/communities/types';
 import {
   banUser,
   dismissReport,
+  listModLog,
   listModReports,
   resolveReport,
   setMemberRole,
+  type ModLogEntry,
   type Report,
   type ReportStatus,
 } from '@/api/moderation';
@@ -76,11 +85,302 @@ export function ModPage() {
         </h1>
       </div>
 
+      {isAdmin && <CommunitySettingsCard community={community} onUpdated={setCommunity} />}
       <ReportQueue slug={community.slug} />
+      {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
       <FlairCard slug={community.slug} />
       <BanUserCard slug={community.slug} />
       {isAdmin && <RoleCard slug={community.slug} />}
+      <ModLogCard slug={community.slug} />
     </div>
+  );
+}
+
+const MOD_LOG_LABELS: Record<ModLogEntry['action'], string> = {
+  post_pin: 'pinned a post',
+  post_unpin: 'unpinned a post',
+  post_approve: 'approved a post',
+  post_reject: 'rejected a post',
+  post_remove: 'removed a post',
+  comment_remove: 'removed a comment',
+  user_ban: 'banned a user',
+  user_unban: 'unbanned a user',
+  role_change: 'changed a member role',
+  report_resolve: 'resolved a report',
+  report_dismiss: 'dismissed a report',
+  automod_hold: 'held a post for review',
+};
+
+function ModLogCard({ slug }: { slug: string }) {
+  const [entries, setEntries] = useState<ModLogEntry[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listModLog(slug, 1)
+      .then((d) => {
+        if (cancelled) return;
+        setEntries(d.results);
+        setHasMore(Boolean(d.next));
+        setPage(1);
+      })
+      .catch(() => {
+        if (!cancelled) setEntries([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  async function loadMore() {
+    const next = page + 1;
+    const d = await listModLog(slug, next);
+    setEntries((arr) => [...arr, ...d.results]);
+    setHasMore(Boolean(d.next));
+    setPage(next);
+  }
+
+  return (
+    <Card>
+      <h2 className="text-base font-semibold tracking-tight">Mod log</h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+        Every moderator action in this community, newest first.
+      </p>
+      <div className="mt-3 flex flex-col gap-1.5">
+        {loading ? (
+          <p className="text-sm text-[var(--color-text-muted)]">Loading log…</p>
+        ) : entries.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-muted)]">No mod actions recorded yet.</p>
+        ) : (
+          entries.map((e) => (
+            <div
+              key={e.id}
+              className="flex flex-wrap items-baseline gap-x-2 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-[13px]"
+            >
+              <span className="font-medium text-[var(--color-text)]">
+                {e.actor_username ? `u/${e.actor_username}` : 'AutoMod'}
+              </span>
+              <span className="text-[var(--color-text-soft)]">{MOD_LOG_LABELS[e.action]}</span>
+              {e.target_type === 'post' && e.object_id && (
+                <Link to={`/posts/${e.object_id}`} className="text-[var(--color-accent)] hover:underline">
+                  #{e.object_id}
+                </Link>
+              )}
+              {e.detail && (
+                <span className="text-[var(--color-text-muted)]">— {e.detail}</span>
+              )}
+              <span className="font-mono ml-auto text-[11.5px] text-[var(--color-text-dim)]">
+                {timeAgo(e.created_at)}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={loadMore}
+          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+        >
+          Load more
+        </button>
+      )}
+    </Card>
+  );
+}
+
+function AutoModCard({
+  community,
+  onUpdated,
+}: {
+  community: Community;
+  onUpdated: (c: Community) => void;
+}) {
+  const [keywords, setKeywords] = useState(community.banned_keywords ?? '');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const dirty = keywords !== (community.banned_keywords ?? '');
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (busy || !dirty) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const updated = await updateCommunity(community.slug, { banned_keywords: keywords });
+      onUpdated(updated);
+      setMsg({ ok: true, text: 'AutoMod keywords saved.' });
+    } catch {
+      setMsg({ ok: false, text: 'Could not save keywords.' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="text-base font-semibold tracking-tight">AutoMod</h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+        Posts containing any of these keywords are held for moderator approval. One keyword or
+        phrase per line. Moderators bypass the filter.
+      </p>
+      <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
+        <textarea
+          value={keywords}
+          rows={4}
+          onChange={(e) => setKeywords(e.target.value)}
+          placeholder={'crypto scam\nbuy followers'}
+          className="font-mono w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none"
+        />
+        <div className="flex items-center gap-3">
+          <Button type="submit" loading={busy} disabled={!dirty}>
+            Save keywords
+          </Button>
+          {msg && (
+            <p className={cn('text-sm', msg.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>
+              {msg.text}
+            </p>
+          )}
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function CommunitySettingsCard({
+  community,
+  onUpdated,
+}: {
+  community: Community;
+  onUpdated: (c: Community) => void;
+}) {
+  const [name, setName] = useState(community.name);
+  const [description, setDescription] = useState(community.description);
+  const [isNsfw, setIsNsfw] = useState(community.is_nsfw);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!avatarFile) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(avatarFile);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [avatarFile]);
+
+  const dirty =
+    name !== community.name ||
+    description !== community.description ||
+    isNsfw !== community.is_nsfw ||
+    avatarFile !== null;
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (busy || !dirty || !name.trim()) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const updated = await updateCommunity(community.slug, {
+        name: name.trim(),
+        description,
+        is_nsfw: isNsfw,
+        avatar: avatarFile,
+      });
+      onUpdated(updated);
+      setAvatarFile(null);
+      setMsg({ ok: true, text: 'Community settings saved.' });
+    } catch (err) {
+      const data = (err as { response?: { data?: Record<string, string[] | string> } })?.response
+        ?.data;
+      const first = data && Object.values(data)[0];
+      setMsg({
+        ok: false,
+        text: Array.isArray(first) ? first[0] : (first ?? 'Could not save settings.'),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="text-base font-semibold tracking-tight">Community settings</h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+        Update the icon, display name, and description of c/{community.slug}.
+      </p>
+      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar src={preview ?? community.avatar} alt={community.name} size="lg" />
+          <label className="cursor-pointer rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
+            {avatarFile ? avatarFile.name : 'Change icon…'}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          {avatarFile && (
+            <button
+              type="button"
+              onClick={() => setAvatarFile(null)}
+              className="text-[13px] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+        <Input
+          name="community-name"
+          label="Display name"
+          value={name}
+          maxLength={100}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <div>
+          <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-soft)]">
+            Description
+          </label>
+          <textarea
+            value={description}
+            maxLength={500}
+            rows={3}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none"
+            placeholder="What is this community about?"
+          />
+        </div>
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--color-text-soft)]">
+          <input
+            type="checkbox"
+            checked={isNsfw}
+            onChange={(e) => setIsNsfw(e.target.checked)}
+            className="h-4 w-4 accent-[var(--color-accent)]"
+          />
+          Mark community as NSFW (18+)
+        </label>
+        <div className="flex items-center gap-3">
+          <Button type="submit" loading={busy} disabled={!dirty || !name.trim()}>
+            Save settings
+          </Button>
+          {msg && (
+            <p className={cn('text-sm', msg.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>
+              {msg.text}
+            </p>
+          )}
+        </div>
+      </form>
+    </Card>
   );
 }
 
