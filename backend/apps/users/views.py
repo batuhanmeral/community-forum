@@ -1,4 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.db.models import F
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -41,6 +44,22 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@method_decorator(cache_page(300), name="dispatch")
+class LeaderboardView(generics.ListAPIView):
+    """Top users by total karma."""
+
+    serializer_class = PublicUserSerializer
+    permission_classes = (permissions.AllowAny,)
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            User.objects.filter(is_active=True)
+            .annotate(karma=F("post_karma") + F("comment_karma"))
+            .order_by("-karma", "username")[:10]
+        )
 
 
 class UserProfileView(generics.RetrieveAPIView):
