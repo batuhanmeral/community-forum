@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation } from 'react-router-dom';
 import { listCommunities } from '@/api/communities';
 import type { Community } from '@/features/communities/types';
@@ -45,16 +46,17 @@ const plusIcon = (
 );
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Home', icon: homeIcon },
-  { to: '/popular', label: 'Popular', icon: trendIcon },
-  { to: '/all', label: 'All', icon: globeIcon },
+  { to: '/', label: 'sidebar.home', icon: homeIcon },
+  { to: '/popular', label: 'sidebar.popular', icon: trendIcon },
+  { to: '/all', label: 'sidebar.all', icon: globeIcon },
 ];
 
 const personalItems: NavItem[] = [
-  { to: '/saved', label: 'Saved', icon: bookmarkIcon },
+  { to: '/saved', label: 'sidebar.saved', icon: bookmarkIcon },
 ];
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
   const location = useLocation();
@@ -70,36 +72,36 @@ export function Sidebar() {
     <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col overflow-y-auto pb-10 pr-1 pt-5 max-[960px]:hidden lg:flex">
       <SidebarSection>
         {navItems.map((it) => (
-          <SidebarItem key={it.to} {...it} />
+          <SidebarItem key={it.to} {...it} label={t(it.label)} />
         ))}
       </SidebarSection>
 
       {isAuthed && (
-        <SidebarSection title="Your feed">
+        <SidebarSection title={t('sidebar.yourFeed')}>
           {personalItems.map((it) => (
-            <SidebarItem key={it.to} {...it} />
+            <SidebarItem key={it.to} {...it} label={t(it.label)} />
           ))}
         </SidebarSection>
       )}
 
       <SidebarSection
-        title="Communities"
+        title={t('sidebar.communities')}
         action={
           isAuthed ? (
             <NavLink to="/c/create" className="text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)]">
-              + New
+              {t('sidebar.new')}
             </NavLink>
           ) : null
         }
       >
-        <SidebarItem to="/c" label="Browse all" icon={globeIcon} />
+        <SidebarItem to="/c" label={t('sidebar.browseAll')} icon={globeIcon} />
         {myCommunities.map((c) => (
           <CommunityItem key={c.id} community={c} />
         ))}
       </SidebarSection>
 
-      <SidebarSection title="Resources">
-        <SidebarItem to="/settings" label="Settings" icon={settingsIcon} />
+      <SidebarSection title={t('sidebar.resources')}>
+        <SidebarItem to="/settings" label={t('sidebar.settings')} icon={settingsIcon} />
       </SidebarSection>
 
       {!isAuthed && (
@@ -109,7 +111,7 @@ export function Sidebar() {
           style={{ boxShadow: '0 4px 16px rgba(97, 218, 251, 0.28), inset 0 1px 0 rgba(255,255,255,0.4)' }}
         >
           <span className="h-[13px] w-[13px]">{plusIcon}</span>
-          Create account
+          {t('sidebar.createAccount')}
         </NavLink>
       )}
     </aside>

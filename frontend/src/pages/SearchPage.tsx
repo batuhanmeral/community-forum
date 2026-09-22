@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import { search, type SearchType } from '@/api/search';
 import type { Community } from '@/features/communities/types';
@@ -11,9 +12,9 @@ import { FollowButton } from '@/components/follow/FollowButton';
 import { cn } from '@/lib/cn';
 
 const TABS: { type: SearchType; label: string }[] = [
-  { type: 'post', label: 'Posts' },
-  { type: 'community', label: 'Communities' },
-  { type: 'user', label: 'People' },
+  { type: 'post', label: 'search.posts' },
+  { type: 'community', label: 'search.communities' },
+  { type: 'user', label: 'search.people' },
 ];
 
 function isType(v: string | null): v is SearchType {
@@ -21,6 +22,7 @@ function isType(v: string | null): v is SearchType {
 }
 
 export function SearchPage() {
+  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const q = params.get('q')?.trim() ?? '';
   const typeParam = params.get('type');
@@ -89,16 +91,16 @@ export function SearchPage() {
         <h1 className="text-[22px] font-semibold tracking-tight">
           {q ? (
             <>
-              Search results for{' '}
+              {t('search.resultsFor')}{' '}
               <span className="text-[var(--color-accent)]">“{q}”</span>
             </>
           ) : (
-            'Search'
+            t('search.title')
           )}
         </h1>
         {q && (
           <p className="font-mono text-[12px] text-[var(--color-text-dim)]">
-            {count.toLocaleString()} {type === 'user' ? 'people' : `${type}s`} found
+            {count.toLocaleString()} {t('search.found')}
           </p>
         )}
       </div>
@@ -116,7 +118,7 @@ export function SearchPage() {
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
             )}
           >
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </div>
@@ -124,19 +126,18 @@ export function SearchPage() {
       {!q ? (
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
-            Type a query in the search bar to find posts, communities, and people.
+            {t('search.typeQuery')}
           </p>
         </Card>
       ) : loading ? (
         <Card>
-          <p className="text-sm text-[var(--color-text-muted)]">Searching…</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('search.searching')}</p>
         </Card>
       ) : results.length === 0 ? (
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
-            No {type === 'user' ? 'people' : `${type}s`} match{' '}
-            <span className="text-[var(--color-text-soft)]">“{q}”</span>. Try a different
-            search or switch tabs.
+            {t('search.noMatch')}{' '}
+            <span className="text-[var(--color-text-soft)]">“{q}”</span>. {t('search.tryDifferent')}
           </p>
         </Card>
       ) : (
@@ -158,7 +159,7 @@ export function SearchPage() {
             disabled={loadingMore}
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
-            {loadingMore ? 'Loading…' : 'Load more'}
+            {loadingMore ? t('search.loading') : t('search.loadMore')}
           </button>
         </div>
       )}
@@ -167,6 +168,7 @@ export function SearchPage() {
 }
 
 function CommunityResult({ community }: { community: Community }) {
+  const { t } = useTranslation();
   return (
     <Link
       to={`/c/${community.slug}`}
@@ -190,8 +192,8 @@ function CommunityResult({ community }: { community: Community }) {
           )}
         </div>
         <p className="font-mono mt-0.5 text-[11.5px] text-[var(--color-text-dim)]">
-          {community.member_count.toLocaleString()} member
-          {community.member_count === 1 ? '' : 's'}
+          {community.member_count.toLocaleString()}{' '}
+          {community.member_count === 1 ? t('search.member') : t('search.members')}
         </p>
         {community.description && (
           <p className="mt-1.5 line-clamp-2 text-[13px] text-[var(--color-text-muted)]">
@@ -204,6 +206,7 @@ function CommunityResult({ community }: { community: Community }) {
 }
 
 function UserResult({ user }: { user: UserProfile }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-4 py-3.5 transition hover:border-[var(--color-border-strong)]">
       <Link to={`/u/${user.username}`} className="shrink-0">
@@ -215,7 +218,7 @@ function UserResult({ user }: { user: UserProfile }) {
         </h3>
         <p className="font-mono mt-0.5 text-[11.5px] text-[var(--color-text-dim)]">
           ↑ {user.total_karma.toLocaleString()} karma · {user.followers_count.toLocaleString()}{' '}
-          follower{user.followers_count === 1 ? '' : 's'}
+          {user.followers_count === 1 ? t('search.follower') : t('search.followers')}
         </p>
         {user.bio && (
           <p className="mt-1.5 line-clamp-2 text-[13px] text-[var(--color-text-muted)]">

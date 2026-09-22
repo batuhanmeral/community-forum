@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -11,6 +12,7 @@ import { AuthShell } from './LoginPage';
 type FieldErrors = Partial<Record<'username' | 'email' | 'password' | 'non_field', string>>;
 
 export function RegisterPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
@@ -56,11 +58,11 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthShell title="Create account" subtitle="Join the nexus community.">
+    <AuthShell title={t('auth.registerTitle')} subtitle={t('auth.registerSubtitle')}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           name="username"
-          label="Username"
+          label={t('auth.username')}
           autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -70,7 +72,7 @@ export function RegisterPage() {
         <Input
           name="email"
           type="email"
-          label="Email"
+          label={t('auth.email')}
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -80,7 +82,7 @@ export function RegisterPage() {
         <Input
           name="password"
           type="password"
-          label="Password"
+          label={t('auth.password')}
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -91,7 +93,7 @@ export function RegisterPage() {
         <Input
           name="confirm"
           type="password"
-          label="Confirm password"
+          label={t('auth.confirmPassword')}
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
@@ -101,13 +103,13 @@ export function RegisterPage() {
           <p className="text-sm text-[var(--color-danger)]">{fieldErrors.non_field}</p>
         )}
         <Button type="submit" loading={status === 'loading'} fullWidth>
-          Create account
+          {t('auth.registerTitle')}
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
-        Already have an account?{' '}
+        {t('auth.haveAccount')}{' '}
         <Link to="/login" className="font-medium text-[var(--color-accent)] hover:underline">
-          Log in
+          {t('auth.loginInstead')}
         </Link>
       </p>
     </AuthShell>

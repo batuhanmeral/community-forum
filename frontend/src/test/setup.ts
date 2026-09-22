@@ -24,3 +24,6 @@ if (!globalThis.localStorage) {
 afterEach(() => {
   cleanup();
 });
+
+// Initialize the i18n singleton (English default) for components using useTranslation.
+await import('@/i18n');

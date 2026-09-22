@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { changePassword, deactivateAccount, updatePreferences } from '@/api/users';
@@ -10,17 +11,19 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/cn';
+import { LANGUAGES, type Language } from '@/i18n';
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const user = useAppSelector((s) => s.auth.user);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
         {user && (
           <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Signed in as u/{user.username}
+            {t('settings.signedInAs')} u/{user.username}
           </p>
         )}
       </div>
@@ -34,6 +37,7 @@ export function SettingsPage() {
 }
 
 function PreferencesCard() {
+  const { t, i18n } = useTranslation();
   const user = useAppSelector((s) => s.auth.user);
   const dispatch = useAppDispatch();
   const [busy, setBusy] = useState(false);
@@ -52,7 +56,7 @@ function PreferencesCard() {
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Preferences</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('settings.preferences')}</h2>
       <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
         <span className="text-sm">
           <span className="font-medium">Show NSFW content</span>
@@ -78,6 +82,23 @@ function PreferencesCard() {
             )}
           />
         </button>
+      </label>
+      <label className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
+        <span className="text-sm">
+          <span className="font-medium">{t('settings.language')}</span>
+          <span className="ml-2 text-[var(--color-text-muted)]">{t('settings.languageHint')}</span>
+        </span>
+        <select
+          value={i18n.language}
+          onChange={(e) => i18n.changeLanguage(e.target.value as Language)}
+          className="h-9 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.label}
+            </option>
+          ))}
+        </select>
       </label>
     </Card>
   );

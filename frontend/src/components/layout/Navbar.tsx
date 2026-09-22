@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { logout } from '@/features/auth/authSlice';
@@ -32,6 +33,7 @@ const panelRightIcon = (
 );
 
 export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: NavbarProps) {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { user, refreshToken, status } = useAppSelector((s) => s.auth);
@@ -143,7 +145,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search Nexus — communities, posts, people…"
+            placeholder={t('nav.searchPlaceholder')}
             className="flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:outline-none"
           />
           <span className="font-mono inline-flex items-center gap-0.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-3)] px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)]">
@@ -154,7 +156,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
         <div className="flex items-center justify-end gap-2.5">
           {isAuthed && user ? (
             <>
-              <IconButton title="Messages" to="/messages" count={dmUnread}>
+              <IconButton title={t('nav.messages')} to="/messages" count={dmUnread}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
                   <path d="M4 6h16v11h-7l-4 3v-3H4z" />
                 </svg>
@@ -167,7 +169,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
                   <path d="M12 5v14m-7-7h14" />
                 </svg>
-                Post
+                {t('nav.post')}
               </Link>
               <div ref={menuRef} className="relative">
                 <button
@@ -181,17 +183,17 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
                 {menuOpen && (
                   <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] shadow-2xl">
                     <div className="px-4 py-2.5 text-xs text-[var(--color-text-muted)]">
-                      Signed in as <span className="font-semibold text-[var(--color-text)]">{user.username}</span>
+                      {t('nav.signedInAs')} <span className="font-semibold text-[var(--color-text)]">{user.username}</span>
                       <div className="font-mono mt-1 flex gap-3 text-[11px] text-[var(--color-text-dim)]">
-                        <span>↑ <span className="text-[var(--color-accent)]">{user.post_karma + user.comment_karma}</span> karma</span>
+                        <span>↑ <span className="text-[var(--color-accent)]">{user.post_karma + user.comment_karma}</span> {t('nav.karma')}</span>
                       </div>
                     </div>
                     <div className="border-t border-[var(--color-border)]" />
                     <Link to={`/u/${user.username}`} onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">
-                      Profile
+                      {t('nav.profile')}
                     </Link>
                     <Link to="/settings" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">
-                      Settings
+                      {t('nav.settings')}
                     </Link>
                     <div className="border-t border-[var(--color-border)]" />
                     <button
@@ -199,7 +201,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
                       onClick={handleLogout}
                       className="block w-full px-4 py-2.5 text-left text-sm text-[var(--color-danger)] hover:bg-[var(--color-surface-hover)]"
                     >
-                      Log out
+                      {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -211,13 +213,13 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
                 to="/login"
                 className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]"
               >
-                Log in
+                {t('nav.login')}
               </Link>
               <Link
                 to="/register"
                 className="btn-primary hidden items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold tracking-tight sm:inline-flex"
               >
-                Sign up
+                {t('nav.signup')}
               </Link>
             </>
           )}

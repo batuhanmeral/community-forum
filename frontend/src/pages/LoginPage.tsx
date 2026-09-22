@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,16 +36,16 @@ export function LoginPage() {
       navigate(from, { replace: true });
     } catch (err) {
       const ax = err as AxiosError<{ detail?: string }>;
-      dispatch(authFailure(ax.response?.data?.detail ?? 'Invalid credentials.'));
+      dispatch(authFailure(ax.response?.data?.detail ?? t('auth.invalidCredentials')));
     }
   }
 
   return (
-    <AuthShell title="Log in" subtitle="Welcome back to nexus.">
+    <AuthShell title={t('auth.loginTitle')} subtitle={t('auth.loginSubtitle')}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           name="username"
-          label="Username"
+          label={t('auth.username')}
           autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -52,7 +54,7 @@ export function LoginPage() {
         <Input
           name="password"
           type="password"
-          label="Password"
+          label={t('auth.password')}
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -60,13 +62,13 @@ export function LoginPage() {
         />
         {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
         <Button type="submit" loading={status === 'loading'} fullWidth>
-          Log in
+          {t('auth.loginTitle')}
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
-        New to nexus?{' '}
+        {t('auth.newToNexus')}{' '}
         <Link to="/register" className="font-medium text-[var(--color-accent)] hover:underline">
-          Create an account
+          {t('auth.createAccount')}
         </Link>
       </p>
     </AuthShell>
