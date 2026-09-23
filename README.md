@@ -1,6 +1,6 @@
 # Nexus
 
-> A community-driven forum / Q&A platform (Reddit clone) built as a decoupled REST API + SPA.
+> A community-driven forum / Q&A platform.
 
 Nexus lets people create and join communities, share text, link, image, and poll posts, and discuss them in nested comment threads. Voting drives both content ranking (hot/top feeds) and user karma, while follows, direct messages, and notifications keep members connected. Communities are self-governed: creators appoint moderators who manage flairs, handle reports, ban users, and pin posts.
 
@@ -58,7 +58,7 @@ The project is split into two independent applications: a Django REST Framework 
 ```
 backend/    Django project — config/ (settings, urls) + apps/ (users, communities,
             posts, comments, votes, messaging, notifications, social, polls,
-            saves, moderation, search)
+            saves, moderation, search, common)
 frontend/   React SPA — src/ (api, app, components, features, lib, pages, router)
 ```
 
