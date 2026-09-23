@@ -41,6 +41,13 @@ class CommunitySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Slug cannot be changed after creation.")
         return value
 
+    def validate_avatar(self, value):
+        if value is None:
+            return value
+        from apps.common.images import AVATAR_MAX_SIDE, downscale_image
+
+        return downscale_image(value, AVATAR_MAX_SIDE)
+
     def _membership(self, obj: Community):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:

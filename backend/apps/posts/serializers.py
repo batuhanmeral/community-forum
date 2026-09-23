@@ -117,7 +117,9 @@ class PostSerializer(serializers.ModelSerializer):
             value.seek(0)
         if fmt not in ALLOWED_IMAGE_FORMATS:
             raise serializers.ValidationError(f"Unsupported image format: {fmt}.")
-        return value
+        from apps.common.images import POST_IMAGE_MAX_SIDE, downscale_image
+
+        return downscale_image(value, POST_IMAGE_MAX_SIDE)
 
     def validate_flair(self, value):
         if value is None:
