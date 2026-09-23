@@ -7,9 +7,13 @@ from rest_framework_simplejwt.views import (
 
 from .views import (
     ChangePasswordView,
+    EmailVerifyView,
     LeaderboardView,
     MeView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
     RegisterView,
+    ResendVerificationView,
     UserProfileView,
 )
 
@@ -18,6 +22,18 @@ auth_urlpatterns = [
     path("login/", TokenObtainPairView.as_view(), name="auth-login"),
     path("refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
     path("logout/", TokenBlacklistView.as_view(), name="auth-logout"),
+    path("password-reset/", PasswordResetRequestView.as_view(), name="auth-password-reset"),
+    path(
+        "password-reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="auth-password-reset-confirm",
+    ),
+    path("verify-email/", EmailVerifyView.as_view(), name="auth-verify-email"),
+    path(
+        "verify-email/resend/",
+        ResendVerificationView.as_view(),
+        name="auth-verify-email-resend",
+    ),
 ]
 
 users_urlpatterns = [

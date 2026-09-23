@@ -10,6 +10,7 @@ class User(AbstractUser):
     post_karma = models.IntegerField(default=0)
     comment_karma = models.IntegerField(default=0)
     show_nsfw = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
     search_vector = SearchVectorField(null=True, blank=True)
 
     class Meta(AbstractUser.Meta):

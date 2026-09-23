@@ -17,6 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
+            "email_verified",
             "avatar",
             "bio",
             "show_nsfw",
@@ -28,7 +29,14 @@ class UserSerializer(serializers.ModelSerializer):
             "is_following",
             "date_joined",
         )
-        read_only_fields = ("id", "post_karma", "comment_karma", "date_joined")
+        read_only_fields = ("id", "email_verified", "post_karma", "comment_karma", "date_joined")
+
+    def validate_avatar(self, value):
+        if value is None:
+            return value
+        from apps.common.images import AVATAR_MAX_SIDE, downscale_image
+
+        return downscale_image(value, AVATAR_MAX_SIDE)
 
     def get_total_karma(self, obj: User) -> int:
         return obj.post_karma + obj.comment_karma
@@ -52,9 +60,11 @@ class PublicUserSerializer(UserSerializer):
     is_blocked = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
-        fields = tuple(f for f in UserSerializer.Meta.fields if f not in ("email", "show_nsfw")) + (
-            "is_blocked",
-        )
+        fields = tuple(
+            f
+            for f in UserSerializer.Meta.fields
+            if f not in ("email", "email_verified", "show_nsfw")
+        ) + ("is_blocked",)
 
     def get_is_blocked(self, obj: User) -> bool:
         request = self.context.get("request")
@@ -109,3 +119,56 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data: dict) -> User:
         return User.objects.create_user(**validated_data)
+
+
+class _UidTokenSerializer(serializers.Serializer):
+    """Base for flows that carry a uid/token pair from an emailed link."""
+
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    def validate_uid(self, value: str) -> str:
+        from django.utils.encoding import force_str
+        from django.utils.http import urlsafe_base64_decode
+
+        try:
+            self._user = User.objects.get(pk=force_str(urlsafe_base64_decode(value)))
+        except (User.DoesNotExist, ValueError, TypeError, OverflowError) as exc:
+            raise serializers.ValidationError("Invalid link.") from exc
+        return value
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(_UidTokenSerializer):
+    new_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        from django.contrib.auth.tokens import default_token_generator
+
+        if not default_token_generator.check_token(self._user, attrs["token"]):
+            raise serializers.ValidationError({"token": "Invalid or expired link."})
+        validate_password(attrs["new_password"], user=self._user)
+        return attrs
+
+    def save(self, **kwargs) -> User:
+        self._user.set_password(self.validated_data["new_password"])
+        self._user.save(update_fields=["password"])
+        return self._user
+
+
+class EmailVerifySerializer(_UidTokenSerializer):
+    def validate(self, attrs):
+        from .tokens import email_verification_token
+
+        if not email_verification_token.check_token(self._user, attrs["token"]):
+            raise serializers.ValidationError({"token": "Invalid or expired link."})
+        return attrs
+
+    def save(self, **kwargs) -> User:
+        if not self._user.email_verified:
+            self._user.email_verified = True
+            self._user.save(update_fields=["email_verified"])
+        return self._user
