@@ -32,14 +32,22 @@ The project is split into two independent applications: a Django REST Framework 
 **Discovery**
 - Full-text search (PostgreSQL `SearchVector` + GIN, ranked with `SearchRank`) across posts, communities, and people
 - Trending widgets: most active communities and top posts of the last 24h (cached)
+- Karma leaderboard (top users, cached)
+- Server-rendered Open Graph pages so shared links unfurl in Discord/WhatsApp/Twitter
 
 **Moderation**
 - Generic reporting (posts, comments, users) with a 24h per-target rate limit
 - Mod panel: report queue (resolve/dismiss), community bans, moderator assignment, pin/remove actions
+- Community settings editable by admins: icon, description, NSFW flag
+- AutoMod: per-community keyword list that holds matching posts for approval
+- Mod action audit log — every pin, ban, approval, and report decision is recorded
 
 **Platform**
 - JWT auth (SimpleJWT) with refresh rotation and blacklist, register/login/logout
+- Password reset and email verification flows (console backend in dev, SMTP via env)
 - Account settings: NSFW preference, password change, account deactivation
+- EN/TR interface language with an in-app picker (i18next)
+- Uploaded images are automatically downscaled (avatars 512px, post images 1920px)
 - Rate throttling per scope (auth, write, vote), pagination, and permission classes throughout
 
 ## Tech Stack
@@ -58,7 +66,7 @@ The project is split into two independent applications: a Django REST Framework 
 ```
 backend/    Django project — config/ (settings, urls) + apps/ (users, communities,
             posts, comments, votes, messaging, notifications, social, polls,
-            saves, moderation, search, common)
+            saves, moderation, search, seo, common)
 frontend/   React SPA — src/ (api, app, components, features, lib, pages, router)
 ```
 
@@ -76,6 +84,7 @@ python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env          # fill in values
 python manage.py migrate
+python manage.py seed              # optional: demo users/communities/posts (login: any user / password123)
 python manage.py runserver
 
 # Frontend — http://localhost:5173
@@ -102,7 +111,7 @@ npm run build                 # tsc -b && vite build
 
 ## Production
 
-A production-ish stack (Postgres + gunicorn backend + nginx frontend with API/media proxy) is provided:
+A production-ish stack (Postgres + Redis + gunicorn backend + nginx frontend with API/media proxy) is provided. Redis backs the shared cache and throttle counters, Sentry activates when `SENTRY_DSN` is set, and nginx routes crawler user-agents to the OG endpoints:
 
 ```bash
 cp .env.prod.example .env     # set real secrets
