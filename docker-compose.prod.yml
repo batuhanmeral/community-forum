@@ -19,6 +19,15 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   backend:
     build: ./backend
     environment:
@@ -34,10 +43,21 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
       DB_HOST: postgres
       DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/1
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Nexus <noreply@localhost>}
     volumes:
       - nexus_media:/app/media
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
