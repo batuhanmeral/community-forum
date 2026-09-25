@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /settings
+Disallow: /messages
+Disallow: /inbox
+Disallow: /saved

@@ -17,6 +17,7 @@ from apps.posts.urls import (
 )
 from apps.saves.urls import urlpatterns as saves_urlpatterns
 from apps.search.urls import urlpatterns as search_urlpatterns
+from apps.seo.urls import urlpatterns as seo_urlpatterns
 from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
 from apps.votes.urls import urlpatterns as votes_urlpatterns
@@ -44,6 +45,8 @@ api_v1_patterns = [
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include((api_v1_patterns, "api_v1"))),
+    # Open Graph pages for crawlers (nginx routes bot user agents here).
+    path("og/", include((seo_urlpatterns, "og"))),
 ]
 
 if settings.DEBUG:
