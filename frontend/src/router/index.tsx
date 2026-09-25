@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import {
   CommunityCreatePage,
+  ForgotPasswordPage,
   CommunityDetailPage,
   CommunityListPage,
   HomePage,
@@ -16,10 +17,12 @@ import {
   PostCreatePage,
   PostDetailPage,
   RegisterPage,
+  ResetPasswordPage,
   SavedPage,
   SearchPage,
   SettingsPage,
   UserProfilePage,
+  VerifyEmailPage,
 } from './pages';
 
 function page(node: ReactNode) {
@@ -39,6 +42,9 @@ function page(node: ReactNode) {
 export const router = createBrowserRouter([
   { path: '/login', element: page(<LoginPage />) },
   { path: '/register', element: page(<RegisterPage />) },
+  { path: '/forgot-password', element: page(<ForgotPasswordPage />) },
+  { path: '/reset-password', element: page(<ResetPasswordPage />) },
+  { path: '/verify-email', element: page(<VerifyEmailPage />) },
   {
     path: '/',
     element: <AppLayout />,

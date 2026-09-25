@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
+import { resendVerificationEmail } from '@/api/auth';
 import { changePassword, deactivateAccount, updatePreferences } from '@/api/users';
 import { listBlocked, unblockUser, type FollowUser } from '@/api/follow';
 import { logout, setUser } from '@/features/auth/authSlice';
@@ -100,7 +101,59 @@ function PreferencesCard() {
           ))}
         </select>
       </label>
+      {user && <EmailVerificationRow verified={user.email_verified} email={user.email} />}
     </Card>
+  );
+}
+
+function EmailVerificationRow({ verified, email }: { verified: boolean; email: string }) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function resend() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await resendVerificationEmail();
+      setSent(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
+      <span className="text-sm">
+        <span className="font-medium">{t('settings.emailStatus')}</span>
+        <span className="ml-2 text-[var(--color-text-muted)]">{email}</span>
+        <span
+          className={cn(
+            'ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium',
+            verified
+              ? 'border-[rgba(97,218,251,0.2)] bg-[rgba(97,218,251,0.08)] text-[var(--color-accent)]'
+              : 'border-[rgba(255,106,138,0.2)] bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)]',
+          )}
+        >
+          {verified ? t('settings.emailVerified') : t('settings.emailUnverified')}
+        </span>
+      </span>
+      {!verified &&
+        (sent ? (
+          <span className="text-sm text-[var(--color-success)]">
+            {t('settings.verificationSent')}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={resend}
+            disabled={busy}
+            className="text-sm text-[var(--color-accent)] hover:underline disabled:opacity-60"
+          >
+            {t('settings.resendVerification')}
+          </button>
+        ))}
+    </div>
   );
 }
 

@@ -28,6 +28,7 @@ const testUser = {
   id: 1,
   username: 'alice',
   email: 'a@x.com',
+  email_verified: true,
   avatar: null,
   bio: '',
   show_nsfw: false,

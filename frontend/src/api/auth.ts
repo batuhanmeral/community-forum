@@ -30,3 +30,23 @@ export async function fetchMe(): Promise<User> {
 export async function logoutRequest(refresh: string): Promise<void> {
   await api.post('/auth/logout/', { refresh }).catch(() => undefined);
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post('/auth/password-reset/', { email });
+}
+
+export async function confirmPasswordReset(
+  uid: string,
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  await api.post('/auth/password-reset/confirm/', { uid, token, new_password: newPassword });
+}
+
+export async function verifyEmail(uid: string, token: string): Promise<void> {
+  await api.post('/auth/verify-email/', { uid, token });
+}
+
+export async function resendVerificationEmail(): Promise<void> {
+  await api.post('/auth/verify-email/resend/');
+}

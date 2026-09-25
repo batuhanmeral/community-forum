@@ -64,6 +64,12 @@ export function LoginPage() {
         <Button type="submit" loading={status === 'loading'} fullWidth>
           {t('auth.loginTitle')}
         </Button>
+        <Link
+          to="/forgot-password"
+          className="text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+        >
+          {t('auth.forgotPassword')}
+        </Link>
       </form>
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
         {t('auth.newToNexus')}{' '}
