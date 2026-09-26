@@ -21,7 +21,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.communities.models import Community
-from apps.communities.services import is_moderator
+from apps.communities.services import is_banned, is_moderator
 from apps.moderation.models import ModAction
 from apps.moderation.services import log_mod_action
 from apps.notifications.services import notify
@@ -213,6 +213,8 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
 
     def perform_update(self, serializer):
+        if is_banned(self.request.user, serializer.instance.community):
+            raise PermissionDenied("You are banned from this community.")
         instance = self.get_object()
         old_title, old_body = instance.title, instance.body
         post = serializer.save()

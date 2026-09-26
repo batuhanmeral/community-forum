@@ -103,4 +103,7 @@ export const en = {
     resendVerification: 'Resend verification email',
     verificationSent: 'Verification email sent.',
   },
+  community: {
+    banned: 'Banned',
+  },
 } as const;

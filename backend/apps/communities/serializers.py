@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Community, CommunityRule, Flair, Membership
+from .services import MOD_ROLES
 
 
 class CommunitySerializer(serializers.ModelSerializer):
@@ -8,6 +9,7 @@ class CommunitySerializer(serializers.ModelSerializer):
     member_count = serializers.IntegerField(read_only=True)
     is_member = serializers.SerializerMethodField()
     my_role = serializers.SerializerMethodField()
+    is_banned = serializers.SerializerMethodField()
 
     class Meta:
         model = Community
@@ -24,15 +26,16 @@ class CommunitySerializer(serializers.ModelSerializer):
             "member_count",
             "is_member",
             "my_role",
+            "is_banned",
             "banned_keywords",
         )
         read_only_fields = ("id", "creator", "created_at")
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # AutoMod keywords are mod-only; hide them from regular members/visitors.
+        # AutoMod keywords are for active moderators only.
         m = self._membership(instance)
-        if m is None or m.role not in (Membership.Role.ADMIN, Membership.Role.MODERATOR):
+        if m is None or m.is_banned or m.role not in MOD_ROLES:
             data.pop("banned_keywords", None)
         return data
 
@@ -55,11 +58,16 @@ class CommunitySerializer(serializers.ModelSerializer):
         return obj.memberships.filter(user=request.user).first()
 
     def get_is_member(self, obj: Community) -> bool:
-        return self._membership(obj) is not None
+        m = self._membership(obj)
+        return m is not None and not m.is_banned
 
     def get_my_role(self, obj: Community) -> str | None:
         m = self._membership(obj)
-        return m.role if m else None
+        return m.role if m is not None and not m.is_banned else None
+
+    def get_is_banned(self, obj: Community) -> bool:
+        m = self._membership(obj)
+        return m is not None and m.is_banned
 
 
 class CommunityRuleSerializer(serializers.ModelSerializer):

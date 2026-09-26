@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -23,7 +23,9 @@ def _require_mod(user, community):
 
 
 class CommunityViewSet(viewsets.ModelViewSet):
-    queryset = Community.objects.all().annotate(member_count=Count("memberships"))
+    queryset = Community.objects.all().annotate(
+        member_count=Count("memberships", filter=Q(memberships__is_banned=False))
+    )
     serializer_class = CommunitySerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCreatorOrReadOnly)
     lookup_field = "slug"
@@ -69,6 +71,9 @@ class CommunityViewSet(viewsets.ModelViewSet):
             membership = Membership.objects.filter(user=request.user, community=community).first()
             if not membership:
                 return Response(status=status.HTTP_204_NO_CONTENT)
+            if membership.is_banned:
+                # Deleting the row would lift the ban on the next join.
+                raise ValidationError("You are banned from this community.")
             if community.creator_id == request.user.id:
                 raise ValidationError("Creator cannot leave their own community.")
             membership.delete()

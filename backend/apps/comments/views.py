@@ -4,8 +4,9 @@ from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
+from rest_framework.exceptions import PermissionDenied
 
-from apps.communities.services import is_moderator
+from apps.communities.services import is_banned, is_moderator
 from apps.notifications.services import notify
 from apps.posts.models import Post
 from apps.posts.permissions import IsAuthorOrModeratorForDelete
@@ -72,8 +73,13 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
         return ctx
 
     def perform_create(self, serializer):
-        comment = serializer.save(author=self.request.user, post=self.get_post())
-        community = comment.post.community
+        post = self.get_post()
+        if post.deleted_at is not None or not post.is_approved:
+            raise PermissionDenied("Comments are closed on this post.")
+        if is_banned(self.request.user, post.community):
+            raise PermissionDenied("You are banned from this community.")
+        comment = serializer.save(author=self.request.user, post=post)
+        community = post.community
         if comment.parent_id and comment.parent.author_id != self.request.user.id:
             notify(comment.parent.author, actor=self.request.user, verb="reply", target=comment)
         elif not comment.parent_id and comment.post.author_id != self.request.user.id:
@@ -111,6 +117,8 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     )
 
     def perform_update(self, serializer):
+        if is_banned(self.request.user, serializer.instance.post.community):
+            raise PermissionDenied("You are banned from this community.")
         instance = self.get_object()
         old_body = instance.body
         comment = serializer.save()
@@ -146,8 +154,6 @@ class CommentRevisionListView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        from rest_framework.exceptions import PermissionDenied
-
         comment = get_object_or_404(Comment, pk=self.kwargs["pk"])
         if comment.author_id != self.request.user.id and not is_moderator(
             self.request.user, comment.post.community

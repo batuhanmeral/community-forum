@@ -93,8 +93,15 @@ class CommentSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_parent(self, value):
+        if self.instance is not None:
+            # Re-parenting an existing comment would let it jump threads.
+            if value != self.instance.parent:
+                raise serializers.ValidationError("Parent cannot be changed.")
+            return value
         if value is None:
             return value
+        if value.deleted_at is not None:
+            raise serializers.ValidationError("You cannot reply to a deleted comment.")
         post = self.context.get("post")
         if post and value.post_id != post.id:
             raise serializers.ValidationError("Parent comment belongs to a different post.")

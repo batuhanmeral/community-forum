@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -48,7 +48,9 @@ class TrendingCommunitiesView(ListAPIView):
             .values("c")
         )
         return Community.objects.annotate(
-            member_count=Count("memberships", distinct=True),
+            member_count=Count(
+                "memberships", filter=Q(memberships__is_banned=False), distinct=True
+            ),
             recent_posts=Coalesce(Subquery(recent_posts), 0),
             recent_comments=Coalesce(Subquery(recent_comments), 0),
         ).order_by("-recent_posts", "-recent_comments", "-id")[:20]

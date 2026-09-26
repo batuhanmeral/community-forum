@@ -107,4 +107,7 @@ export const tr: Translation = {
     resendVerification: 'Doğrulama e-postasını yeniden gönder',
     verificationSent: 'Doğrulama e-postası gönderildi.',
   },
+  community: {
+    banned: 'Yasaklı',
+  },
 } as const;

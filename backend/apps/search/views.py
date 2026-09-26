@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import Count
+from django.db.models import Count, Q
 from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView
@@ -47,7 +47,9 @@ class SearchView(ListAPIView):
             qs = _apply_nsfw_filter(qs, self.request)
             qs = _annotate_score(_base_post_qs(qs))
         elif type_param == "community":
-            qs = qs.annotate(member_count=Count("memberships"))
+            qs = qs.annotate(
+                member_count=Count("memberships", filter=Q(memberships__is_banned=False))
+            )
         elif type_param == "user":
             qs = qs.filter(is_active=True)
         return qs.annotate(rank=SearchRank("search_vector", sq)).order_by("-rank")
