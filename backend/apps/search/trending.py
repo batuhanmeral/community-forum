@@ -5,6 +5,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
 
@@ -22,6 +23,7 @@ def _since():
 
 
 @method_decorator(cache_page(CACHE_SECONDS), name="dispatch")
+@method_decorator(vary_on_headers("Authorization"), name="dispatch")
 class TrendingCommunitiesView(ListAPIView):
     serializer_class = CommunitySerializer
     permission_classes = (permissions.AllowAny,)
@@ -53,6 +55,7 @@ class TrendingCommunitiesView(ListAPIView):
 
 
 @method_decorator(cache_page(CACHE_SECONDS), name="dispatch")
+@method_decorator(vary_on_headers("Authorization"), name="dispatch")
 class TrendingPostsView(ListAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.AllowAny,)
