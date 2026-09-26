@@ -1,23 +1,7 @@
 from rest_framework import permissions
 
 from apps.communities.models import Membership
-
-
-def is_moderator(user, community) -> bool:
-    if not user or not user.is_authenticated:
-        return False
-    return Membership.objects.filter(
-        user=user,
-        community=community,
-        role__in=(Membership.Role.ADMIN, Membership.Role.MODERATOR),
-    ).exists()
-
-
-class IsAuthorOrReadOnly(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.author_id == request.user.id
+from apps.communities.services import is_moderator
 
 
 class IsAuthorOrModeratorForDelete(permissions.BasePermission):
@@ -50,8 +34,3 @@ class IsCommunityMember(permissions.BasePermission):
         return Membership.objects.filter(
             user=request.user, community=community, is_banned=False
         ).exists()
-
-
-class IsCommunityModerator(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        return is_moderator(request.user, obj.community)

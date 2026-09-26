@@ -5,9 +5,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
 
+from apps.communities.services import is_moderator
 from apps.notifications.services import notify
 from apps.posts.models import Post
-from apps.posts.permissions import IsAuthorOrModeratorForDelete, is_moderator
+from apps.posts.permissions import IsAuthorOrModeratorForDelete
 
 from .lib.mentions import resolve_mentions
 from .models import Comment, CommentRevision

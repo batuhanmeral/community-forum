@@ -14,18 +14,11 @@ from .serializers import (
     FlairSerializer,
     MembershipSerializer,
 )
+from .services import is_moderator
 
 
 def _require_mod(user, community):
-    if (
-        not user.is_authenticated
-        or not Membership.objects.filter(
-            user=user,
-            community=community,
-            role__in=(Membership.Role.ADMIN, Membership.Role.MODERATOR),
-            is_banned=False,
-        ).exists()
-    ):
+    if not is_moderator(user, community):
         raise PermissionDenied("Moderator role required.")
 
 

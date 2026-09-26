@@ -21,16 +21,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.communities.models import Community
+from apps.communities.services import is_moderator
 from apps.moderation.models import ModAction
 from apps.moderation.services import log_mod_action
 from apps.notifications.services import notify
 
 from .models import Post, PostRevision
-from .permissions import (
-    IsAuthorOrModeratorForDelete,
-    IsCommunityMember,
-    is_moderator,
-)
+from .permissions import IsAuthorOrModeratorForDelete, IsCommunityMember
 from .serializers import PostRevisionSerializer, PostSerializer
 
 User = get_user_model()

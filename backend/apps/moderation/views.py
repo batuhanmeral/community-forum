@@ -5,11 +5,12 @@ from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.communities.models import Community, Membership
+from apps.communities.services import can_assign_role, can_moderate_member
 from apps.notifications.services import notify
 
 from .models import ModAction, Report
@@ -153,6 +154,8 @@ class CommunityBanView(_CommunityModView, APIView):
             raise ValidationError("Cannot ban the community creator.")
         if target.id == request.user.id:
             raise ValidationError("Cannot ban yourself.")
+        if not can_moderate_member(request.user, target, community):
+            raise PermissionDenied("You can only ban members ranked below you.")
         membership, _ = Membership.objects.update_or_create(
             user=target,
             community=community,
@@ -167,6 +170,8 @@ class CommunityBanView(_CommunityModView, APIView):
     def delete(self, request, slug, username):
         community = self.get_community()
         target = self._get_target(username)
+        if not can_moderate_member(request.user, target, community):
+            raise PermissionDenied("You can only unban members ranked below you.")
         membership = Membership.objects.filter(user=target, community=community).first()
         if membership and membership.is_banned:
             membership.is_banned = False
@@ -191,11 +196,17 @@ class MembershipRoleView(APIView):
         community = self.get_community()
         target = get_object_or_404(User, username__iexact=username)
         membership = get_object_or_404(Membership, user=target, community=community)
+        if membership.is_banned:
+            raise ValidationError("Unban this member before changing their role.")
         new_role = request.data.get("role")
         if new_role not in {c[0] for c in Membership.Role.choices}:
             raise ValidationError({"role": "Invalid role."})
         if target.id == community.creator_id and new_role != Membership.Role.ADMIN:
             raise ValidationError({"role": "Cannot demote the community creator."})
+        if not can_moderate_member(request.user, target, community):
+            raise PermissionDenied("You can only change roles of members ranked below you.")
+        if not can_assign_role(request.user, community, new_role):
+            raise PermissionDenied("You can only assign roles ranked below your own.")
         membership.role = new_role
         membership.save(update_fields=["role"])
         log_mod_action(
