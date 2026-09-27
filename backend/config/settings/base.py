@@ -123,6 +123,8 @@ REST_FRAMEWORK = {
         "write": config("THROTTLE_WRITE", default="60/min"),
         "vote": config("THROTTLE_VOTE", default="120/min"),
     },
+    # Reverse proxies in front of Django. 0 = trust REMOTE_ADDR only; never the client's XFF.
+    "NUM_PROXIES": config("NUM_PROXIES", default=0, cast=int),
 }
 
 SIMPLE_JWT = {
