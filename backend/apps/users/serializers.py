@@ -1,8 +1,14 @@
+import re
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.db import IntegrityError
 from rest_framework import serializers
 
 User = get_user_model()
+
+# Mentions match this charset, so usernames must stay inside it.
+USERNAME_RE = re.compile(r"[A-Za-z0-9_]{3,30}")
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -10,6 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     is_following = serializers.SerializerMethodField()
+    current_password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
@@ -28,8 +35,43 @@ class UserSerializer(serializers.ModelSerializer):
             "following_count",
             "is_following",
             "date_joined",
+            "current_password",
         )
-        read_only_fields = ("id", "email_verified", "post_karma", "comment_karma", "date_joined")
+        read_only_fields = (
+            "id",
+            "username",
+            "email_verified",
+            "post_karma",
+            "comment_karma",
+            "date_joined",
+        )
+        extra_kwargs = {"email": {"allow_blank": False}}
+
+    def validate_email(self, value: str) -> str:
+        taken = User.objects.filter(email__iexact=value)
+        if self.instance is not None:
+            taken = taken.exclude(pk=self.instance.pk)
+        if taken.exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def validate(self, attrs):
+        # Never persist the password field; it only gates an email change.
+        password = attrs.pop("current_password", None)
+        new_email = attrs.get("email")
+        if self.instance is None or new_email is None:
+            return attrs
+        if new_email.lower() == self.instance.email.lower():
+            return attrs
+        if not password:
+            raise serializers.ValidationError(
+                {"current_password": "Enter your current password to change your email."}
+            )
+        if not self.instance.check_password(password):
+            raise serializers.ValidationError(
+                {"current_password": "Current password is incorrect."}
+            )
+        return attrs
 
     def validate_avatar(self, value):
         if value is None:
@@ -104,6 +146,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
     def validate_username(self, value: str) -> str:
+        if not USERNAME_RE.fullmatch(value):
+            raise serializers.ValidationError(
+                "Use 3-30 characters: letters, digits and underscores."
+            )
         if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError("A user with this username already exists.")
         return value
@@ -118,7 +164,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data: dict) -> User:
-        return User.objects.create_user(**validated_data)
+        try:
+            return User.objects.create_user(**validated_data)
+        except IntegrityError as exc:
+            # Lost a race against the case-insensitive unique constraints.
+            raise serializers.ValidationError(
+                {"username": "This username or email is already taken."}
+            ) from exc
 
 
 class _UidTokenSerializer(serializers.Serializer):

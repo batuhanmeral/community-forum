@@ -25,7 +25,7 @@ def tight_auth_throttle(monkeypatch):
 @pytest.mark.django_db
 def test_register_endpoint_throttled(api, tight_auth_throttle):
     payloads = [
-        {"username": f"u{i}", "email": f"u{i}@x.com", "password": "StrongPass123!"}
+        {"username": f"user{i}", "email": f"user{i}@x.com", "password": "StrongPass123!"}
         for i in range(4)
     ]
     statuses = [api.post(REGISTER, p, format="json").status_code for p in payloads]
@@ -37,7 +37,7 @@ def test_register_endpoint_throttled(api, tight_auth_throttle):
 def test_register_with_default_rates_does_not_throttle_small_burst(api):
     """Sanity check: under the default 20/min auth rate, 3 registers succeed."""
     payloads = [
-        {"username": f"v{i}", "email": f"v{i}@x.com", "password": "StrongPass123!"}
+        {"username": f"vser{i}", "email": f"vser{i}@x.com", "password": "StrongPass123!"}
         for i in range(3)
     ]
     statuses = [api.post(REGISTER, p, format="json").status_code for p in payloads]
