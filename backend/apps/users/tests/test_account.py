@@ -55,7 +55,7 @@ class TestChangePassword:
             {"current_password": OLD_PW, "new_password": NEW_PW},
             format="json",
         )
-        assert resp.status_code == 204
+        assert resp.status_code == 200
         fresh = APIClient()
         assert fresh.post(LOGIN, {"username": "alice", "password": OLD_PW}).status_code == 401
         assert fresh.post(LOGIN, {"username": "alice", "password": NEW_PW}).status_code == 200

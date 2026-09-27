@@ -2,7 +2,7 @@ import { api } from './client';
 import type { Paginated } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import type { Comment } from '@/features/comments/types';
-import type { User } from '@/features/auth/types';
+import type { AuthTokens, User } from '@/features/auth/types';
 
 export interface UserProfile {
   id: number;
@@ -68,11 +68,15 @@ export async function updatePreferences(payload: { show_nsfw: boolean }): Promis
   return res.data;
 }
 
-export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  await api.post('/users/me/password/', {
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<AuthTokens> {
+  const res = await api.post<AuthTokens>('/users/me/password/', {
     current_password: currentPassword,
     new_password: newPassword,
   });
+  return res.data;
 }
 
 export async function deactivateAccount(): Promise<void> {

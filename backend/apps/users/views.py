@@ -8,6 +8,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .emails import send_password_reset_email, send_verification_email
 from .serializers import (
@@ -17,10 +19,21 @@ from .serializers import (
     PasswordResetRequestSerializer,
     PublicUserSerializer,
     RegisterSerializer,
+    RevocationAwareTokenRefreshSerializer,
     UserSerializer,
 )
 
 User = get_user_model()
+
+
+class LoginView(TokenObtainPairView):
+    throttle_scope = "auth"
+
+
+class RefreshView(TokenRefreshView):
+    serializer_class = RevocationAwareTokenRefreshSerializer
+    # Own bucket so failed logins on a shared IP cannot 429 everyone's refresh.
+    throttle_scope = "refresh"
 
 
 class RegisterView(generics.CreateAPIView):
@@ -73,8 +86,10 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        user = serializer.save()
+        # The old pair just became invalid; hand this session a fresh one.
+        refresh = RefreshToken.for_user(user)
+        return Response({"access": str(refresh.access_token), "refresh": str(refresh)})
 
 
 class PasswordResetRequestView(APIView):

@@ -4,6 +4,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import IntegrityError
 from rest_framework import serializers
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt.utils import get_md5_hash_password
 
 User = get_user_model()
 
@@ -224,3 +228,17 @@ class EmailVerifySerializer(_UidTokenSerializer):
             self._user.email_verified = True
             self._user.save(update_fields=["email_verified"])
         return self._user
+
+
+class RevocationAwareTokenRefreshSerializer(TokenRefreshSerializer):
+    """Reject refresh tokens minted before the user's latest password change."""
+
+    def validate(self, attrs):
+        refresh = self.token_class(attrs["refresh"])
+        user = User.objects.filter(pk=refresh.payload.get(jwt_settings.USER_ID_CLAIM)).first()
+        claim = refresh.payload.get(jwt_settings.REVOKE_TOKEN_CLAIM)
+        if user is None or claim != get_md5_hash_password(user.password):
+            raise AuthenticationFailed(
+                "Session expired. Please log in again.", code="password_changed"
+            )
+        return super().validate(attrs)
