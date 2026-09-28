@@ -78,6 +78,8 @@ class CommunityRuleSerializer(serializers.ModelSerializer):
 
 
 class FlairSerializer(serializers.ModelSerializer):
+    color = serializers.RegexField(r"^#[0-9a-fA-F]{6}\Z", required=False)
+
     class Meta:
         model = Flair
         fields = ("id", "name", "color")

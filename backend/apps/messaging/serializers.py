@@ -5,6 +5,8 @@ from .models import Conversation, Message
 
 User = get_user_model()
 
+MESSAGE_BODY_MAX_CHARS = 5_000
+
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -22,6 +24,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "read_at",
         )
         read_only_fields = ("id", "conversation", "sender", "created_at", "read_at")
+        extra_kwargs = {"body": {"max_length": MESSAGE_BODY_MAX_CHARS}}
 
     def validate_body(self, value: str) -> str:
         if not value or not value.strip():
