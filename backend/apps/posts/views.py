@@ -15,7 +15,7 @@ from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,6 +29,7 @@ from apps.notifications.services import notify
 from .models import Post, PostRevision
 from .permissions import IsAuthorOrModeratorForDelete, IsCommunityMember
 from .serializers import PostRevisionSerializer, PostSerializer
+from .services import can_see_unapproved
 
 User = get_user_model()
 
@@ -197,6 +198,12 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = (JSONParser, FormParser, MultiPartParser)
     queryset = _annotate_score(_base_post_qs())
 
+    def get_object(self):
+        post = super().get_object()
+        if not post.is_approved and not can_see_unapproved(self.request.user, post):
+            raise NotFound()
+        return post
+
     def perform_destroy(self, instance):
         if instance.deleted_at is not None:
             return
@@ -213,9 +220,11 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
 
     def perform_update(self, serializer):
-        if is_banned(self.request.user, serializer.instance.community):
+        instance = serializer.instance
+        if is_banned(self.request.user, instance.community):
             raise PermissionDenied("You are banned from this community.")
-        instance = self.get_object()
+        if instance.deleted_at is not None:
+            raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
         post = serializer.save()
         if (post.title, post.body) != (old_title, old_body):

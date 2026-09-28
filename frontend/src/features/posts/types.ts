@@ -35,6 +35,7 @@ export interface Post {
   image: string | null;
   is_nsfw: boolean;
   is_pinned: boolean;
+  is_approved: boolean;
   score: number;
   comment_count: number;
   user_vote: number | null;

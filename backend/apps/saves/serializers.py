@@ -2,11 +2,18 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
 from apps.comments.serializers import CommentSerializer
+from apps.posts.models import Post
 from apps.posts.serializers import PostSerializer
+from apps.posts.services import can_see_unapproved
 
 from .models import SavedItem
 
 ALLOWED_TARGETS = {"post", "comment"}
+
+
+def _is_hidden_from(user, target) -> bool:
+    post = target if isinstance(target, Post) else target.post
+    return not post.is_approved and not can_see_unapproved(user, post)
 
 
 class SaveRequestSerializer(serializers.Serializer):
@@ -29,7 +36,14 @@ class SaveRequestSerializer(serializers.Serializer):
         except ContentType.DoesNotExist as exc:
             raise serializers.ValidationError({"content_type": "Unknown content type."}) from exc
         model = ct.model_class()
-        if not model.objects.filter(pk=attrs["object_id"]).exists():
+        target = model.objects.filter(pk=attrs["object_id"]).first()
+        user = self.context["request"].user
+        already_saved = SavedItem.objects.filter(
+            user=user, content_type=ct, object_id=attrs["object_id"]
+        ).exists()
+        # An existing save stays toggleable so a held post can still be un-saved.
+        if target is None or (_is_hidden_from(user, target) and not already_saved):
+            # Same error as a missing target so pending content's existence is not leaked.
             raise serializers.ValidationError({"object_id": "Target object not found."})
         attrs["_content_type"] = ct
         return attrs
@@ -49,7 +63,7 @@ class SavedItemSerializer(serializers.ModelSerializer):
 
     def get_target(self, obj: SavedItem):
         target = obj.target
-        if target is None:
+        if target is None or _is_hidden_from(self.context["request"].user, target):
             return None
         ctx = self.context
         if obj.content_type.model == "post":

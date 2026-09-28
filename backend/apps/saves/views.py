@@ -17,7 +17,7 @@ class SavedItemListCreateView(generics.ListCreateAPIView):
         return qs
 
     def create(self, request, *args, **kwargs):
-        payload = SaveRequestSerializer(data=request.data)
+        payload = SaveRequestSerializer(data=request.data, context={"request": request})
         payload.is_valid(raise_exception=True)
         ct = payload.validated_data["_content_type"]
         object_id = payload.validated_data["object_id"]

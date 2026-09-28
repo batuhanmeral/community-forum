@@ -58,6 +58,7 @@ class PostSerializer(serializers.ModelSerializer):
             "image",
             "is_nsfw",
             "is_pinned",
+            "is_approved",
             "score",
             "comment_count",
             "user_vote",
@@ -67,7 +68,15 @@ class PostSerializer(serializers.ModelSerializer):
             "created_at",
             "edited_at",
         )
-        read_only_fields = ("id", "author", "community", "is_pinned", "created_at", "edited_at")
+        read_only_fields = (
+            "id",
+            "author",
+            "community",
+            "is_pinned",
+            "is_approved",
+            "created_at",
+            "edited_at",
+        )
 
     def get_author(self, obj: Post):
         if obj.deleted_at is not None:
@@ -183,6 +192,9 @@ class PostSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["body"] = _mask_body(instance)
+        if instance.deleted_at is not None:
+            # Removed content must not stay reachable through its link, media or poll.
+            data.update(url="", image=None, poll=None)
         return data
 
     def validate_kind(self, value):
