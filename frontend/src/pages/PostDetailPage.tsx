@@ -235,7 +235,7 @@ export function PostDetailPage() {
         )}
       </Card>
 
-      <CommentSection postId={post.id} />
+      <CommentSection postId={post.id} canComment={!post.is_deleted && post.is_approved} />
 
       <Modal
         open={confirmDelete}

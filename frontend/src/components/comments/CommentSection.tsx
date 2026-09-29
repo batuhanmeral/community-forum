@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn';
 
 interface CommentSectionProps {
   postId: number;
+  canComment?: boolean;
 }
 
 const SORTS: Array<{ value: CommentSort; label: string }> = [
@@ -21,7 +22,7 @@ const SORTS: Array<{ value: CommentSort; label: string }> = [
   { value: 'controversial', label: 'Controversial' },
 ];
 
-export function CommentSection({ postId }: CommentSectionProps) {
+export function CommentSection({ postId, canComment = true }: CommentSectionProps) {
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [comments, setComments] = useState<Comment[]>([]);
   const [sort, setSort] = useState<CommentSort>('best');
@@ -87,18 +88,20 @@ export function CommentSection({ postId }: CommentSectionProps) {
         </select>
       </div>
 
-      <div className="mt-4">
-        {isAuthed ? (
-          <CommentForm placeholder="Add a comment..." onSubmit={handleNewRoot} />
-        ) : (
-          <p className="text-sm text-[var(--color-text-muted)]">
-            <Link to="/login" className="text-[var(--color-accent)] hover:underline">
-              Log in
-            </Link>{' '}
-            to leave a comment.
-          </p>
-        )}
-      </div>
+      {canComment && (
+        <div className="mt-4">
+          {isAuthed ? (
+            <CommentForm placeholder="Add a comment..." onSubmit={handleNewRoot} />
+          ) : (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              <Link to="/login" className="text-[var(--color-accent)] hover:underline">
+                Log in
+              </Link>{' '}
+              to leave a comment.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className={cn('mt-4 flex flex-col gap-3', !tree.length && 'hidden')}>
         {tree.map((node) => (
