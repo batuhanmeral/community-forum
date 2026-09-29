@@ -16,12 +16,14 @@ def _karma_field_for(ct: ContentType) -> str | None:
     return _KARMA_FIELDS.get((ct.app_label, ct.model))
 
 
-def _adjust_karma(target, ct: ContentType, delta: int) -> None:
-    field = _karma_field_for(ct)
+def _adjust_karma(vote: Vote, delta: int) -> None:
+    field = _karma_field_for(vote.content_type)
+    target = vote.target
     if not field or delta == 0 or target is None:
         return
     author_id = getattr(target, "author_id", None)
-    if author_id is None:
+    # Voting on your own content never moves your karma.
+    if author_id is None or author_id == vote.user_id:
         return
     type(target.author).objects.filter(pk=author_id).update(**{field: F(field) + delta})
 
@@ -40,9 +42,9 @@ def _stash_previous_value(sender, instance: Vote, **kwargs):
 def _apply_karma_on_save(sender, instance: Vote, created: bool, **kwargs):
     previous = getattr(instance, "_previous_value", None)
     delta = instance.value if created else (instance.value - (previous or 0))
-    _adjust_karma(instance.target, instance.content_type, delta)
+    _adjust_karma(instance, delta)
 
 
 @receiver(post_delete, sender=Vote)
 def _apply_karma_on_delete(sender, instance: Vote, **kwargs):
-    _adjust_karma(instance.target, instance.content_type, -instance.value)
+    _adjust_karma(instance, -instance.value)
