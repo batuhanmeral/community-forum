@@ -201,3 +201,52 @@ class TestCommentOnPendingPost:
         assert api.get(comment_url(comment.id)).status_code == 404
         api.force_authenticate(author)
         assert api.get(comment_url(comment.id)).status_code == 200
+
+
+@pytest.mark.django_db
+class TestVoteOracle:
+    VOTE = reverse("api_v1:votes:vote")
+
+    def _vote(self, api, content_type, object_id):
+        return api.post(
+            self.VOTE,
+            {"content_type": content_type, "object_id": object_id, "value": 1},
+            format="json",
+        )
+
+    def test_vote_on_held_post_same_as_missing(self, api, pending):
+        api.force_authenticate(_user("stranger"))
+        hidden = self._vote(api, "post", pending.id)
+        missing = self._vote(api, "post", 99999)
+        assert hidden.status_code == missing.status_code
+        assert hidden.data == missing.data
+
+    def test_vote_on_comment_of_held_post_same_as_missing(self, api, author, pending):
+        comment = Comment.objects.create(post=pending, author=author, body="c")
+        api.force_authenticate(_user("stranger"))
+        hidden = self._vote(api, "comment", comment.id)
+        missing = self._vote(api, "comment", 99999)
+        assert hidden.status_code == missing.status_code
+        assert hidden.data == missing.data
+
+    def test_author_still_gets_closed_message_on_held_post(self, api, author, pending):
+        api.force_authenticate(author)
+        assert self._vote(api, "post", pending.id).status_code == 400
+
+    def test_poll_vote_on_held_post_same_as_missing(self, api, author, community):
+        post = Post.objects.create(
+            author=author, community=community, kind="poll", title="p", is_approved=False
+        )
+        poll = Poll.objects.create(post=post, closes_at=timezone.now() + timezone.timedelta(days=1))
+        option = PollOption.objects.create(poll=poll, text="a")
+        api.force_authenticate(_user("stranger"))
+        hidden = api.post(
+            reverse("api_v1:polls:poll-vote", args=[poll.id]),
+            {"option_id": option.id},
+            format="json",
+        )
+        missing = api.post(
+            reverse("api_v1:polls:poll-vote", args=[99999]), {"option_id": 1}, format="json"
+        )
+        assert hidden.status_code == missing.status_code == 404
+        assert hidden.data == missing.data

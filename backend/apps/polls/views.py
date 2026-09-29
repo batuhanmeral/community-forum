@@ -31,6 +31,9 @@ class PollVoteView(APIView):
     @transaction.atomic
     def post(self, request, pk):
         poll = get_object_or_404(Poll.objects.select_related("post__community"), pk=pk)
+        if not poll.post.is_approved and not can_see_unapproved(request.user, poll.post):
+            # An empty queryset yields the exact missing-poll 404, so held posts stay hidden.
+            get_object_or_404(Poll.objects.none(), pk=pk)
         if poll.post.deleted_at is not None or not poll.post.is_approved:
             raise ValidationError("This poll is no longer available.")
         if is_banned(request.user, poll.post.community):

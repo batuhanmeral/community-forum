@@ -172,4 +172,4 @@ class TestBannedEditsAndReplies:
         )
         api.force_authenticate(voter)
         resp = api.post(poll_vote_url(poll.id), {"option_id": option.id}, format="json")
-        assert resp.status_code == 400
+        assert resp.status_code == 404
