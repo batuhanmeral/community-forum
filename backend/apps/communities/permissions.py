@@ -1,5 +1,7 @@
 from rest_framework import permissions
 
+from .services import has_role
+
 
 class IsCreatorOrReadOnly(permissions.BasePermission):
     """Write access for the community creator or admin-role members; read for anyone."""
@@ -18,9 +20,4 @@ class IsCreatorOrReadOnly(permissions.BasePermission):
             return False
         from .models import Membership
 
-        return Membership.objects.filter(
-            user=request.user,
-            community=obj,
-            role=Membership.Role.ADMIN,
-            is_banned=False,
-        ).exists()
+        return has_role(request.user, obj, Membership.Role.ADMIN)

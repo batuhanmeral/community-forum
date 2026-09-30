@@ -14,7 +14,7 @@ from .serializers import (
     FlairSerializer,
     MembershipSerializer,
 )
-from .services import is_moderator
+from .services import is_banned, is_moderator
 
 
 def _require_mod(user, community):
@@ -48,9 +48,7 @@ class CommunityViewSet(viewsets.ModelViewSet):
         community = self.get_object()
 
         if request.method == "POST":
-            if Membership.objects.filter(
-                user=request.user, community=community, is_banned=True
-            ).exists():
+            if is_banned(request.user, community):
                 raise ValidationError("You are banned from this community.")
             if community.creator_id == request.user.id:
                 role = Membership.Role.ADMIN

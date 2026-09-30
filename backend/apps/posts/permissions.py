@@ -1,7 +1,6 @@
 from rest_framework import permissions
 
-from apps.communities.models import Membership
-from apps.communities.services import is_moderator
+from apps.communities.services import active_membership, is_moderator
 
 
 class IsAuthorOrModeratorForDelete(permissions.BasePermission):
@@ -31,6 +30,4 @@ class IsCommunityMember(permissions.BasePermission):
         if not request.user.is_authenticated:
             return False
         community = view.get_community()
-        return Membership.objects.filter(
-            user=request.user, community=community, is_banned=False
-        ).exists()
+        return active_membership(request.user, community) is not None
