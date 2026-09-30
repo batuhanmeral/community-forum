@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
@@ -99,3 +100,13 @@ class TestAuthThrottle:
         assert _refresh("not-a-token") == 401
 
         assert [_refresh("not-a-token") for _ in range(2)] == [401, 429]
+
+
+@pytest.mark.django_db
+class TestRevocationSwitch:
+    def test_claimless_refresh_works_when_check_disabled(self, alice, monkeypatch):
+        # api_settings is cached, so patch the attribute rather than Django settings
+        monkeypatch.setattr(jwt_settings, "CHECK_REVOKE_TOKEN", False)
+        token = RefreshToken.for_user(alice)
+        token.payload.pop(jwt_settings.REVOKE_TOKEN_CLAIM, None)
+        assert _refresh(str(token)) == 200

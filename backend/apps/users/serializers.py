@@ -237,7 +237,9 @@ class RevocationAwareTokenRefreshSerializer(TokenRefreshSerializer):
         refresh = self.token_class(attrs["refresh"])
         user = User.objects.filter(pk=refresh.payload.get(jwt_settings.USER_ID_CLAIM)).first()
         claim = refresh.payload.get(jwt_settings.REVOKE_TOKEN_CLAIM)
-        if user is None or claim != get_md5_hash_password(user.password):
+        if user is None or (
+            jwt_settings.CHECK_REVOKE_TOKEN and claim != get_md5_hash_password(user.password)
+        ):
             raise AuthenticationFailed(
                 "Session expired. Please log in again.", code="password_changed"
             )
