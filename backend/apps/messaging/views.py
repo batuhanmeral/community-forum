@@ -5,6 +5,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.throttling import WriteThrottleMixin
 from apps.notifications.services import notify
 
 from .models import Conversation, Message
@@ -16,7 +17,8 @@ from .serializers import (
 )
 
 
-class ConversationListCreateView(generics.ListCreateAPIView):
+class ConversationListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
+    throttle_scope = "write"
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
@@ -52,7 +54,10 @@ class _ConversationScopedView:
         return self._conv
 
 
-class MessageListCreateView(_ConversationScopedView, generics.ListCreateAPIView):
+class MessageListCreateView(
+    WriteThrottleMixin, _ConversationScopedView, generics.ListCreateAPIView
+):
+    throttle_scope = "write"
     serializer_class = MessageSerializer
 
     def get_queryset(self):

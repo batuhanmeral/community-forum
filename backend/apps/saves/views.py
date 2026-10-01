@@ -1,11 +1,14 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 
+from apps.common.throttling import WriteThrottleMixin
+
 from .models import SavedItem
 from .serializers import SavedItemSerializer, SaveRequestSerializer
 
 
-class SavedItemListCreateView(generics.ListCreateAPIView):
+class SavedItemListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
+    throttle_scope = "write"
     serializer_class = SavedItemSerializer
     permission_classes = (permissions.IsAuthenticated,)
 

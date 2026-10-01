@@ -37,6 +37,7 @@ def _report_target_user(report: Report):
 
 
 class ReportCreateView(APIView):
+    throttle_scope = "write"
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):

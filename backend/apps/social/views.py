@@ -18,6 +18,7 @@ def _get_target(username: str):
 
 
 class FollowToggleView(APIView):
+    throttle_scope = "write"
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, username):
@@ -41,6 +42,7 @@ class FollowToggleView(APIView):
 
 
 class BlockToggleView(APIView):
+    throttle_scope = "write"
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, username):

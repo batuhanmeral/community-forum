@@ -6,6 +6,8 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from apps.common.throttling import WriteThrottleMixin
+
 from .models import Community, Membership
 from .permissions import IsCreatorOrReadOnly
 from .serializers import (
@@ -22,7 +24,8 @@ def _require_mod(user, community):
         raise PermissionDenied("Moderator role required.")
 
 
-class CommunityViewSet(viewsets.ModelViewSet):
+class CommunityViewSet(WriteThrottleMixin, viewsets.ModelViewSet):
+    throttle_scope = "write"
     queryset = Community.objects.all().annotate(
         member_count=Count("memberships", filter=Q(memberships__is_banned=False))
     )

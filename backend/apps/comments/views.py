@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import generics, permissions
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
+from apps.common.throttling import WriteThrottleMixin
 from apps.communities.services import is_banned, is_moderator
 from apps.notifications.services import notify
 from apps.posts.models import Post
@@ -49,7 +50,7 @@ def notify_mentions(body: str, *, actor, target) -> None:
         notify(user, actor=actor, verb="mention", target=target)
 
 
-class PostCommentListCreateView(generics.ListCreateAPIView):
+class PostCommentListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     throttle_scope = "write"

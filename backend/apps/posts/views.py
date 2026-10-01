@@ -20,6 +20,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.throttling import WriteThrottleMixin
 from apps.communities.models import Community
 from apps.communities.services import is_banned, is_moderator
 from apps.moderation.models import ModAction
@@ -114,7 +115,7 @@ def _apply_sort(qs, sort: str):
     return qs.order_by("-is_pinned", "-created_at")
 
 
-class CommunityPostListCreateView(generics.ListCreateAPIView):
+class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCommunityMember)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
