@@ -128,12 +128,12 @@ class TestMessages:
         api.force_authenticate(alice)
         assert api.post(msgs_url(conv.id), {"body": "  "}, format="json").status_code == 400
 
-    def test_history_in_order(self, api, conv, alice, bob):
+    def test_history_newest_first(self, api, conv, alice, bob):
         Message.objects.create(conversation=conv, sender=alice, body="a")
         Message.objects.create(conversation=conv, sender=bob, body="b")
         api.force_authenticate(alice)
         bodies = [m["body"] for m in api.get(msgs_url(conv.id)).data["results"]]
-        assert bodies == ["a", "b"]
+        assert bodies == ["b", "a"]
 
 
 @pytest.mark.django_db
