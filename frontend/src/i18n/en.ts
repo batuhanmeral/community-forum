@@ -113,4 +113,10 @@ export const en = {
   community: {
     banned: 'Banned',
   },
+  messages: {
+    loadOlder: 'Load older messages',
+    loadOlderFailed: 'Could not load older messages.',
+    sendFailed: 'Message could not be sent.',
+    back: 'Back to conversations',
+  },
 } as const;
