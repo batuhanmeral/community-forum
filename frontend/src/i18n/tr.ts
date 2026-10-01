@@ -108,6 +108,10 @@ export const tr: Translation = {
     verificationSent: 'Doğrulama e-postası gönderildi.',
   },
   comments: {
+    count_one: '{{count}} yorum',
+    count_other: '{{count}} yorum',
+    loadMore: 'Daha fazla yorum yükle',
+    loadMoreFailed: 'Daha fazla yorum yüklenemedi.',
     submitFailed: 'Yorumun gönderilemedi.',
   },
   community: {

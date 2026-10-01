@@ -104,6 +104,10 @@ export const en = {
     verificationSent: 'Verification email sent.',
   },
   comments: {
+    count_one: '{{count}} comment',
+    count_other: '{{count}} comments',
+    loadMore: 'Load more comments',
+    loadMoreFailed: 'Could not load more comments.',
     submitFailed: 'Could not post your comment.',
   },
   community: {

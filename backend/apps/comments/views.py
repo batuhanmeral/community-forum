@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.pagination import PageNumberPagination
 
 from apps.common.throttling import WriteThrottleMixin
 from apps.communities.services import is_banned, is_moderator
@@ -19,6 +20,13 @@ from .serializers import CommentRevisionSerializer, CommentSerializer
 
 User = get_user_model()
 
+MAX_COMMENTS_PER_PAGE = 500
+
+
+class CommentThreadPagination(PageNumberPagination):
+    # The client builds the reply tree, so a thread has to arrive in one piece.
+    page_size = MAX_COMMENTS_PER_PAGE
+
 
 def _annotate_score(qs):
     return qs.annotate(
@@ -29,20 +37,21 @@ def _annotate_score(qs):
 
 
 def _apply_comment_sort(qs, sort: str):
+    # Every ordering ends with id so page boundaries stay deterministic on ties.
     if sort == "top":
-        return qs.order_by("-score", "created_at")
+        return qs.order_by("-score", "created_at", "id")
     if sort == "new":
-        return qs.order_by("-created_at")
+        return qs.order_by("-created_at", "id")
     if sort == "old":
-        return qs.order_by("created_at")
+        return qs.order_by("created_at", "id")
     if sort == "controversial":
         # high engagement, near-zero score
         return qs.annotate(
             abs_score=Abs("score"),
             total_votes=F("ups") + F("downs"),
-        ).order_by("abs_score", "-total_votes", "created_at")
+        ).order_by("abs_score", "-total_votes", "created_at", "id")
     # "best" (default): score-based with downvote penalty; falls back to created_at tiebreaker
-    return qs.order_by("-score", "downs", "created_at")
+    return qs.order_by("-score", "downs", "created_at", "id")
 
 
 def notify_mentions(body: str, *, actor, target) -> None:
@@ -53,6 +62,7 @@ def notify_mentions(body: str, *, actor, target) -> None:
 class PostCommentListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    pagination_class = CommentThreadPagination
     throttle_scope = "write"
 
     def get_post(self) -> Post:
