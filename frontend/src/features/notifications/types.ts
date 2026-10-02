@@ -17,6 +17,7 @@ export interface Notification {
   verb: NotificationVerb;
   target_type: NotificationTargetType;
   target_id: number | null;
+  link: string | null;
   created_at: string;
   read_at: string | null;
 }

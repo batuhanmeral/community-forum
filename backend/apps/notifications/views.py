@@ -16,7 +16,7 @@ class NotificationListView(generics.ListAPIView):
         qs = Notification.objects.filter(recipient=self.request.user)
         if self.request.query_params.get("unread") == "true":
             qs = qs.filter(read_at__isnull=True)
-        return qs.select_related("actor", "target_ct")
+        return qs.select_related("actor", "target_ct").prefetch_related("target")
 
 
 class NotificationReadView(APIView):

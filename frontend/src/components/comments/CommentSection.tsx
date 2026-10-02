@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createComment, listComments } from '@/api/comments';
 import type { Comment, CommentSort } from '@/features/comments/types';
@@ -59,6 +59,20 @@ export function CommentSection({ postId, canComment = true }: CommentSectionProp
       cancelled = true;
     };
   }, [postId, sort]);
+
+  const location = useLocation();
+
+  const scrolledHash = useRef('');
+
+  // Notification links point at #comment-<id>; scroll there once per hash so a sort change doesn't yank the viewport back.
+  useEffect(() => {
+    if (loading || !location.hash.startsWith('#comment-')) return;
+    if (scrolledHash.current === location.hash) return;
+    const el = document.getElementById(location.hash.slice(1));
+    if (!el) return;
+    el.scrollIntoView({ block: 'center' });
+    scrolledHash.current = location.hash;
+  }, [loading, location.hash]);
 
   // Invalidates any in-flight load-more after unmount.
   useEffect(

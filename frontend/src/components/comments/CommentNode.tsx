@@ -45,7 +45,7 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
   }
 
   return (
-    <div className={cn('flex gap-2', depth > 0 && 'mt-3')}>
+    <div id={`comment-${node.id}`} className={cn('flex scroll-mt-24 gap-2', depth > 0 && 'mt-3')}>
       <button
         type="button"
         onClick={() => setCollapsed((c) => !c)}

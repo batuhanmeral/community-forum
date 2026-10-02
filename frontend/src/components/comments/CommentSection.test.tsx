@@ -97,4 +97,23 @@ describe('CommentSection', () => {
     await waitFor(() => expect(screen.queryByText('body 2')).not.toBeInTheDocument());
     expect(screen.queryByRole('button', { name: 'Load more comments' })).not.toBeInTheDocument();
   });
+
+  it('scrolls to the comment named in the URL hash', async () => {
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [comment(5)] });
+    renderSection('/posts/1#comment-5');
+    await screen.findByText('body 5');
+    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+  });
+
+  it('scrolls once per hash, not again when the sort changes', async () => {
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [comment(5)] });
+    renderSection('/posts/1#comment-5');
+    await screen.findByText('body 5');
+    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1));
+    await userEvent.selectOptions(screen.getByRole('combobox'), 'new');
+    await waitFor(() => expect(listComments).toHaveBeenCalledTimes(2));
+    await screen.findByText('body 5');
+    await waitFor(() => expect(screen.queryByText('Loading comments…')).not.toBeInTheDocument());
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
+  });
 });
