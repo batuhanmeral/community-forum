@@ -62,7 +62,12 @@ class SavedItemSerializer(serializers.ModelSerializer):
         return obj.content_type.model
 
     def get_target(self, obj: SavedItem):
-        target = obj.target
+        targets = self.context.get("targets")
+        # Without bulk-loaded targets (e.g. the create response) fall back to the GFK.
+        if targets is None:
+            target = obj.target
+        else:
+            target = targets.get((obj.content_type.model, obj.object_id))
         if target is None or _is_hidden_from(self.context["request"].user, target):
             return None
         ctx = self.context
