@@ -113,6 +113,10 @@ export const en = {
   community: {
     banned: 'Banned',
   },
+  composer: {
+    joinFirst: 'Join a community to start posting.',
+    browseCommunities: 'Browse communities',
+  },
   messages: {
     loadOlder: 'Load older messages',
     loadOlderFailed: 'Could not load older messages.',

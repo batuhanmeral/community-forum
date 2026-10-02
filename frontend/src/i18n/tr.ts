@@ -117,6 +117,10 @@ export const tr: Translation = {
   community: {
     banned: 'Yasaklı',
   },
+  composer: {
+    joinFirst: 'Gönderi paylaşmak için önce bir topluluğa katıl.',
+    browseCommunities: 'Toplulukları keşfet',
+  },
   messages: {
     loadOlder: 'Daha eski mesajları yükle',
     loadOlderFailed: 'Daha eski mesajlar yüklenemedi.',

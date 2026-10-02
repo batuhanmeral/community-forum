@@ -13,6 +13,7 @@ export interface ListParams {
   page?: number;
   page_size?: number;
   ordering?: string;
+  joined?: boolean;
 }
 
 export async function listCommunities(params: ListParams = {}): Promise<Paginated<Community>> {
