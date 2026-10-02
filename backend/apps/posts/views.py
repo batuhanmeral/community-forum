@@ -210,7 +210,8 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             return
         instance.deleted_at = timezone.now()
         instance.deleted_by = self.request.user
-        instance.save(update_fields=["deleted_at", "deleted_by"])
+        instance.is_pinned = False
+        instance.save(update_fields=["deleted_at", "deleted_by", "is_pinned"])
         if instance.author_id != self.request.user.id:
             log_mod_action(
                 instance.community,
@@ -264,9 +265,13 @@ class PostStickyView(APIView):
     def post(self, request, pk):
         post = self._get_post(pk)
         self._require_mod(request, post)
+        if post.deleted_at is not None or not post.is_approved:
+            raise ValidationError("Only visible posts can be pinned.")
         if post.is_pinned:
             return Response({"is_pinned": True}, status=status.HTTP_200_OK)
-        pinned_count = Post.objects.filter(community=post.community, is_pinned=True).count()
+        pinned_count = Post.objects.filter(
+            community=post.community, is_pinned=True, is_approved=True, deleted_at__isnull=True
+        ).count()
         if pinned_count >= MAX_STICKY_PER_COMMUNITY:
             raise ValidationError(
                 f"Sticky limit reached ({MAX_STICKY_PER_COMMUNITY} per community)."
@@ -345,7 +350,8 @@ class PostApprovalView(APIView):
         if post.deleted_at is None:
             post.deleted_at = timezone.now()
             post.deleted_by = request.user
-            post.save(update_fields=["deleted_at", "deleted_by"])
+            post.is_pinned = False
+            post.save(update_fields=["deleted_at", "deleted_by", "is_pinned"])
             log_mod_action(
                 post.community,
                 actor=request.user,
