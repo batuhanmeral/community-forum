@@ -164,6 +164,8 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
             author=self.request.user,
             community=community,
             is_approved=is_approved,
+            # Everything posted in an NSFW community is NSFW, whatever the author ticked.
+            is_nsfw=serializer.validated_data.get("is_nsfw", False) or community.is_nsfw,
         )
         if matched_kw:
             log_mod_action(
@@ -230,7 +232,11 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         if instance.deleted_at is not None:
             raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
-        post = serializer.save()
+        post = serializer.save(
+            # An NSFW community's posts can't be un-flagged by their author.
+            is_nsfw=serializer.validated_data.get("is_nsfw", instance.is_nsfw)
+            or instance.community.is_nsfw
+        )
         if (post.title, post.body) != (old_title, old_body):
             PostRevision.objects.create(
                 post=post, title=old_title, body=old_body, edited_by=self.request.user

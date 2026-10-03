@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import generics, permissions
 
 from .models import Post
@@ -11,7 +12,7 @@ def _apply_nsfw_filter(qs, request):
         param = request.query_params.get("nsfw")
         if param == "show" or (param is None and request.user.show_nsfw):
             return qs
-    return qs.exclude(is_nsfw=True)
+    return qs.exclude(Q(is_nsfw=True) | Q(community__is_nsfw=True))
 
 
 class FeedView(generics.ListAPIView):

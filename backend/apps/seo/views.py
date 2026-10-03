@@ -55,12 +55,13 @@ def post_og(request, pk: int):
         Post.objects.select_related("community"), pk=pk, is_approved=True, deleted_at__isnull=True
     )
     description = post.body or f"Posted in c/{post.community.slug} on {SITE_NAME}"
+    nsfw = post.is_nsfw or post.community.is_nsfw
     return _render(
         request,
         path=f"/posts/{post.pk}",
         title=post.title,
         description=description,
-        image=post.image if post.image else None,
+        image=post.image if post.image and not nsfw else None,
     )
 
 

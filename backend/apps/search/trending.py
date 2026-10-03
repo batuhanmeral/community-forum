@@ -47,13 +47,17 @@ class TrendingCommunitiesView(ListAPIView):
             .annotate(c=Count("*"))
             .values("c")
         )
-        return Community.objects.annotate(
-            member_count=Count(
-                "memberships", filter=Q(memberships__is_banned=False), distinct=True
-            ),
-            recent_posts=Coalesce(Subquery(recent_posts), 0),
-            recent_comments=Coalesce(Subquery(recent_comments), 0),
-        ).order_by("-recent_posts", "-recent_comments", "-id")[:20]
+        return (
+            Community.objects.filter(is_nsfw=False)
+            .annotate(
+                member_count=Count(
+                    "memberships", filter=Q(memberships__is_banned=False), distinct=True
+                ),
+                recent_posts=Coalesce(Subquery(recent_posts), 0),
+                recent_comments=Coalesce(Subquery(recent_comments), 0),
+            )
+            .order_by("-recent_posts", "-recent_comments", "-id")[:20]
+        )
 
 
 @method_decorator(cache_page(CACHE_SECONDS), name="dispatch")
@@ -71,6 +75,7 @@ class TrendingPostsView(ListAPIView):
                 Post.objects.filter(
                     created_at__gte=since,
                     is_nsfw=False,
+                    community__is_nsfw=False,
                     is_approved=True,
                     deleted_at__isnull=True,
                 )
