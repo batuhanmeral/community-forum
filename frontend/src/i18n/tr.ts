@@ -116,6 +116,8 @@ export const tr: Translation = {
   },
   community: {
     banned: 'Yasaklı',
+    loadMore: 'Daha fazla gönderi yükle',
+    loadMoreFailed: 'Daha fazla gönderi yüklenemedi.',
   },
   composer: {
     joinFirst: 'Gönderi paylaşmak için önce bir topluluğa katıl.',

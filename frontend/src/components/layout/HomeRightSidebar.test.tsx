@@ -30,6 +30,7 @@ const community: Community = {
   is_member: false,
   is_banned: false,
   my_role: null,
+  my_notify_level: null,
 };
 
 function renderSidebar() {

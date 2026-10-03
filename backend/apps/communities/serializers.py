@@ -10,6 +10,7 @@ class CommunitySerializer(serializers.ModelSerializer):
     is_member = serializers.SerializerMethodField()
     my_role = serializers.SerializerMethodField()
     is_banned = serializers.SerializerMethodField()
+    my_notify_level = serializers.SerializerMethodField()
 
     class Meta:
         model = Community
@@ -27,6 +28,7 @@ class CommunitySerializer(serializers.ModelSerializer):
             "is_member",
             "my_role",
             "is_banned",
+            "my_notify_level",
             "banned_keywords",
         )
         read_only_fields = ("id", "creator", "created_at")
@@ -68,6 +70,10 @@ class CommunitySerializer(serializers.ModelSerializer):
     def get_is_banned(self, obj: Community) -> bool:
         m = self._membership(obj)
         return m is not None and m.is_banned
+
+    def get_my_notify_level(self, obj: Community) -> str | None:
+        m = self._membership(obj)
+        return m.notify_level if m is not None and not m.is_banned else None
 
 
 class CommunityRuleSerializer(serializers.ModelSerializer):

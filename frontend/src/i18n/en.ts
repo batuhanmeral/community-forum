@@ -112,6 +112,8 @@ export const en = {
   },
   community: {
     banned: 'Banned',
+    loadMore: 'Load more posts',
+    loadMoreFailed: 'Could not load more posts.',
   },
   composer: {
     joinFirst: 'Join a community to start posting.',

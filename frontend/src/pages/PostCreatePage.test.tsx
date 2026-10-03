@@ -32,6 +32,7 @@ const joined: Community = {
   is_member: true,
   is_banned: false,
   my_role: 'member',
+  my_notify_level: 'all',
 };
 
 function renderPage() {
