@@ -172,9 +172,11 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
                 target=post,
                 detail=f"matched keyword: {matched_kw}",
             )
-        from apps.comments.views import notify_mentions
+        # Held posts notify on approval instead, so mentions don't leak early.
+        if post.is_approved:
+            from apps.comments.views import notify_mentions
 
-        notify_mentions(post.body, actor=self.request.user, target=post)
+            notify_mentions(post.body, actor=self.request.user, target=post)
 
 
 class UserPostListView(generics.ListAPIView):
@@ -235,6 +237,10 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             )
             post.edited_at = timezone.now()
             post.save(update_fields=["edited_at"])
+            if post.is_approved:
+                from apps.comments.views import notify_mentions
+
+                notify_mentions(post.body, actor=self.request.user, target=post)
 
 
 class PostRevisionListView(generics.ListAPIView):
@@ -342,6 +348,11 @@ class PostApprovalView(APIView):
                 target=post,
             )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
+            if post.deleted_at is None:
+                from apps.comments.views import notify_mentions
+
+                # Author wrote the mention, so they are the actor, not the approver.
+                notify_mentions(post.body, actor=post.author, target=post)
         return Response({"is_approved": True})
 
     def delete(self, request, pk):

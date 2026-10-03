@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
@@ -9,6 +10,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from apps.common.throttling import WriteThrottleMixin
 from apps.communities.services import is_banned, is_moderator
+from apps.notifications.models import Notification
 from apps.notifications.services import notify
 from apps.posts.models import Post
 from apps.posts.permissions import IsAuthorOrModeratorForDelete
@@ -55,8 +57,17 @@ def _apply_comment_sort(qs, sort: str):
 
 
 def notify_mentions(body: str, *, actor, target) -> None:
+    # One mention notification per (user, target) ever, so edit cycles can't spam.
+    already = set(
+        Notification.objects.filter(
+            verb="mention",
+            target_ct=ContentType.objects.get_for_model(target.__class__),
+            target_id=target.pk,
+        ).values_list("recipient_id", flat=True)
+    )
     for user in resolve_mentions(body, exclude_user=actor):
-        notify(user, actor=actor, verb="mention", target=target)
+        if user.id not in already:
+            notify(user, actor=actor, verb="mention", target=target)
 
 
 class PostCommentListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
