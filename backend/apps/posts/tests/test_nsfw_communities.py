@@ -62,3 +62,10 @@ class TestNsfwCommunities:
         assert resp.data["is_nsfw"] is True
         post.refresh_from_db()
         assert post.is_nsfw is True
+
+    def test_legacy_post_in_nsfw_community_reads_as_nsfw(self, alice, nsfw_community):
+        post = Post.objects.create(author=alice, community=nsfw_community, title="legacy")
+        assert post.is_nsfw is False
+        resp = APIClient().get(reverse("api_v1:posts:post-detail", args=[post.id]))
+        assert resp.status_code == 200
+        assert resp.data["is_nsfw"] is True

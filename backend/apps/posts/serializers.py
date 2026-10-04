@@ -192,6 +192,8 @@ class PostSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["body"] = _mask_body(instance)
+        # Posts made before their community was flagged NSFW still carry is_nsfw=False.
+        data["is_nsfw"] = data["is_nsfw"] or instance.community.is_nsfw
         if instance.deleted_at is not None:
             # Removed content must not stay reachable through its link, media or poll.
             data.update(url="", image=None, poll=None)
