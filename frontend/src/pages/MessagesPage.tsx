@@ -21,6 +21,9 @@ import { cn } from '@/lib/cn';
 import { usePolling } from '@/lib/usePolling';
 
 const POLL_MS = 10_000;
+const CONVERSATIONS_POLL_MS = 30_000;
+// How close to the bottom still counts as "reading the latest messages".
+const BOTTOM_SLACK_PX = 40;
 
 function byTimeThenId(a: Message, b: Message) {
   return Date.parse(a.created_at) - Date.parse(b.created_at) || a.id - b.id;
@@ -35,14 +38,21 @@ export function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [convsLoading, setConvsLoading] = useState(true);
   const [newOpen, setNewOpen] = useState(false);
+  const refetchedForId = useRef<string | null>(null);
+
+  const applyConversations = useCallback(
+    (d: Conversation[]) => {
+      setConversations(d);
+      dispatch(setDMUnreadCount(d.reduce((acc, c) => acc + c.unread_count, 0)));
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     let cancelled = false;
     listConversations()
       .then((d) => {
-        if (cancelled) return;
-        setConversations(d);
-        dispatch(setDMUnreadCount(d.reduce((acc, c) => acc + c.unread_count, 0)));
+        if (!cancelled) applyConversations(d);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -51,12 +61,26 @@ export function MessagesPage() {
     return () => {
       cancelled = true;
     };
-  }, [dispatch]);
+  }, [applyConversations]);
+
+  const refreshConversations = useCallback(() => {
+    listConversations().then(applyConversations).catch(() => undefined);
+  }, [applyConversations]);
+
+  // Keeps unread counts and previews of the other conversations current.
+  usePolling(refreshConversations, CONVERSATIONS_POLL_MS, !convsLoading);
 
   const selected = useMemo(
     () => conversations.find((c) => c.id === Number(id)) ?? null,
     [conversations, id],
   );
+
+  // A routed conversation (e.g. from a DM notification) may have started after the list loaded.
+  useEffect(() => {
+    if (convsLoading || !id || selected || refetchedForId.current === id) return;
+    refetchedForId.current = id;
+    refreshConversations();
+  }, [convsLoading, id, selected, refreshConversations]);
 
   function handleConvChange(updater: (prev: Conversation[]) => Conversation[]) {
     setConversations((prev) => {
@@ -81,9 +105,9 @@ export function MessagesPage() {
   }
 
   return (
-    <div className="grid h-[calc(100vh-128px)] grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
+    <div className="grid h-[calc(100vh-128px)] grid-cols-[280px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
       {/* Inbox */}
-      <aside className={cn('flex flex-col border-r border-[var(--color-border)]', selected && 'max-[720px]:hidden')}>
+      <aside className={cn('flex min-h-0 flex-col border-r border-[var(--color-border)]', selected && 'max-[720px]:hidden')}>
         <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3.5">
           <h2 className="text-[15px] font-semibold tracking-tight">Inbox</h2>
           <button
@@ -115,16 +139,19 @@ export function MessagesPage() {
       </aside>
 
       {/* Chat */}
-      <section className={cn('flex min-w-0 flex-col', !selected && 'max-[720px]:hidden')}>
+      <section className={cn('flex min-h-0 min-w-0 flex-col', !selected && 'max-[720px]:hidden')}>
         {selected ? (
           <ChatPane
             key={selected.id}
             conversation={selected}
             currentUserId={currentUserId}
             onMessageSent={(msg) => {
-              handleConvChange((prev) =>
-                prev.map((c) => (c.id === selected.id ? { ...c, last_message: msg } : c)),
-              );
+              // The list is ordered by latest activity, so the conversation moves to the top.
+              handleConvChange((prev) => {
+                const sentIn = prev.find((c) => c.id === selected.id);
+                if (!sentIn) return prev;
+                return [{ ...sentIn, last_message: msg }, ...prev.filter((c) => c !== sentIn)];
+              });
             }}
             onRead={() => {
               handleConvChange((prev) =>
@@ -267,12 +294,19 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
           setMessages((current) => {
             const have = new Set(current.map((m) => m.id));
             const fresh = d.results.filter((m) => !have.has(m.id));
-            // Refresh read receipts of loaded messages, then add unseen ones in time order.
-            return [...current.map((m) => latest.get(m.id) ?? m), ...fresh].sort(byTimeThenId);
+            let receiptChanged = false;
+            const refreshed = current.map((m) => {
+              const polled = latest.get(m.id);
+              if (!polled || polled.read_at === m.read_at) return m;
+              receiptChanged = true;
+              return polled;
+            });
+            // Same reference means no re-render, so an idle poll can't move the scroll position.
+            if (fresh.length === 0 && !receiptChanged) return current;
+            return [...refreshed, ...fresh].sort(byTimeThenId);
           });
         }
         if (d.results.some((m) => m.sender !== currentUserId && m.read_at === null)) {
-          stickToBottom.current = true;
           markConversationRead(conversation.id)
             .then(() => onRead())
             .catch(() => undefined);
@@ -282,6 +316,12 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
   }, [conversation.id, currentUserId, onRead]);
 
   usePolling(pollLatest, POLL_MS, !loading);
+
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX;
+  }
 
   async function loadOlder() {
     if (olderPage === null || loadingOlder) return;
@@ -357,7 +397,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
+      <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {loading ? (
           <p className="text-sm text-[var(--color-text-muted)]">Loading messages…</p>
         ) : messages.length === 0 ? (

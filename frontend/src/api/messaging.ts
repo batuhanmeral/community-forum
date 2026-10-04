@@ -3,7 +3,10 @@ import type { Paginated } from '@/features/communities/types';
 import type { Conversation, Message } from '@/features/messaging/types';
 
 export async function listConversations(): Promise<Conversation[]> {
-  const res = await api.get<Conversation[] | Paginated<Conversation>>('/conversations/');
+  // Backend max page size; paging through the inbox is deferred to M3.
+  const res = await api.get<Conversation[] | Paginated<Conversation>>('/conversations/', {
+    params: { page_size: 100 },
+  });
   return Array.isArray(res.data) ? res.data : res.data.results;
 }
 

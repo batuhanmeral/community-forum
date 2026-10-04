@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -264,5 +264,126 @@ describe('MessagesPage polling', () => {
       resolvePoll(page([msg(2, 1), msg(1)], null));
     });
     expect(screen.getAllByText('m2')).toHaveLength(1);
+  });
+});
+
+function scrollContainerOf(el: HTMLElement) {
+  return el.closest('.overflow-y-auto') as HTMLElement;
+}
+
+// jsdom has no layout, so the scroll geometry is stubbed on the element itself.
+function scrollUp(container: HTMLElement) {
+  Object.defineProperty(container, 'scrollHeight', { configurable: true, value: 1000 });
+  Object.defineProperty(container, 'clientHeight', { configurable: true, value: 300 });
+  Object.defineProperty(container, 'scrollTop', { configurable: true, writable: true, value: 100 });
+  fireEvent.scroll(container);
+}
+
+describe('MessagesPage scroll position', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.listConversations.mockResolvedValue([conversation]);
+    api.markConversationRead.mockResolvedValue();
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  const read = { ...msg(1), read_at: '2026-10-01T00:05:00Z' };
+
+  async function openScrolledUp() {
+    renderAt('/messages/1');
+    scrollUp(scrollContainerOf(await screen.findByText('m1')));
+    vi.mocked(Element.prototype.scrollTo).mockClear();
+  }
+
+  it('does not jump to the bottom on an empty poll while the user has scrolled up', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    api.listMessages.mockResolvedValue(page([read], null));
+    await openScrolledUp();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(api.listMessages).toHaveBeenCalledTimes(2);
+    expect(Element.prototype.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('does not jump to the bottom for an incoming message while the user has scrolled up', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    api.listMessages
+      .mockResolvedValueOnce(page([read], null))
+      .mockResolvedValue(page([msg(2), read], null));
+    await openScrolledUp();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(await screen.findByText('m2')).toBeInTheDocument();
+    expect(Element.prototype.scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+describe('MessagesPage conversation list', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.markConversationRead.mockResolvedValue();
+    api.listMessages.mockResolvedValue(page([], null));
+  });
+
+  it('refetches the list once when the routed conversation is not in it', async () => {
+    api.listConversations
+      .mockResolvedValueOnce([conversation])
+      .mockResolvedValue([otherConversation, conversation]);
+    renderAt('/messages/2');
+
+    expect(await screen.findByPlaceholderText(/message u\/carol/i)).toBeInTheDocument();
+    expect(api.listConversations).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not keep refetching when the routed conversation never appears', async () => {
+    api.listConversations.mockResolvedValue([conversation]);
+    renderAt('/messages/99');
+
+    await screen.findByText('Select a conversation to start chatting.');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(api.listConversations).toHaveBeenCalledTimes(2);
+  });
+
+  it('moves a conversation to the top of the list after sending in it', async () => {
+    api.listConversations.mockResolvedValue([conversation, otherConversation]);
+    api.sendMessage.mockResolvedValue(msg(7, 1, 2));
+    renderAt('/messages/2');
+
+    const rowOrder = () =>
+      screen
+        .getAllByRole('link')
+        .map((l) => l.getAttribute('href'))
+        .filter((h) => /^\/messages\/\d+$/.test(h ?? ''));
+    await userEvent.type(await screen.findByPlaceholderText(/message u\/carol/i), 'm7');
+    expect(rowOrder()).toEqual(['/messages/1', '/messages/2']);
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await screen.findByText('You: m7');
+    expect(rowOrder()).toEqual(['/messages/2', '/messages/1']);
+  });
+
+  it('refreshes the list every 30 seconds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      api.listConversations
+        .mockResolvedValueOnce([conversation])
+        .mockResolvedValue([{ ...conversation, unread_count: 3 }]);
+      renderAt('/messages');
+      await screen.findByText('u/bob');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000);
+      });
+      expect(await screen.findByText('3')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
