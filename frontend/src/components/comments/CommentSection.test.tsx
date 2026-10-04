@@ -73,6 +73,16 @@ describe('CommentSection', () => {
       expect(screen.queryByRole('button', { name: 'Load more comments' })).not.toBeInTheDocument(),
     );
   });
+  it('renders a comment once when the next page repeats it', async () => {
+    listComments
+      .mockResolvedValueOnce({ count: 3, next: 'p2', previous: null, results: [comment(1), comment(2)] })
+      .mockResolvedValueOnce({ count: 3, next: null, previous: 'p1', results: [comment(2), comment(3)] });
+    renderSection();
+    await userEvent.click(await screen.findByRole('button', { name: 'Load more comments' }));
+    expect(await screen.findByText('body 3')).toBeInTheDocument();
+    expect(screen.getAllByText('body 2')).toHaveLength(1);
+  });
+
   it('shows an inline error when loading more fails and keeps the button', async () => {
     listComments
       .mockResolvedValueOnce({ count: 2, next: 'p2', previous: null, results: [comment(1)] })

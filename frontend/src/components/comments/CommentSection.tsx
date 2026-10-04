@@ -90,7 +90,11 @@ export function CommentSection({ postId, canComment = true }: CommentSectionProp
     try {
       const d = await listComments(postId, { sort, page: nextPage });
       if (version !== listVersion.current) return;
-      setComments((cs) => [...cs, ...d.results]);
+      // Pages shift when someone comments meanwhile, so the next page can repeat loaded ids.
+      setComments((cs) => {
+        const loaded = new Set(cs.map((c) => c.id));
+        return [...cs, ...d.results.filter((c) => !loaded.has(c.id))];
+      });
       setNextPage(d.next ? nextPage + 1 : null);
     } catch {
       if (version === listVersion.current) setLoadMoreFailed(true);
