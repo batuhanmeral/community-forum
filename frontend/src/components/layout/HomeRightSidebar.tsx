@@ -9,6 +9,7 @@ import type { Post } from '@/features/posts/types';
 import { useAppSelector } from '@/app/hooks';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { Badge } from '@/components/ui/Badge';
 
 export function HomeRightSidebar() {
   const { t } = useTranslation();
@@ -197,6 +198,9 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
           {formatCount(community.member_count)} {t('rightbar.members')}
         </div>
       </div>
+      {community.is_banned ? (
+        <Badge tone="danger">{t('community.banned')}</Badge>
+      ) : (
       <button
         type="button"
         onClick={toggle}
@@ -210,6 +214,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
       >
         {joined ? t('rightbar.joined') : t('rightbar.join')}
       </button>
+      )}
     </Link>
   );
 }

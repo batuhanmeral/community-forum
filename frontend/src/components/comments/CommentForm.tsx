@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { searchUsers, type UserSearchResult } from '@/api/search';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -39,7 +40,9 @@ export function CommentForm({
   onCancel,
   submitLabel = 'Comment',
 }: CommentFormProps) {
+  const { t } = useTranslation();
   const [body, setBody] = useState(initialValue);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [mention, setMention] = useState<MentionState>(emptyMention);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -133,9 +136,16 @@ export function CommentForm({
     const trimmed = body.trim();
     if (!trimmed) return;
     setSubmitting(true);
+    setError(null);
     try {
       await onSubmit(trimmed);
       setBody('');
+    } catch (e) {
+      // Keep the typed text so the user can retry or copy it.
+      setError(
+        (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+          t('comments.submitFailed'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -185,6 +195,8 @@ export function CommentForm({
           ))}
         </div>
       )}
+
+      {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
 
       <div className="flex justify-end gap-2">
         {onCancel && (

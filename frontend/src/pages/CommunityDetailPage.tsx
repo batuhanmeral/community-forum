@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   getCommunity,
   joinCommunity,
@@ -30,6 +31,7 @@ const notifyLabels: Record<NotifyLevel, string> = {
 };
 
 export function CommunityDetailPage() {
+  const { t } = useTranslation();
   const { slug = '' } = useParams<{ slug: string }>();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
 
@@ -177,13 +179,17 @@ export function CommunityDetailPage() {
               {community.is_member && (
                 <NotifyDropdown value={notifyLevel} onChange={handleNotifyChange} />
               )}
-              <Button
-                variant={community.is_member ? 'secondary' : 'primary'}
-                onClick={handleJoinLeave}
-                loading={actionLoading}
-              >
-                {community.is_member ? 'Joined' : 'Join'}
-              </Button>
+              {community.is_banned ? (
+                <Badge tone="danger">{t('community.banned')}</Badge>
+              ) : (
+                <Button
+                  variant={community.is_member ? 'secondary' : 'primary'}
+                  onClick={handleJoinLeave}
+                  loading={actionLoading}
+                >
+                  {community.is_member ? 'Joined' : 'Join'}
+                </Button>
+              )}
             </div>
           )}
         </div>

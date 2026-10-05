@@ -2,9 +2,12 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from apps.communities.services import is_banned
+from apps.posts.services import can_see_unapproved
 
 from .models import Poll, PollOption, PollVote
 from .serializers import PollSerializer, PollVoteInputSerializer
@@ -14,7 +17,11 @@ class PollDetailView(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def get(self, request, pk):
-        poll = get_object_or_404(Poll, pk=pk)
+        poll = get_object_or_404(Poll.objects.select_related("post__community"), pk=pk)
+        if poll.post.deleted_at is not None:
+            raise NotFound()
+        if not poll.post.is_approved and not can_see_unapproved(request.user, poll.post):
+            raise NotFound()
         return Response(PollSerializer(poll, context={"request": request}).data)
 
 
@@ -23,7 +30,14 @@ class PollVoteView(APIView):
 
     @transaction.atomic
     def post(self, request, pk):
-        poll = get_object_or_404(Poll, pk=pk)
+        poll = get_object_or_404(Poll.objects.select_related("post__community"), pk=pk)
+        if not poll.post.is_approved and not can_see_unapproved(request.user, poll.post):
+            # An empty queryset yields the exact missing-poll 404, so held posts stay hidden.
+            get_object_or_404(Poll.objects.none(), pk=pk)
+        if poll.post.deleted_at is not None or not poll.post.is_approved:
+            raise ValidationError("This poll is no longer available.")
+        if is_banned(request.user, poll.post.community):
+            raise PermissionDenied("You are banned from this community.")
         if poll.closes_at <= timezone.now():
             raise ValidationError("This poll is closed.")
         payload = PollVoteInputSerializer(data=request.data)

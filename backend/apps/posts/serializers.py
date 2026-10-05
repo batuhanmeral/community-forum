@@ -9,6 +9,7 @@ from .models import Post, PostRevision
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
+POST_BODY_MAX_CHARS = 40_000
 
 
 def _is_mod_removal(obj) -> bool:
@@ -30,7 +31,9 @@ class PostSerializer(serializers.ModelSerializer):
     comment_count = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
-    body = serializers.SerializerMethodField()
+    body = serializers.CharField(
+        required=False, allow_blank=True, max_length=POST_BODY_MAX_CHARS, trim_whitespace=False
+    )
     body_html = serializers.SerializerMethodField()
     is_deleted = serializers.SerializerMethodField()
     poll = serializers.SerializerMethodField()
@@ -55,6 +58,7 @@ class PostSerializer(serializers.ModelSerializer):
             "image",
             "is_nsfw",
             "is_pinned",
+            "is_approved",
             "score",
             "comment_count",
             "user_vote",
@@ -64,7 +68,15 @@ class PostSerializer(serializers.ModelSerializer):
             "created_at",
             "edited_at",
         )
-        read_only_fields = ("id", "author", "community", "is_pinned", "created_at", "edited_at")
+        read_only_fields = (
+            "id",
+            "author",
+            "community",
+            "is_pinned",
+            "is_approved",
+            "created_at",
+            "edited_at",
+        )
 
     def get_author(self, obj: Post):
         if obj.deleted_at is not None:
@@ -73,9 +85,6 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_author_username(self, obj: Post):
         return None if obj.deleted_at is not None else obj.author.username
-
-    def get_body(self, obj: Post) -> str:
-        return _mask_body(obj)
 
     def get_body_html(self, obj: Post) -> str:
         body = _mask_body(obj)
@@ -131,7 +140,21 @@ class PostSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Flair does not belong to this community.")
         return value
 
+    def _validate_update_fields(self, attrs):
+        # Kind is immutable, so only the fields that belong to it may change.
+        kind = self.instance.kind
+        if "url" in attrs and kind != Post.Kind.LINK and attrs["url"]:
+            raise serializers.ValidationError({"url": "URL is only allowed on link posts."})
+        if "url" in attrs and kind == Post.Kind.LINK and not attrs["url"]:
+            raise serializers.ValidationError({"url": "URL is required for link posts."})
+        if attrs.get("image") and kind != Post.Kind.IMAGE:
+            raise serializers.ValidationError({"image": "Image is only allowed on image posts."})
+        if "poll_input" in attrs:
+            raise serializers.ValidationError({"poll_input": "Polls cannot be edited."})
+
     def validate(self, attrs):
+        if self.instance is not None:
+            self._validate_update_fields(attrs)
         kind = attrs.get("kind") or (self.instance.kind if self.instance else Post.Kind.TEXT)
         if kind == Post.Kind.LINK and not (
             attrs.get("url") or (self.instance and self.instance.url)
@@ -166,12 +189,18 @@ class PostSerializer(serializers.ModelSerializer):
         validated_data.pop("poll_input", None)
         return super().update(instance, validated_data)
 
-    def to_internal_value(self, data):
-        body = data.get("body") if isinstance(data, dict) else None
-        out = super().to_internal_value(data)
-        if body is not None:
-            out["body"] = body
-        return out
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["body"] = _mask_body(instance)
+        if instance.deleted_at is not None:
+            # Removed content must not stay reachable through its link, media or poll.
+            data.update(url="", image=None, poll=None)
+        return data
+
+    def validate_kind(self, value):
+        if self.instance is not None and value != self.instance.kind:
+            raise serializers.ValidationError("Post type cannot be changed after posting.")
+        return value
 
 
 class PostRevisionSerializer(serializers.ModelSerializer):

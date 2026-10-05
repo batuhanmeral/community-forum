@@ -13,6 +13,7 @@ export interface Community {
   created_at: string;
   member_count: number;
   is_member: boolean;
+  is_banned: boolean;
   my_role: CommunityRole | null;
   /** AutoMod keywords, newline-separated. Only present for moderators/admins. */
   banned_keywords?: string;

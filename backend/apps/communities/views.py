@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -14,23 +14,18 @@ from .serializers import (
     FlairSerializer,
     MembershipSerializer,
 )
+from .services import is_banned, is_moderator
 
 
 def _require_mod(user, community):
-    if (
-        not user.is_authenticated
-        or not Membership.objects.filter(
-            user=user,
-            community=community,
-            role__in=(Membership.Role.ADMIN, Membership.Role.MODERATOR),
-            is_banned=False,
-        ).exists()
-    ):
+    if not is_moderator(user, community):
         raise PermissionDenied("Moderator role required.")
 
 
 class CommunityViewSet(viewsets.ModelViewSet):
-    queryset = Community.objects.all().annotate(member_count=Count("memberships"))
+    queryset = Community.objects.all().annotate(
+        member_count=Count("memberships", filter=Q(memberships__is_banned=False))
+    )
     serializer_class = CommunitySerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCreatorOrReadOnly)
     lookup_field = "slug"
@@ -53,9 +48,7 @@ class CommunityViewSet(viewsets.ModelViewSet):
         community = self.get_object()
 
         if request.method == "POST":
-            if Membership.objects.filter(
-                user=request.user, community=community, is_banned=True
-            ).exists():
+            if is_banned(request.user, community):
                 raise ValidationError("You are banned from this community.")
             if community.creator_id == request.user.id:
                 role = Membership.Role.ADMIN
@@ -76,6 +69,9 @@ class CommunityViewSet(viewsets.ModelViewSet):
             membership = Membership.objects.filter(user=request.user, community=community).first()
             if not membership:
                 return Response(status=status.HTTP_204_NO_CONTENT)
+            if membership.is_banned:
+                # Deleting the row would lift the ban on the next join.
+                raise ValidationError("You are banned from this community.")
             if community.creator_id == request.user.id:
                 raise ValidationError("Creator cannot leave their own community.")
             membership.delete()

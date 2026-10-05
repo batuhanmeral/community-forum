@@ -1,30 +1,16 @@
 from rest_framework import permissions
 
 from apps.communities.models import Membership
-
-
-def _has_role(user, community, *roles) -> bool:
-    if not user or not user.is_authenticated:
-        return False
-    return Membership.objects.filter(
-        user=user, community=community, role__in=roles, is_banned=False
-    ).exists()
+from apps.communities.services import MOD_ROLES, has_role
 
 
 class IsCommunityModerator(permissions.BasePermission):
     """View must expose `get_community()`."""
 
     def has_permission(self, request, view):
-        community = view.get_community()
-        return _has_role(
-            request.user,
-            community,
-            Membership.Role.ADMIN,
-            Membership.Role.MODERATOR,
-        )
+        return has_role(request.user, view.get_community(), *MOD_ROLES)
 
 
 class IsCommunityAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
-        community = view.get_community()
-        return _has_role(request.user, community, Membership.Role.ADMIN)
+        return has_role(request.user, view.get_community(), Membership.Role.ADMIN)

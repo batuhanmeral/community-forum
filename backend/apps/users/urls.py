@@ -1,17 +1,15 @@
 from django.urls import path
-from rest_framework_simplejwt.views import (
-    TokenBlacklistView,
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenBlacklistView
 
 from .views import (
     ChangePasswordView,
     EmailVerifyView,
     LeaderboardView,
+    LoginView,
     MeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
+    RefreshView,
     RegisterView,
     ResendVerificationView,
     UserProfileView,
@@ -19,8 +17,8 @@ from .views import (
 
 auth_urlpatterns = [
     path("register/", RegisterView.as_view(), name="auth-register"),
-    path("login/", TokenObtainPairView.as_view(), name="auth-login"),
-    path("refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
+    path("login/", LoginView.as_view(), name="auth-login"),
+    path("refresh/", RefreshView.as_view(), name="auth-refresh"),
     path("logout/", TokenBlacklistView.as_view(), name="auth-logout"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="auth-password-reset"),
     path(

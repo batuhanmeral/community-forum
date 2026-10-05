@@ -1,7 +1,11 @@
 from django.db import transaction
 from rest_framework import permissions, status
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from apps.communities.services import is_banned
+from apps.posts.services import can_see_unapproved
 
 from .models import Vote
 from .serializers import VoteRequestSerializer, VoteSerializer
@@ -20,6 +24,15 @@ class VoteView(APIView):
         ct = req.validated_data["_content_type"]
         object_id = req.validated_data["object_id"]
         value = req.validated_data["value"]
+        target = req.validated_data["_target"]
+        post = target if ct.model == "post" else target.post
+        if not post.is_approved and not can_see_unapproved(request.user, post):
+            # Held content must look identical to a missing target (no existence oracle).
+            raise ValidationError({"object_id": ["Target object not found."]})
+        if target.deleted_at is not None or post.deleted_at is not None or not post.is_approved:
+            raise ValidationError("This content is no longer available for voting.")
+        if is_banned(request.user, post.community):
+            raise PermissionDenied("You are banned from this community.")
 
         existing = Vote.objects.filter(
             user=request.user, content_type=ct, object_id=object_id

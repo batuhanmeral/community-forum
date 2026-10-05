@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import OuterRef, Subquery, Sum
 
 from apps.comments.models import Comment
 from apps.posts.models import Post
@@ -39,8 +39,10 @@ class Command(BaseCommand):
         author_by_target = dict(target_ids)
         if not author_by_target:
             return {}
+        author_of_target = model.objects.filter(pk=OuterRef("object_id")).values("author_id")[:1]
         rows = (
             Vote.objects.filter(content_type=ct, object_id__in=author_by_target.keys())
+            .exclude(user_id=Subquery(author_of_target))
             .values("object_id")
             .annotate(total=Sum("value"))
         )

@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
+from django.db.models.functions import Lower
 
 
 class User(AbstractUser):
@@ -16,6 +17,14 @@ class User(AbstractUser):
     class Meta(AbstractUser.Meta):
         indexes = [
             GinIndex(fields=("search_vector",), name="users_user_search_gin"),
+        ]
+        constraints = [
+            models.UniqueConstraint(Lower("username"), name="users_user_username_ci_unique"),
+            models.UniqueConstraint(
+                Lower("email"),
+                condition=~models.Q(email=""),
+                name="users_user_email_ci_unique",
+            ),
         ]
 
     def __str__(self) -> str:

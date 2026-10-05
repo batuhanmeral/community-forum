@@ -39,20 +39,23 @@ const testUser = {
 function renderPage() {
   const store = configureStore({ reducer: { auth: authReducer } });
   store.dispatch(setUser(testUser));
-  return render(
-    <Provider store={store}>
-      <MemoryRouter>
-        <SettingsPage />
-      </MemoryRouter>
-    </Provider>,
-  );
+  return {
+    store,
+    ...render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <SettingsPage />
+        </MemoryRouter>
+      </Provider>,
+    ),
+  };
 }
 
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listBlocked.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
-    changePassword.mockResolvedValue();
+    changePassword.mockResolvedValue({ access: 'new-access', refresh: 'new-refresh' });
     unblockUser.mockResolvedValue();
   });
 
@@ -65,6 +68,17 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByText(/do not match/i)).toBeInTheDocument();
     expect(changePassword).not.toHaveBeenCalled();
+  });
+
+  it('stores the rotated token pair after a password change', async () => {
+    const { store } = renderPage();
+    await userEvent.type(screen.getByLabelText(/current password/i), 'old-pass');
+    await userEvent.type(screen.getByLabelText(/^new password$/i), 'new-pass-1');
+    await userEvent.type(screen.getByLabelText(/confirm new password/i), 'new-pass-1');
+    await userEvent.click(screen.getByRole('button', { name: /update password/i }));
+
+    await waitFor(() => expect(store.getState().auth.accessToken).toBe('new-access'));
+    expect(store.getState().auth.refreshToken).toBe('new-refresh');
   });
 
   it('submits a valid password change and clears the form', async () => {

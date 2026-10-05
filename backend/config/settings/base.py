@@ -119,9 +119,12 @@ REST_FRAMEWORK = {
         "anon": config("THROTTLE_ANON", default="60/min"),
         "user": config("THROTTLE_USER", default="600/min"),
         "auth": config("THROTTLE_AUTH", default="20/min"),
+        "refresh": config("THROTTLE_REFRESH", default="60/min"),
         "write": config("THROTTLE_WRITE", default="60/min"),
         "vote": config("THROTTLE_VOTE", default="120/min"),
     },
+    # Reverse proxies in front of Django. 0 = trust REMOTE_ADDR only; never the client's XFF.
+    "NUM_PROXIES": config("NUM_PROXIES", default=0, cast=int),
 }
 
 SIMPLE_JWT = {
@@ -134,6 +137,8 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
+    # Tokens embed a password-hash claim; any password change invalidates older tokens.
+    "CHECK_REVOKE_TOKEN": True,
 }
 
 CORS_ALLOWED_ORIGINS = config(

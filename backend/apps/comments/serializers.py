@@ -4,6 +4,8 @@ from apps.common.markdown import render_markdown
 
 from .models import Comment, CommentRevision
 
+COMMENT_BODY_MAX_CHARS = 10_000
+
 
 def _is_mod_removal(obj: Comment) -> bool:
     return (
@@ -25,7 +27,7 @@ class CommentSerializer(serializers.ModelSerializer):
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
-    body = serializers.SerializerMethodField()
+    body = serializers.CharField(max_length=COMMENT_BODY_MAX_CHARS, trim_whitespace=False)
     body_html = serializers.SerializerMethodField()
     is_deleted = serializers.SerializerMethodField()
 
@@ -55,9 +57,6 @@ class CommentSerializer(serializers.ModelSerializer):
     def get_author_username(self, obj: Comment):
         return None if obj.deleted_at is not None else obj.author.username
 
-    def get_body(self, obj: Comment) -> str:
-        return _mask_body(obj)
-
     def get_body_html(self, obj: Comment) -> str:
         body = _mask_body(obj)
         return render_markdown(body) if obj.deleted_at is None else f"<p>{body}</p>"
@@ -78,13 +77,10 @@ class CommentSerializer(serializers.ModelSerializer):
         vote = next((v for v in obj.votes.all() if v.user_id == request.user.id), None)
         return vote.value if vote else None
 
-    def to_internal_value(self, data):
-        # Accept `body` on write since SerializerMethodField above shadows it.
-        body = data.get("body") if isinstance(data, dict) else None
-        out = super().to_internal_value(data)
-        if body is not None:
-            out["body"] = body
-        return out
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["body"] = _mask_body(instance)
+        return data
 
     def validate(self, attrs):
         body = attrs.get("body")
@@ -93,8 +89,15 @@ class CommentSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_parent(self, value):
+        if self.instance is not None:
+            # Re-parenting an existing comment would let it jump threads.
+            if value != self.instance.parent:
+                raise serializers.ValidationError("Parent cannot be changed.")
+            return value
         if value is None:
             return value
+        if value.deleted_at is not None:
+            raise serializers.ValidationError("You cannot reply to a deleted comment.")
         post = self.context.get("post")
         if post and value.post_id != post.id:
             raise serializers.ValidationError("Parent comment belongs to a different post.")

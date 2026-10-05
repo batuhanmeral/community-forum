@@ -1,3 +1,5 @@
+import re
+
 import markdown as _markdown
 import nh3
 
@@ -39,15 +41,19 @@ _ALLOWED_TAGS = {
     "td",
     "del",
     "ins",
-    "img",
-    "span",
 }
 _ALLOWED_ATTRS = {
     "a": {"href", "title"},
-    "img": {"src", "alt", "title"},
-    "span": {"class"},
     "code": {"class"},
 }
+_LANGUAGE_CLASS = re.compile(r"^language-[A-Za-z0-9_+-]+$")
+
+
+def _keep_safe_attribute(tag: str, attr: str, value: str) -> str | None:
+    # Arbitrary classes would let users restyle the app (e.g. full-screen fake banners).
+    if attr == "class":
+        return value if tag == "code" and _LANGUAGE_CLASS.match(value) else None
+    return value
 
 
 def render_markdown(text: str) -> str:
@@ -60,6 +66,7 @@ def render_markdown(text: str) -> str:
         html,
         tags=_ALLOWED_TAGS,
         attributes=_ALLOWED_ATTRS,
+        attribute_filter=_keep_safe_attribute,
         url_schemes={"http", "https", "mailto"},
         link_rel="nofollow noopener ugc",
     )

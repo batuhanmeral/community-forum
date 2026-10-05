@@ -1,10 +1,15 @@
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.db.models import F
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .emails import send_password_reset_email, send_verification_email
 from .serializers import (
@@ -14,10 +19,21 @@ from .serializers import (
     PasswordResetRequestSerializer,
     PublicUserSerializer,
     RegisterSerializer,
+    RevocationAwareTokenRefreshSerializer,
     UserSerializer,
 )
 
 User = get_user_model()
+
+
+class LoginView(TokenObtainPairView):
+    throttle_scope = "auth"
+
+
+class RefreshView(TokenRefreshView):
+    serializer_class = RevocationAwareTokenRefreshSerializer
+    # Own bucket so failed logins on a shared IP cannot 429 everyone's refresh.
+    throttle_scope = "refresh"
 
 
 class RegisterView(generics.CreateAPIView):
@@ -37,6 +53,26 @@ class MeView(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         return self.request.user
 
+    def get_throttles(self):
+        # Email changes trigger a verification mail, so cap them like auth flows.
+        if self.request.method in ("PATCH", "PUT") and "email" in self.request.data:
+            self.throttle_scope = "auth"
+        return super().get_throttles()
+
+    def perform_update(self, serializer):
+        new_email = serializer.validated_data.get("email")
+        email_changed = (
+            new_email is not None and new_email.lower() != serializer.instance.email.lower()
+        )
+        extra = {"email_verified": False} if email_changed else {}
+        try:
+            user = serializer.save(**extra)
+        except IntegrityError as exc:
+            # Lost a race against the case-insensitive unique constraint.
+            raise ValidationError({"email": "This email is already taken."}) from exc
+        if email_changed:
+            send_verification_email(user)
+
     def perform_destroy(self, instance):
         # Deactivate instead of hard-deleting so authored content survives.
         instance.is_active = False
@@ -50,8 +86,10 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        user = serializer.save()
+        # The old pair just became invalid; hand this session a fresh one.
+        refresh = RefreshToken.for_user(user)
+        return Response({"access": str(refresh.access_token), "refresh": str(refresh)})
 
 
 class PasswordResetRequestView(APIView):
@@ -104,6 +142,7 @@ class ResendVerificationView(APIView):
 
 
 @method_decorator(cache_page(300), name="dispatch")
+@method_decorator(vary_on_headers("Authorization"), name="dispatch")
 class LeaderboardView(generics.ListAPIView):
     """Top users by total karma."""
 

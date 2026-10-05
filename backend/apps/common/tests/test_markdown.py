@@ -33,3 +33,21 @@ class TestMarkdown:
         """Importing render_markdown shouldn't require django apps loaded."""
         # The fact that this module imports cleanly is the test
         assert callable(render_markdown)
+
+    def test_strips_arbitrary_classes(self):
+        out = render_markdown('<span class="fixed inset-0 z-50">fake banner</span>')
+        assert "class=" not in out
+        assert "fake banner" in out
+
+    def test_keeps_code_language_class(self):
+        out = render_markdown("```python\nprint(1)\n```")
+        assert 'class="language-python"' in out
+
+    def test_drops_code_class_that_is_not_a_language(self):
+        out = render_markdown('<code class="fixed inset-0">x</code>')
+        assert "class=" not in out
+
+    def test_drops_inline_images(self):
+        out = render_markdown("![pixel](https://tracker.example/p.gif)")
+        assert "<img" not in out
+        assert "tracker.example" not in out

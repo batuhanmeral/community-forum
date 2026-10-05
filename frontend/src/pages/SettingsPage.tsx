@@ -5,7 +5,7 @@ import { AxiosError } from 'axios';
 import { resendVerificationEmail } from '@/api/auth';
 import { changePassword, deactivateAccount, updatePreferences } from '@/api/users';
 import { listBlocked, unblockUser, type FollowUser } from '@/api/follow';
-import { logout, setUser } from '@/features/auth/authSlice';
+import { logout, setTokens, setUser } from '@/features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -158,6 +158,7 @@ function EmailVerificationRow({ verified, email }: { verified: boolean; email: s
 }
 
 function PasswordCard() {
+  const dispatch = useAppDispatch();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -174,7 +175,8 @@ function PasswordCard() {
     setBusy(true);
     setMsg(null);
     try {
-      await changePassword(current, next);
+      const tokens = await changePassword(current, next);
+      dispatch(setTokens(tokens));
       setMsg({ ok: true, text: 'Password updated.' });
       setCurrent('');
       setNext('');
