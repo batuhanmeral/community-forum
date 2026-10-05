@@ -57,7 +57,11 @@ class CommunitySerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None
-        return obj.memberships.filter(user=request.user).first()
+        # Every membership field reads this, so look it up once per community, not per field.
+        cache = self.__dict__.setdefault("_membership_cache", {})
+        if obj.pk not in cache:
+            cache[obj.pk] = obj.memberships.filter(user=request.user).first()
+        return cache[obj.pk]
 
     def get_is_member(self, obj: Community) -> bool:
         m = self._membership(obj)

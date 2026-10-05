@@ -24,3 +24,19 @@ def test_joined_filter_lists_only_active_memberships():
     slugs = [c["slug"] for c in client.get(LIST, {"joined": "true"}).data["results"]]
     assert slugs == ["joined"]
     assert APIClient().get(LIST, {"joined": "true"}).data["results"] == []
+
+
+@pytest.mark.django_db
+def test_listing_looks_up_each_membership_once(django_assert_max_num_queries):
+    owner = User.objects.create_user(username="owner", email="o@x.com", password="x")
+    me = User.objects.create_user(username="me", email="me@x.com", password="x")
+    for i in range(10):
+        community = Community.objects.create(slug=f"c{i}", name=f"C{i}", creator=owner)
+        Membership.objects.create(user=me, community=community)
+
+    client = APIClient()
+    client.force_authenticate(me)
+    # Fixed overhead plus one membership lookup per community; five per community today.
+    with django_assert_max_num_queries(15):
+        resp = client.get(LIST, {"joined": "true"})
+    assert len(resp.data["results"]) == 10
