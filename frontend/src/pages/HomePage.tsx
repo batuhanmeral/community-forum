@@ -125,8 +125,9 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
       setMemberCount(0);
       return;
     }
-    listCommunities({ ordering: '-member_count', page_size: 100 })
-      .then((d) => setMemberCount(d.results.filter((c) => c.is_member).length))
+    // Only the total is needed, so ask the server to count joined communities.
+    listCommunities({ joined: true, page_size: 1 })
+      .then((d) => setMemberCount(d.count))
       .catch(() => undefined);
   }, [isAuthed]);
 
