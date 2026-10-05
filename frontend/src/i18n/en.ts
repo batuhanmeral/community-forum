@@ -104,9 +104,25 @@ export const en = {
     verificationSent: 'Verification email sent.',
   },
   comments: {
+    count_one: '{{count}} comment',
+    count_other: '{{count}} comments',
+    loadMore: 'Load more comments',
+    loadMoreFailed: 'Could not load more comments.',
     submitFailed: 'Could not post your comment.',
   },
   community: {
     banned: 'Banned',
+    loadMore: 'Load more posts',
+    loadMoreFailed: 'Could not load more posts.',
+  },
+  composer: {
+    joinFirst: 'Join a community to start posting.',
+    browseCommunities: 'Browse communities',
+  },
+  messages: {
+    loadOlder: 'Load older messages',
+    loadOlderFailed: 'Could not load older messages.',
+    sendFailed: 'Message could not be sent.',
+    back: 'Back to conversations',
   },
 } as const;

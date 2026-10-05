@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AxiosError } from 'axios';
 import { createPost } from '@/api/posts';
 import type { PostKind } from '@/features/posts/types';
@@ -60,6 +61,7 @@ type FieldErrors = Partial<
 >;
 
 export function PostCreatePage() {
+  const { t } = useTranslation();
   const params = useParams<{ slug?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -72,6 +74,7 @@ export function PostCreatePage() {
   const [draft] = useState(loadDraft);
 
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [communitiesLoaded, setCommunitiesLoaded] = useState(false);
   const [communitySlug, setCommunitySlug] = useState(
     params.slug ?? searchParams.get('c') ?? draft?.community ?? '',
   );
@@ -100,9 +103,10 @@ export function PostCreatePage() {
         .then((c) => setCommunities([c]))
         .catch(() => undefined);
     } else {
-      listCommunities({ ordering: '-member_count' })
+      listCommunities({ joined: true, ordering: 'name', page_size: 100 })
         .then((d) => setCommunities(d.results))
-        .catch(() => undefined);
+        .catch(() => undefined)
+        .finally(() => setCommunitiesLoaded(true));
     }
   }, [params.slug]);
 
@@ -196,20 +200,30 @@ export function PostCreatePage() {
               c/{params.slug}
             </div>
           ) : (
-            <select
-              value={communitySlug}
-              onChange={(e) => setCommunitySlug(e.target.value)}
-              className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-            >
-              <option value="" disabled>
-                Choose a community
-              </option>
-              {communities.map((c) => (
-                <option key={c.id} value={c.slug}>
-                  c/{c.slug}
+            <>
+              <select
+                value={communitySlug}
+                onChange={(e) => setCommunitySlug(e.target.value)}
+                className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+              >
+                <option value="" disabled>
+                  Choose a community
                 </option>
-              ))}
-            </select>
+                {communities.map((c) => (
+                  <option key={c.id} value={c.slug}>
+                    c/{c.slug}
+                  </option>
+                ))}
+              </select>
+              {communitiesLoaded && communities.length === 0 && (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {t('composer.joinFirst')}{' '}
+                  <Link to="/c" className="text-[var(--color-accent)] hover:underline">
+                    {t('composer.browseCommunities')}
+                  </Link>
+                </p>
+              )}
+            </>
           )}
           {errors.community && (
             <p className="text-xs text-[var(--color-danger)]">{errors.community}</p>

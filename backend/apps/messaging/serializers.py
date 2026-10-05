@@ -81,7 +81,7 @@ class ConversationCreateSerializer(serializers.Serializer):
     def validate_username(self, value: str):
         request = self.context["request"]
         try:
-            other = User.objects.get(username__iexact=value)
+            other = User.objects.get(username__iexact=value, is_active=True)
         except User.DoesNotExist as exc:
             raise serializers.ValidationError("User not found.") from exc
         if other.id == request.user.id:

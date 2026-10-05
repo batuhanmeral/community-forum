@@ -15,6 +15,7 @@ export interface Community {
   is_member: boolean;
   is_banned: boolean;
   my_role: CommunityRole | null;
+  my_notify_level: NotifyLevel | null;
   /** AutoMod keywords, newline-separated. Only present for moderators/admins. */
   banned_keywords?: string;
 }

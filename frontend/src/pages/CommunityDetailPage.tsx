@@ -44,6 +44,11 @@ export function CommunityDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState<NotifyLevel>('all');
   const [actionLoading, setActionLoading] = useState(false);
+  const [nextPage, setNextPage] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+  // Bumped on every (re)fetch and unmount so late load-more responses can be discarded.
+  const listVersion = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +58,7 @@ export function CommunityDetailPage() {
       .then(([c, r]) => {
         if (cancelled) return;
         setCommunity(c);
+        setNotifyLevel(c.my_notify_level ?? 'all');
         setRules(r);
       })
       .catch(() => {
@@ -69,10 +75,16 @@ export function CommunityDetailPage() {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
+    listVersion.current++;
     setPostsLoading(true);
+    setNextPage(null);
+    setLoadMoreFailed(false);
+    setLoadingMore(false);
     listCommunityPosts(slug, { sort })
       .then((d) => {
-        if (!cancelled) setPosts(d.results);
+        if (cancelled) return;
+        setPosts(d.results);
+        setNextPage(d.next ? 2 : null);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -82,6 +94,30 @@ export function CommunityDetailPage() {
       cancelled = true;
     };
   }, [slug, sort]);
+
+  useEffect(
+    () => () => {
+      listVersion.current = -1;
+    },
+    [],
+  );
+
+  async function loadMorePosts() {
+    if (nextPage === null) return;
+    const version = listVersion.current;
+    setLoadingMore(true);
+    setLoadMoreFailed(false);
+    try {
+      const d = await listCommunityPosts(slug, { sort, page: nextPage });
+      if (version !== listVersion.current) return;
+      setPosts((ps) => [...ps, ...d.results.filter((p) => !ps.some((x) => x.id === p.id))]);
+      setNextPage(d.next ? nextPage + 1 : null);
+    } catch {
+      if (version === listVersion.current) setLoadMoreFailed(true);
+    } finally {
+      if (version === listVersion.current) setLoadingMore(false);
+    }
+  }
 
   async function handleJoinLeave() {
     if (!community) return;
@@ -103,6 +139,7 @@ export function CommunityDetailPage() {
           my_role: 'member',
           member_count: community.member_count + 1,
         });
+        setNotifyLevel('all');
       }
     } finally {
       setActionLoading(false);
@@ -245,6 +282,16 @@ export function CommunityDetailPage() {
           </Card>
         ) : (
           posts.map((p) => <PostCard key={p.id} post={p} hideCommunity />)
+        )}
+        {!postsLoading && nextPage !== null && (
+          <Button variant="secondary" onClick={loadMorePosts} loading={loadingMore}>
+            {t('community.loadMore')}
+          </Button>
+        )}
+        {loadMoreFailed && (
+          <p role="alert" className="text-sm text-[var(--color-danger)]">
+            {t('community.loadMoreFailed')}
+          </p>
         )}
       </div>
     </div>

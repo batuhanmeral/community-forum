@@ -63,8 +63,8 @@ export function Sidebar() {
 
   useEffect(() => {
     if (!isAuthed) return;
-    listCommunities({ ordering: '-member_count' })
-      .then((d) => setMyCommunities(d.results.filter((c) => c.is_member).slice(0, 8)))
+    listCommunities({ joined: true, ordering: '-member_count', page_size: 8 })
+      .then((d) => setMyCommunities(d.results))
       .catch(() => undefined);
   }, [isAuthed, location.pathname]);
 

@@ -20,6 +20,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.throttling import WriteThrottleMixin
 from apps.communities.models import Community
 from apps.communities.services import is_banned, is_moderator
 from apps.moderation.models import ModAction
@@ -114,7 +115,7 @@ def _apply_sort(qs, sort: str):
     return qs.order_by("-is_pinned", "-created_at")
 
 
-class CommunityPostListCreateView(generics.ListCreateAPIView):
+class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCommunityMember)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
@@ -163,6 +164,8 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
             author=self.request.user,
             community=community,
             is_approved=is_approved,
+            # Everything posted in an NSFW community is NSFW, whatever the author ticked.
+            is_nsfw=serializer.validated_data.get("is_nsfw", False) or community.is_nsfw,
         )
         if matched_kw:
             log_mod_action(
@@ -171,9 +174,11 @@ class CommunityPostListCreateView(generics.ListCreateAPIView):
                 target=post,
                 detail=f"matched keyword: {matched_kw}",
             )
-        from apps.comments.views import notify_mentions
+        # Held posts notify on approval instead, so mentions don't leak early.
+        if post.is_approved:
+            from apps.comments.views import notify_mentions
 
-        notify_mentions(post.body, actor=self.request.user, target=post)
+            notify_mentions(post.body, actor=self.request.user, target=post)
 
 
 class UserPostListView(generics.ListAPIView):
@@ -192,10 +197,11 @@ class UserPostListView(generics.ListAPIView):
         return _apply_sort(qs, self.request.query_params.get("sort", "new"))
 
 
-class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
+class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
+    throttle_scope = "write"
     queryset = _annotate_score(_base_post_qs())
 
     def get_object(self):
@@ -209,7 +215,8 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             return
         instance.deleted_at = timezone.now()
         instance.deleted_by = self.request.user
-        instance.save(update_fields=["deleted_at", "deleted_by"])
+        instance.is_pinned = False
+        instance.save(update_fields=["deleted_at", "deleted_by", "is_pinned"])
         if instance.author_id != self.request.user.id:
             log_mod_action(
                 instance.community,
@@ -226,13 +233,21 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         if instance.deleted_at is not None:
             raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
-        post = serializer.save()
+        post = serializer.save(
+            # An NSFW community's posts can't be un-flagged by their author.
+            is_nsfw=serializer.validated_data.get("is_nsfw", instance.is_nsfw)
+            or instance.community.is_nsfw
+        )
         if (post.title, post.body) != (old_title, old_body):
             PostRevision.objects.create(
                 post=post, title=old_title, body=old_body, edited_by=self.request.user
             )
             post.edited_at = timezone.now()
             post.save(update_fields=["edited_at"])
+            if post.is_approved:
+                from apps.comments.views import notify_mentions
+
+                notify_mentions(post.body, actor=self.request.user, target=post)
 
 
 class PostRevisionListView(generics.ListAPIView):
@@ -263,9 +278,13 @@ class PostStickyView(APIView):
     def post(self, request, pk):
         post = self._get_post(pk)
         self._require_mod(request, post)
+        if post.deleted_at is not None or not post.is_approved:
+            raise ValidationError("Only visible posts can be pinned.")
         if post.is_pinned:
             return Response({"is_pinned": True}, status=status.HTTP_200_OK)
-        pinned_count = Post.objects.filter(community=post.community, is_pinned=True).count()
+        pinned_count = Post.objects.filter(
+            community=post.community, is_pinned=True, is_approved=True, deleted_at__isnull=True
+        ).count()
         if pinned_count >= MAX_STICKY_PER_COMMUNITY:
             raise ValidationError(
                 f"Sticky limit reached ({MAX_STICKY_PER_COMMUNITY} per community)."
@@ -336,6 +355,11 @@ class PostApprovalView(APIView):
                 target=post,
             )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
+            if post.deleted_at is None:
+                from apps.comments.views import notify_mentions
+
+                # Author wrote the mention, so they are the actor, not the approver.
+                notify_mentions(post.body, actor=post.author, target=post)
         return Response({"is_approved": True})
 
     def delete(self, request, pk):
@@ -344,7 +368,8 @@ class PostApprovalView(APIView):
         if post.deleted_at is None:
             post.deleted_at = timezone.now()
             post.deleted_by = request.user
-            post.save(update_fields=["deleted_at", "deleted_by"])
+            post.is_pinned = False
+            post.save(update_fields=["deleted_at", "deleted_by", "is_pinned"])
             log_mod_action(
                 post.community,
                 actor=request.user,

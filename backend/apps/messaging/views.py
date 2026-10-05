@@ -1,10 +1,12 @@
-from django.db.models import Q
+from django.db.models import Max, Q
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.throttling import WriteThrottleMixin
 from apps.notifications.services import notify
 
 from .models import Conversation, Message
@@ -16,15 +18,17 @@ from .serializers import (
 )
 
 
-class ConversationListCreateView(generics.ListCreateAPIView):
+class ConversationListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
+    throttle_scope = "write"
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
         u = self.request.user
         return (
             Conversation.objects.filter(Q(participant_a=u) | Q(participant_b=u))
+            .annotate(last_activity=Coalesce(Max("messages__created_at"), "created_at"))
             .select_related("participant_a", "participant_b")
-            .order_by("-created_at")
+            .order_by("-last_activity", "-id")
         )
 
     def get_serializer_class(self):
@@ -52,14 +56,18 @@ class _ConversationScopedView:
         return self._conv
 
 
-class MessageListCreateView(_ConversationScopedView, generics.ListCreateAPIView):
+class MessageListCreateView(
+    WriteThrottleMixin, _ConversationScopedView, generics.ListCreateAPIView
+):
+    throttle_scope = "write"
     serializer_class = MessageSerializer
 
     def get_queryset(self):
+        # Newest first: page 1 is what an open chat shows; older pages load on demand.
         return (
             Message.objects.filter(conversation=self.get_conversation())
             .select_related("sender")
-            .order_by("created_at")
+            .order_by("-created_at", "-id")
         )
 
     def perform_create(self, serializer):

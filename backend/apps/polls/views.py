@@ -26,6 +26,7 @@ class PollDetailView(APIView):
 
 
 class PollVoteView(APIView):
+    throttle_scope = "vote"
     permission_classes = (permissions.IsAuthenticated,)
 
     @transaction.atomic

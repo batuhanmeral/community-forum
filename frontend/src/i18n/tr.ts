@@ -108,9 +108,25 @@ export const tr: Translation = {
     verificationSent: 'Doğrulama e-postası gönderildi.',
   },
   comments: {
+    count_one: '{{count}} yorum',
+    count_other: '{{count}} yorum',
+    loadMore: 'Daha fazla yorum yükle',
+    loadMoreFailed: 'Daha fazla yorum yüklenemedi.',
     submitFailed: 'Yorumun gönderilemedi.',
   },
   community: {
     banned: 'Yasaklı',
+    loadMore: 'Daha fazla gönderi yükle',
+    loadMoreFailed: 'Daha fazla gönderi yüklenemedi.',
+  },
+  composer: {
+    joinFirst: 'Gönderi paylaşmak için önce bir topluluğa katıl.',
+    browseCommunities: 'Toplulukları keşfet',
+  },
+  messages: {
+    loadOlder: 'Daha eski mesajları yükle',
+    loadOlderFailed: 'Daha eski mesajlar yüklenemedi.',
+    sendFailed: 'Mesaj gönderilemedi.',
+    back: 'Sohbetlere dön',
   },
 } as const;

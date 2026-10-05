@@ -6,6 +6,8 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from apps.common.throttling import WriteThrottleMixin
+
 from .models import Community, Membership
 from .permissions import IsCreatorOrReadOnly
 from .serializers import (
@@ -14,7 +16,7 @@ from .serializers import (
     FlairSerializer,
     MembershipSerializer,
 )
-from .services import is_banned, is_moderator
+from .services import is_banned, is_moderator, joined_community_ids
 
 
 def _require_mod(user, community):
@@ -22,7 +24,8 @@ def _require_mod(user, community):
         raise PermissionDenied("Moderator role required.")
 
 
-class CommunityViewSet(viewsets.ModelViewSet):
+class CommunityViewSet(WriteThrottleMixin, viewsets.ModelViewSet):
+    throttle_scope = "write"
     queryset = Community.objects.all().annotate(
         member_count=Count("memberships", filter=Q(memberships__is_banned=False))
     )
@@ -34,6 +37,15 @@ class CommunityViewSet(viewsets.ModelViewSet):
     ordering_fields = ("created_at", "name", "member_count")
     ordering = ("-created_at",)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action == "list" and self.request.query_params.get("joined") == "true":
+            if not self.request.user.is_authenticated:
+                return qs.none()
+            # Subquery instead of a join so member_count is not affected.
+            qs = qs.filter(pk__in=joined_community_ids(self.request.user))
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)

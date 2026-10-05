@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   listConversations,
   listMessages,
@@ -17,6 +18,16 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { usePolling } from '@/lib/usePolling';
+
+const POLL_MS = 10_000;
+const CONVERSATIONS_POLL_MS = 30_000;
+// How close to the bottom still counts as "reading the latest messages".
+const BOTTOM_SLACK_PX = 40;
+
+function byTimeThenId(a: Message, b: Message) {
+  return Date.parse(a.created_at) - Date.parse(b.created_at) || a.id - b.id;
+}
 
 export function MessagesPage() {
   const { id } = useParams<{ id?: string }>();
@@ -27,14 +38,21 @@ export function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [convsLoading, setConvsLoading] = useState(true);
   const [newOpen, setNewOpen] = useState(false);
+  const refetchedForId = useRef<string | null>(null);
+
+  const applyConversations = useCallback(
+    (d: Conversation[]) => {
+      setConversations(d);
+      dispatch(setDMUnreadCount(d.reduce((acc, c) => acc + c.unread_count, 0)));
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     let cancelled = false;
     listConversations()
       .then((d) => {
-        if (cancelled) return;
-        setConversations(d);
-        dispatch(setDMUnreadCount(d.reduce((acc, c) => acc + c.unread_count, 0)));
+        if (!cancelled) applyConversations(d);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -43,12 +61,26 @@ export function MessagesPage() {
     return () => {
       cancelled = true;
     };
-  }, [dispatch]);
+  }, [applyConversations]);
+
+  const refreshConversations = useCallback(() => {
+    listConversations().then(applyConversations).catch(() => undefined);
+  }, [applyConversations]);
+
+  // Keeps unread counts and previews of the other conversations current.
+  usePolling(refreshConversations, CONVERSATIONS_POLL_MS, !convsLoading);
 
   const selected = useMemo(
     () => conversations.find((c) => c.id === Number(id)) ?? null,
     [conversations, id],
   );
+
+  // A routed conversation (e.g. from a DM notification) may have started after the list loaded.
+  useEffect(() => {
+    if (convsLoading || !id || selected || refetchedForId.current === id) return;
+    refetchedForId.current = id;
+    refreshConversations();
+  }, [convsLoading, id, selected, refreshConversations]);
 
   function handleConvChange(updater: (prev: Conversation[]) => Conversation[]) {
     setConversations((prev) => {
@@ -73,9 +105,9 @@ export function MessagesPage() {
   }
 
   return (
-    <div className="grid h-[calc(100vh-128px)] grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
+    <div className="grid h-[calc(100vh-128px)] grid-cols-[280px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
       {/* Inbox */}
-      <aside className="flex flex-col border-r border-[var(--color-border)] max-[720px]:hidden">
+      <aside className={cn('flex min-h-0 flex-col border-r border-[var(--color-border)]', selected && 'max-[720px]:hidden')}>
         <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3.5">
           <h2 className="text-[15px] font-semibold tracking-tight">Inbox</h2>
           <button
@@ -107,15 +139,19 @@ export function MessagesPage() {
       </aside>
 
       {/* Chat */}
-      <section className="flex min-w-0 flex-col">
+      <section className={cn('flex min-h-0 min-w-0 flex-col', !selected && 'max-[720px]:hidden')}>
         {selected ? (
           <ChatPane
+            key={selected.id}
             conversation={selected}
             currentUserId={currentUserId}
             onMessageSent={(msg) => {
-              handleConvChange((prev) =>
-                prev.map((c) => (c.id === selected.id ? { ...c, last_message: msg } : c)),
-              );
+              // The list is ordered by latest activity, so the conversation moves to the top.
+              handleConvChange((prev) => {
+                const sentIn = prev.find((c) => c.id === selected.id);
+                if (!sentIn) return prev;
+                return [{ ...sentIn, last_message: msg }, ...prev.filter((c) => c !== sentIn)];
+              });
             }}
             onRead={() => {
               handleConvChange((prev) =>
@@ -197,24 +233,36 @@ interface ChatPaneProps {
 }
 
 function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPaneProps) {
+  const { t } = useTranslation();
+  // Kept oldest → newest for rendering; the API pages newest → oldest.
   const [messages, setMessages] = useState<Message[]>([]);
+  const [olderPage, setOlderPage] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [loadOlderError, setLoadOlderError] = useState(false);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottom = useRef(true);
+  // Lets the poll callback see the loaded list without re-creating itself.
+  const messagesRef = useRef<Message[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setSendError(null);
+    stickToBottom.current = true;
     listMessages(conversation.id)
       .then((d) => {
-        if (!cancelled) setMessages(d.results);
+        if (cancelled) return;
+        setMessages([...d.results].reverse());
+        setOlderPage(d.next ? 2 : null);
       })
       .catch(() => undefined)
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    // Mark as read on open
     markConversationRead(conversation.id)
       .then(() => onRead())
       .catch(() => undefined);
@@ -225,19 +273,93 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
   }, [conversation.id]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    messagesRef.current = messages;
+    if (stickToBottom.current) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    }
   }, [messages]);
+
+  const pollLatest = useCallback(() => {
+    listMessages(conversation.id)
+      .then((d) => {
+        const loaded = messagesRef.current;
+        const known = new Set(loaded.map((m) => m.id));
+        // No shared id means more than a page of messages arrived; the gap can't be filled by merging.
+        if (d.results.length > 0 && !d.results.some((m) => known.has(m.id))) {
+          setMessages([...d.results].reverse());
+          setOlderPage(d.next ? 2 : null);
+        } else {
+          const latest = new Map(d.results.map((m) => [m.id, m]));
+          // Filter against `current`: the ref can lag behind a just-sent message.
+          setMessages((current) => {
+            const have = new Set(current.map((m) => m.id));
+            const fresh = d.results.filter((m) => !have.has(m.id));
+            let receiptChanged = false;
+            const refreshed = current.map((m) => {
+              const polled = latest.get(m.id);
+              if (!polled || polled.read_at === m.read_at) return m;
+              receiptChanged = true;
+              return polled;
+            });
+            // Same reference means no re-render, so an idle poll can't move the scroll position.
+            if (fresh.length === 0 && !receiptChanged) return current;
+            return [...refreshed, ...fresh].sort(byTimeThenId);
+          });
+        }
+        if (d.results.some((m) => m.sender !== currentUserId && m.read_at === null)) {
+          markConversationRead(conversation.id)
+            .then(() => onRead())
+            .catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
+  }, [conversation.id, currentUserId, onRead]);
+
+  usePolling(pollLatest, POLL_MS, !loading);
+
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX;
+  }
+
+  async function loadOlder() {
+    if (olderPage === null || loadingOlder) return;
+    setLoadingOlder(true);
+    setLoadOlderError(false);
+    try {
+      const d = await listMessages(conversation.id, olderPage);
+      stickToBottom.current = false;
+      setMessages((current) => {
+        const known = new Set(current.map((m) => m.id));
+        const older = [...d.results].reverse().filter((m) => !known.has(m.id));
+        return [...older, ...current];
+      });
+      setOlderPage(d.next ? olderPage + 1 : null);
+    } catch {
+      setLoadOlderError(true);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = body.trim();
     if (!trimmed || sending) return;
     setSending(true);
+    setSendError(null);
     try {
       const created = await sendMessage(conversation.id, trimmed);
-      setMessages((m) => [...m, created]);
+      stickToBottom.current = true;
+      setMessages((m) => (m.some((x) => x.id === created.id) ? m : [...m, created]));
       onMessageSent(created);
       setBody('');
+    } catch (err) {
+      const ax = err as AxiosError<{ detail?: string; body?: string[] }>;
+      setSendError(
+        ax.response?.data?.detail ?? ax.response?.data?.body?.[0] ?? t('messages.sendFailed'),
+      );
     } finally {
       setSending(false);
     }
@@ -255,6 +377,15 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
   return (
     <>
       <header className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3.5">
+        <Link
+          to="/messages"
+          aria-label={t('messages.back')}
+          className="grid h-8 w-8 place-items-center rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-[721px]:hidden"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </Link>
         <Avatar alt={other?.username} size="md" />
         <div className="min-w-0 flex-1">
           <Link
@@ -266,7 +397,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
+      <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {loading ? (
           <p className="text-sm text-[var(--color-text-muted)]">Loading messages…</p>
         ) : messages.length === 0 ? (
@@ -275,6 +406,22 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
           </p>
         ) : (
           <div className="flex flex-col gap-2.5">
+            {olderPage !== null && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-center"
+                loading={loadingOlder}
+                onClick={loadOlder}
+              >
+                {t('messages.loadOlder')}
+              </Button>
+            )}
+            {loadOlderError && (
+              <p role="alert" className="text-center text-xs text-[var(--color-danger)]">
+                {t('messages.loadOlderFailed')}
+              </p>
+            )}
             {messages.map((m, i) => {
               const own = m.sender === currentUserId;
               const showAvatar = !own && (i === 0 || messages[i - 1].sender !== m.sender);
@@ -331,6 +478,11 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
           Send
         </Button>
       </form>
+      {sendError && (
+        <p role="alert" className="px-4 pb-3 text-xs text-[var(--color-danger)]">
+          {sendError}
+        </p>
+      )}
     </>
   );
 }

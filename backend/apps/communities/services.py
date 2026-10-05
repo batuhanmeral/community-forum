@@ -17,6 +17,11 @@ def active_membership(user, community: Community) -> Membership | None:
     return Membership.objects.filter(user=user, community=community, is_banned=False).first()
 
 
+def joined_community_ids(user):
+    """Community ids of the user's unbanned memberships."""
+    return Membership.objects.filter(user=user, is_banned=False).values("community_id")
+
+
 def has_role(user, community: Community, *roles: str) -> bool:
     membership = active_membership(user, community)
     return membership is not None and membership.role in roles
