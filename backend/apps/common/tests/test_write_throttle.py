@@ -4,6 +4,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework.throttling import ScopedRateThrottle
 
+from apps.comments.models import Comment
 from apps.communities.models import Community
 from apps.messaging.models import Conversation
 from apps.posts.models import Post
@@ -21,6 +22,14 @@ def posts_url(slug):
 
 def messages_url(pk):
     return reverse("api_v1:messaging:conversation-messages", args=[pk])
+
+
+def comment_url(pk):
+    return reverse("api_v1:comments:comment-detail", args=[pk])
+
+
+def post_url(pk):
+    return reverse("api_v1:posts:post-detail", args=[pk])
 
 
 def follow_url(username):
@@ -91,3 +100,22 @@ class TestWriteThrottle:
             api.post(follow_url("bob")).status_code,
         ]
         assert statuses[-1] == 429
+
+    def test_comment_edits_throttled_but_reads_are_not(self, api, alice, post, tight_write):
+        comment = Comment.objects.create(post=post, author=alice, body="c")
+        api.force_authenticate(alice)
+        statuses = [
+            api.patch(comment_url(comment.id), {"body": f"e{i}"}, format="json").status_code
+            for i in range(3)
+        ]
+        assert statuses == [200, 200, 429]
+        assert {api.get(comment_url(comment.id)).status_code for _ in range(3)} == {200}
+
+    def test_post_edits_throttled_but_reads_are_not(self, api, alice, post, tight_write):
+        api.force_authenticate(alice)
+        statuses = [
+            api.patch(post_url(post.id), {"body": f"e{i}"}, format="json").status_code
+            for i in range(3)
+        ]
+        assert statuses == [200, 200, 429]
+        assert {api.get(post_url(post.id)).status_code for _ in range(3)} == {200}

@@ -197,10 +197,11 @@ class UserPostListView(generics.ListAPIView):
         return _apply_sort(qs, self.request.query_params.get("sort", "new"))
 
 
-class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
+class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
+    throttle_scope = "write"
     queryset = _annotate_score(_base_post_qs())
 
     def get_object(self):

@@ -57,15 +57,19 @@ def _apply_comment_sort(qs, sort: str):
 
 
 def notify_mentions(body: str, *, actor, target) -> None:
+    mentioned = resolve_mentions(body, exclude_user=actor)
+    if not mentioned:
+        return
     # One mention notification per (user, target) ever, so edit cycles can't spam.
     already = set(
         Notification.objects.filter(
             verb="mention",
             target_ct=ContentType.objects.get_for_model(target.__class__),
             target_id=target.pk,
+            recipient__in=mentioned,
         ).values_list("recipient_id", flat=True)
     )
-    for user in resolve_mentions(body, exclude_user=actor):
+    for user in mentioned:
         if user.id not in already:
             notify(user, actor=actor, verb="mention", target=target)
 
@@ -142,9 +146,10 @@ class UserCommentListView(generics.ListAPIView):
         )
 
 
-class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
+class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
+    throttle_scope = "write"
     queryset = _annotate_score(
         Comment.objects.select_related("author").prefetch_related("votes", "saves")
     )
