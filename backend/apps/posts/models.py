@@ -4,10 +4,11 @@ from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 
+from apps.common.rendered_body import RenderedBodyModel
 from apps.communities.models import Community, Flair
 
 
-class Post(models.Model):
+class Post(RenderedBodyModel):
     class Kind(models.TextChoices):
         TEXT = "text", "Text"
         LINK = "link", "Link"

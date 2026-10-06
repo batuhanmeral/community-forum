@@ -18,7 +18,7 @@ redis>=5.0
 sentry-sdk>=2.0
 
 # ─── Content rendering ────────────────────────
-markdown>=3.7
+markdown-it-py>=4.2,<5
 nh3>=0.2
 
 # ─── Dev / Test ───────────────────────────────

@@ -2,10 +2,11 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
+from apps.common.rendered_body import RenderedBodyModel
 from apps.posts.models import Post
 
 
-class Comment(models.Model):
+class Comment(RenderedBodyModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comments"
