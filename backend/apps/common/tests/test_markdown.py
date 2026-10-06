@@ -19,7 +19,7 @@ class TestMarkdown:
 
     def test_strips_javascript_url(self):
         out = render_markdown("[x](javascript:alert(1))")
-        assert "javascript" not in out
+        assert "href" not in out
 
     def test_fenced_code(self):
         out = render_markdown("```\nx = 1\n```")
@@ -51,3 +51,28 @@ class TestMarkdown:
         out = render_markdown("![pixel](https://tracker.example/p.gif)")
         assert "<img" not in out
         assert "tracker.example" not in out
+
+    def test_single_newline_is_a_line_break(self):
+        assert "<br" in render_markdown("a\nb")
+
+    def test_keeps_allowlisted_raw_html(self):
+        assert "<sub>2</sub>" in render_markdown("H<sub>2</sub>O")
+
+    def test_large_aligned_table_still_renders(self):
+        text = "| a | b | c |\n|:-|:-:|-:|\n" + "| 1 | 2 | 3 |\n" * 300
+        assert "<table>" in render_markdown(text)
+
+    def test_reference_definitions_do_not_become_links(self):
+        out = render_markdown("[a]: https://example.com\n\nsee [a]")
+        assert "href" not in out
+
+    def test_keeps_raw_html_with_a_few_attributes(self):
+        out = render_markdown('<abbr title="HyperText">HTML</abbr>')
+        assert '<abbr title="HyperText">HTML</abbr>' in out
+
+    def test_many_attributed_raw_tags_render_as_text(self):
+        out = render_markdown('<u title="x">' * 40 + "y")
+        assert "&lt;u" in out
+
+    def test_double_tilde_stays_literal(self):
+        assert "~~gone~~" in render_markdown("~~gone~~")
