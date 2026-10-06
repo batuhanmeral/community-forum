@@ -74,5 +74,11 @@ class TestMarkdown:
         out = render_markdown('<u title="x">' * 40 + "y")
         assert "&lt;u" in out
 
+    def test_attributed_tags_inside_code_do_not_disable_raw_html(self):
+        sample = "```html\n" + '<u title="x">\n' * 40 + "```\n\n"
+        generics = "`HashMap<String, Vec<u8>>` " * 40
+        out = render_markdown(sample + generics + "H<sub>2</sub>O")
+        assert "<sub>2</sub>" in out
+
     def test_double_tilde_stays_literal(self):
         assert "~~gone~~" in render_markdown("~~gone~~")

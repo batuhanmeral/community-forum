@@ -91,14 +91,31 @@ def _keep_safe_attribute(tag: str, attr: str, value: str) -> str | None:
     return value
 
 
+def _count_raw_tags_with_attributes(tokens) -> int:
+    # Only html_block/html_inline reach the HTML parser unescaped; code samples must not count.
+    raw_html = [t.content for t in tokens if t.type == "html_block"]
+    raw_html += [
+        child.content
+        for t in tokens
+        if t.type == "inline"
+        for child in t.children or ()
+        if child.type == "html_inline"
+    ]
+    return sum(len(_RAW_TAG_WITH_ATTRIBUTES.findall(chunk)) for chunk in raw_html)
+
+
 def render_markdown(text: str) -> str:
     """Render markdown to sanitized HTML; safe for direct injection in templates."""
     if not text:
         return ""
-    raw_tags = len(_RAW_TAG_WITH_ATTRIBUTES.findall(text))
-    md = _MD if raw_tags <= MAX_RAW_TAGS_WITH_ATTRIBUTES else _MD_NO_RAW_HTML
+    env = {}
+    tokens = _MD.parse(text, env)
+    if _count_raw_tags_with_attributes(tokens) <= MAX_RAW_TAGS_WITH_ATTRIBUTES:
+        rendered = _MD.renderer.render(tokens, _MD.options, env)
+    else:
+        rendered = _MD_NO_RAW_HTML.render(text)
     html = nh3.clean(
-        md.render(text),
+        rendered,
         tags=_ALLOWED_TAGS,
         attributes=_ALLOWED_ATTRS,
         attribute_filter=_keep_safe_attribute,
