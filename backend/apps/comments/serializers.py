@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from apps.common.markdown import render_markdown
-
 from .models import Comment, CommentRevision
 
 COMMENT_BODY_MAX_CHARS = 10_000
@@ -58,8 +56,7 @@ class CommentSerializer(serializers.ModelSerializer):
         return None if obj.deleted_at is not None else obj.author.username
 
     def get_body_html(self, obj: Comment) -> str:
-        body = _mask_body(obj)
-        return render_markdown(body) if obj.deleted_at is None else f"<p>{body}</p>"
+        return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"
 
     def get_is_deleted(self, obj: Comment) -> bool:
         return obj.deleted_at is not None

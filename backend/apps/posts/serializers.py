@@ -1,7 +1,6 @@
 from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 
-from apps.common.markdown import render_markdown
 from apps.communities.serializers import FlairSerializer
 from apps.polls.serializers import PollCreateInputSerializer, PollSerializer
 
@@ -87,8 +86,7 @@ class PostSerializer(serializers.ModelSerializer):
         return None if obj.deleted_at is not None else obj.author.username
 
     def get_body_html(self, obj: Post) -> str:
-        body = _mask_body(obj)
-        return render_markdown(body) if obj.deleted_at is None else f"<p>{body}</p>"
+        return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"
 
     def get_is_deleted(self, obj: Post) -> bool:
         return obj.deleted_at is not None
