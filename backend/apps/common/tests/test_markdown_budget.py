@@ -82,3 +82,8 @@ def test_amplifying_input_falls_back_to_escaped_source():
     out = render_markdown(PADDED_TABLE)
     assert "<table" not in out
     assert "|a|a|" in out
+
+
+def test_escaped_fallback_keeps_line_breaks():
+    out = render_markdown(PADDED_TABLE)
+    assert "|<br>\n|-|" in out

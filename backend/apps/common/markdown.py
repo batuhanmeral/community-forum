@@ -123,5 +123,5 @@ def render_markdown(text: str) -> str:
         link_rel="nofollow noopener ugc",
     )
     if len(html) > max(MAX_HTML_EXPANSION * len(text), MIN_HTML_LIMIT):
-        return f"<p>{escape(text)}</p>"
+        return "<p>" + escape(text).replace("\n", "<br>\n") + "</p>"
     return html
