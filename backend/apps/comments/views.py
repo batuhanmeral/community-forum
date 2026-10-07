@@ -5,7 +5,7 @@ from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
 
 from apps.common.throttling import WriteThrottleMixin
@@ -84,7 +84,8 @@ class PostCommentListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
         if not hasattr(self, "_post"):
             post = get_object_or_404(Post, pk=self.kwargs["pk"])
             if not post.is_approved and not can_see_unapproved(self.request.user, post):
-                raise NotFound()
+                # Same 404 body a missing row gets, so the response can't confirm existence.
+                get_object_or_404(Post.objects.none(), pk=self.kwargs["pk"])
             self._post = post
         return self._post
 
@@ -155,10 +156,13 @@ class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIVie
     )
 
     def get_object(self):
-        comment = super().get_object()
+        comment = get_object_or_404(self.filter_queryset(self.get_queryset()), pk=self.kwargs["pk"])
         post = comment.post
         if not post.is_approved and not can_see_unapproved(self.request.user, post):
-            raise NotFound()
+            # Same 404 body a missing row gets, so the response can't confirm existence.
+            get_object_or_404(Comment.objects.none(), pk=self.kwargs["pk"])
+        # Permissions only after the visibility check, or a 403 would confirm a hidden comment exists.
+        self.check_object_permissions(self.request, comment)
         return comment
 
     def perform_update(self, serializer):

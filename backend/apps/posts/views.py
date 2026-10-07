@@ -15,7 +15,7 @@ from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -214,9 +214,12 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = _annotate_score(_base_post_qs())
 
     def get_object(self):
-        post = super().get_object()
+        post = get_object_or_404(self.filter_queryset(self.get_queryset()), pk=self.kwargs["pk"])
         if not post.is_approved and not can_see_unapproved(self.request.user, post):
-            raise NotFound()
+            # Same 404 body a missing row gets, so the response can't confirm existence.
+            get_object_or_404(Post.objects.none(), pk=self.kwargs["pk"])
+        # Permissions only after the visibility check, or a 403 would confirm a hidden post exists.
+        self.check_object_permissions(self.request, post)
         return post
 
     def perform_destroy(self, instance):
