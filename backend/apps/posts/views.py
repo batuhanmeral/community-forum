@@ -326,7 +326,9 @@ class ApprovalQueueView(generics.ListAPIView):
         if not is_moderator(self.request.user, community):
             raise PermissionDenied("Moderator role required.")
         return _annotate_score(
-            _base_post_qs(Post.objects.filter(community=community, is_approved=False))
+            _base_post_qs(
+                Post.objects.filter(community=community, is_approved=False, deleted_at__isnull=True)
+            )
         ).order_by("created_at")
 
 
@@ -345,9 +347,11 @@ class PostApprovalView(APIView):
     def post(self, request, pk):
         post = self._get(pk)
         self._require_mod(request, post)
-        if not post.is_approved:
-            post.is_approved = True
-            post.save(update_fields=["is_approved"])
+        # Conditional UPDATE: of two racing approvals only one changes the row and reports it.
+        approved = Post.objects.filter(
+            pk=post.pk, is_approved=False, deleted_at__isnull=True
+        ).update(is_approved=True)
+        if approved:
             log_mod_action(
                 post.community,
                 actor=request.user,
@@ -355,21 +359,19 @@ class PostApprovalView(APIView):
                 target=post,
             )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
-            if post.deleted_at is None:
-                from apps.comments.views import notify_mentions
+            from apps.comments.views import notify_mentions
 
-                # Author wrote the mention, so they are the actor, not the approver.
-                notify_mentions(post.body, actor=post.author, target=post)
+            # Author wrote the mention, so they are the actor, not the approver.
+            notify_mentions(post.body, actor=post.author, target=post)
         return Response({"is_approved": True})
 
     def delete(self, request, pk):
         post = self._get(pk)
         self._require_mod(request, post)
-        if post.deleted_at is None:
-            post.deleted_at = timezone.now()
-            post.deleted_by = request.user
-            post.is_pinned = False
-            post.save(update_fields=["deleted_at", "deleted_by", "is_pinned"])
+        rejected = Post.objects.filter(pk=post.pk, deleted_at__isnull=True).update(
+            deleted_at=timezone.now(), deleted_by=request.user, is_pinned=False
+        )
+        if rejected:
             log_mod_action(
                 post.community,
                 actor=request.user,
