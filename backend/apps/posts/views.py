@@ -115,6 +115,15 @@ def _apply_sort(qs, sort: str):
     return qs.order_by("-is_pinned", "-created_at")
 
 
+def _visible_post(user, pk) -> Post:
+    """404 for a held post the user may not see, so mod endpoints can't confirm it exists."""
+    post = get_object_or_404(Post, pk=pk)
+    if not post.is_approved and not can_see_unapproved(user, post):
+        # Same 404 body a missing row gets, so the response can't confirm existence.
+        get_object_or_404(Post.objects.none(), pk=pk)
+    return post
+
+
 class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCommunityMember)
@@ -255,7 +264,7 @@ class PostRevisionListView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        post = get_object_or_404(Post, pk=self.kwargs["pk"])
+        post = _visible_post(self.request.user, self.kwargs["pk"])
         if post.author_id != self.request.user.id and not is_moderator(
             self.request.user, post.community
         ):
@@ -269,7 +278,7 @@ class PostStickyView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def _get_post(self, pk):
-        return get_object_or_404(Post, pk=pk)
+        return _visible_post(self.request.user, pk)
 
     def _require_mod(self, request, post):
         if not is_moderator(request.user, post.community):
@@ -338,7 +347,7 @@ class PostApprovalView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def _get(self, pk):
-        return get_object_or_404(Post, pk=pk)
+        return _visible_post(self.request.user, pk)
 
     def _require_mod(self, request, post):
         if not is_moderator(request.user, post.community):

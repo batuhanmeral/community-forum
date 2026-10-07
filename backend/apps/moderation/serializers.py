@@ -2,6 +2,8 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
 from apps.communities.models import Membership
+from apps.posts.models import Post
+from apps.posts.services import can_see_unapproved
 
 from .models import ModAction, Report
 
@@ -29,10 +31,18 @@ class ReportCreateSerializer(serializers.Serializer):
         except ContentType.DoesNotExist as exc:
             raise serializers.ValidationError({"content_type": "Unknown content type."}) from exc
         model = ct.model_class()
-        if not model.objects.filter(pk=attrs["object_id"]).exists():
+        target = model.objects.filter(pk=attrs["object_id"]).first()
+        # A held post (or a comment on one) must look exactly like a missing target.
+        if target is None or not self._is_visible(target):
             raise serializers.ValidationError({"object_id": "Target object not found."})
         attrs["_content_type"] = ct
         return attrs
+
+    def _is_visible(self, target) -> bool:
+        post = target if isinstance(target, Post) else getattr(target, "post", None)
+        if post is None or post.is_approved:
+            return True
+        return can_see_unapproved(self.context["request"].user, post)
 
 
 class ReportSerializer(serializers.ModelSerializer):

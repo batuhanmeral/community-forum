@@ -41,7 +41,7 @@ class ReportCreateView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
-        payload = ReportCreateSerializer(data=request.data)
+        payload = ReportCreateSerializer(data=request.data, context={"request": request})
         payload.is_valid(raise_exception=True)
         ct = payload.validated_data["_content_type"]
         object_id = payload.validated_data["object_id"]
