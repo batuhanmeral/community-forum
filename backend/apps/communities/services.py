@@ -62,3 +62,21 @@ def can_moderate_member(actor, target_user, community: Community) -> bool:
         .first()
     ) or Membership.Role.MEMBER
     return _ROLE_RANK[actor_membership.role] > _ROLE_RANK[target_role]
+
+
+def can_lift_ban(actor, membership: Membership, community: Community) -> bool:
+    """Lifting a ban needs at least the issuer's current rank; only the creator lifts their own."""
+    actor_membership = active_membership(actor, community)
+    if actor_membership is None or actor_membership.role not in MOD_ROLES:
+        return False
+    issuer_id = membership.banned_by_id
+    if actor.id == community.creator_id or issuer_id in (None, actor.id):
+        return True
+    if issuer_id == community.creator_id:
+        return False
+    issuer_role = (
+        Membership.objects.filter(user_id=issuer_id, community=community, is_banned=False)
+        .values_list("role", flat=True)
+        .first()
+    ) or Membership.Role.MEMBER
+    return _ROLE_RANK[actor_membership.role] >= _ROLE_RANK[issuer_role]

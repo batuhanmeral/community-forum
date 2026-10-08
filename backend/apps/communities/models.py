@@ -79,6 +79,15 @@ class Membership(models.Model):
         max_length=16, choices=NotifyLevel.choices, default=NotifyLevel.ALL
     )
     is_banned = models.BooleanField(default=False)
+    # Who issued the ban: lifting it needs at least their rank (null = issued before this was recorded).
+    banned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    banned_at = models.DateTimeField(null=True, blank=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
