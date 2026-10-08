@@ -124,6 +124,13 @@ def _visible_post(user, pk) -> Post:
     return post
 
 
+def _keyword_added_by_edit(post: Post, new_title: str, new_body: str) -> str | None:
+    # Only newly added keywords count: a post a mod approved with a keyword must survive typo fixes.
+    if not post.is_approved or is_moderator(post.author, post.community):
+        return None
+    return post.community.banned_keyword_added((post.title, post.body), (new_title, new_body))
+
+
 class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCommunityMember)
@@ -245,10 +252,18 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
         if instance.deleted_at is not None:
             raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
+        keyword = _keyword_added_by_edit(
+            instance,
+            serializer.validated_data.get("title", old_title),
+            serializer.validated_data.get("body", old_body),
+        )
+        # One write carries the hold, so no reader or racing edit ever sees the keyword approved.
+        hold = {"is_approved": False, "is_pinned": False} if keyword else {}
         post = serializer.save(
             # An NSFW community's posts can't be un-flagged by their author.
             is_nsfw=serializer.validated_data.get("is_nsfw", instance.is_nsfw)
-            or instance.community.is_nsfw
+            or instance.community.is_nsfw,
+            **hold,
         )
         if (post.title, post.body) != (old_title, old_body):
             PostRevision.objects.create(
@@ -256,6 +271,13 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
             )
             post.edited_at = timezone.now()
             post.save(update_fields=["edited_at"])
+            if keyword:
+                log_mod_action(
+                    post.community,
+                    action=ModAction.Action.AUTOMOD_HOLD,
+                    target=post,
+                    detail=f"matched keyword on edit: {keyword}",
+                )
             if post.is_approved:
                 from apps.comments.views import notify_mentions
 

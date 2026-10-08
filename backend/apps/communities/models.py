@@ -43,6 +43,15 @@ class Community(models.Model):
                 return kw
         return None
 
+    def banned_keyword_added(self, before: tuple[str, ...], after: tuple[str, ...]) -> str | None:
+        """First banned keyword present in `after` but not in `before`."""
+        old = " ".join(t.lower() for t in before if t)
+        new = " ".join(t.lower() for t in after if t)
+        for kw in self.banned_keyword_list():
+            if kw in new and kw not in old:
+                return kw
+        return None
+
 
 class Membership(models.Model):
     class Role(models.TextChoices):
