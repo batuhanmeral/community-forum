@@ -94,3 +94,16 @@ class MembershipRoleSerializer(serializers.ModelSerializer):
         model = Membership
         fields = ("id", "user", "community", "role", "is_banned", "joined_at")
         read_only_fields = ("id", "user", "community", "joined_at")
+
+
+class BannedMemberSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    avatar = serializers.ImageField(source="user.avatar", read_only=True)
+    banned_by_username = serializers.CharField(
+        source="banned_by.username", read_only=True, default=None
+    )
+
+    class Meta:
+        model = Membership
+        fields = ("id", "username", "avatar", "banned_by_username", "banned_at", "joined_at")
+        read_only_fields = fields

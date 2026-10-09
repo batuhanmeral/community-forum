@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -16,6 +17,7 @@ from apps.notifications.services import notify
 from .models import ModAction, Report
 from .permissions import IsCommunityAdmin, IsCommunityModerator
 from .serializers import (
+    BannedMemberSerializer,
     MembershipRoleSerializer,
     ModActionSerializer,
     ReportCreateSerializer,
@@ -140,6 +142,17 @@ class ReportResolveView(_ReportActionView):
 
 class ReportDismissView(_ReportActionView):
     new_status = Report.Status.DISMISSED
+
+
+class CommunityBanListView(_CommunityModView, generics.ListAPIView):
+    serializer_class = BannedMemberSerializer
+
+    def get_queryset(self):
+        return (
+            Membership.objects.filter(community=self.get_community(), is_banned=True)
+            .select_related("user", "banned_by")
+            .order_by(F("banned_at").desc(nulls_last=True), "-id")
+        )
 
 
 class CommunityBanView(_CommunityModView, APIView):

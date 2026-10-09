@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    CommunityBanListView,
     CommunityBanView,
     CommunityReportListView,
     MembershipRoleView,
@@ -26,6 +27,11 @@ urlpatterns = [
         "communities/<slug:slug>/mod/reports/<int:pk>/dismiss/",
         ReportDismissView.as_view(),
         name="community-mod-report-dismiss",
+    ),
+    path(
+        "communities/<slug:slug>/mod/bans/",
+        CommunityBanListView.as_view(),
+        name="community-mod-bans",
     ),
     path(
         "communities/<slug:slug>/mod/ban/<str:username>/",
