@@ -94,7 +94,7 @@ class CommunityReportListView(_CommunityModView, generics.ListAPIView):
         )
         if self.request.query_params.get("status") in ("open", "resolved", "dismissed"):
             qs = qs.filter(status=self.request.query_params["status"])
-        return qs.select_related("reporter", "content_type").order_by("-created_at")
+        return qs.select_related("content_type").prefetch_related("target").order_by("-created_at")
 
 
 class _ReportActionView(_CommunityModView, APIView):

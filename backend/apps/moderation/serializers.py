@@ -1,6 +1,8 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
+from apps.comments.models import Comment
+from apps.comments.serializers import _mask_body as _mask_comment_body
 from apps.communities.models import Membership
 from apps.posts.models import Post
 from apps.posts.services import can_see_unapproved
@@ -9,6 +11,7 @@ from .models import ModAction, Report
 
 ALLOWED_TARGETS = {"post", "comment", "user"}
 _APP_FOR = {"post": "posts", "comment": "comments", "user": "users"}
+PREVIEW_CHARS = 140
 
 
 class ReportCreateSerializer(serializers.Serializer):
@@ -47,16 +50,16 @@ class ReportCreateSerializer(serializers.Serializer):
 
 class ReportSerializer(serializers.ModelSerializer):
     target_type = serializers.SerializerMethodField()
-    reporter_username = serializers.CharField(source="reporter.username", read_only=True)
+    target_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Report
+        # Reporter identity stays out of the API (D5); staff see it in Django admin.
         fields = (
             "id",
-            "reporter",
-            "reporter_username",
             "target_type",
             "object_id",
+            "target_preview",
             "reason",
             "status",
             "created_at",
@@ -65,6 +68,22 @@ class ReportSerializer(serializers.ModelSerializer):
 
     def get_target_type(self, obj: Report) -> str:
         return obj.content_type.model
+
+    def get_target_preview(self, obj: Report) -> dict | None:
+        target = obj.target
+        if isinstance(target, Post):
+            return {
+                "text": target.title,
+                "link": f"/posts/{target.pk}",
+                "is_deleted": target.deleted_at is not None,
+            }
+        if isinstance(target, Comment):
+            return {
+                "text": _mask_comment_body(target)[:PREVIEW_CHARS],
+                "link": f"/posts/{target.post_id}#comment-{target.pk}",
+                "is_deleted": target.deleted_at is not None,
+            }
+        return None
 
 
 class ModActionSerializer(serializers.ModelSerializer):
