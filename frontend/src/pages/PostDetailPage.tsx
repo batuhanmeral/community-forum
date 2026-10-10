@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { deletePost, getPost, setPostSticky, updatePost } from '@/api/posts';
 import { getCommunity } from '@/api/communities';
 import type { Post } from '@/features/posts/types';
@@ -20,6 +21,7 @@ import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
 export function PostDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
@@ -101,6 +103,14 @@ export function PostDetailPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <Card>
+        {!post.is_approved && !post.is_deleted && (
+          <p
+            role="status"
+            className="mb-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text-soft)]"
+          >
+            {t('post.pendingApproval')}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-text-muted)]">
           <Link to={`/c/${post.community}`} className="font-semibold text-[var(--color-text)] hover:underline">
             c/{post.community}

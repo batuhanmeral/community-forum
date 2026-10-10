@@ -104,3 +104,29 @@ describe('PostDetailPage comment form', () => {
     expect(screen.queryByPlaceholderText('Add a comment...')).not.toBeInTheDocument();
   });
 });
+
+describe('PostDetailPage pending banner', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('skip'));
+  });
+
+  it('tells the author a held post awaits approval', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, is_approved: false });
+    renderPage();
+    expect(await screen.findByText(/awaiting moderator approval/i)).toBeInTheDocument();
+  });
+
+  it('shows no banner on an approved post', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue(basePost);
+    renderPage();
+    await screen.findByText('Title');
+    expect(screen.queryByText(/awaiting moderator approval/i)).not.toBeInTheDocument();
+  });
+});

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   createFlair,
   deleteFlair,
@@ -21,6 +22,7 @@ import {
   type ReportStatus,
 } from '@/api/moderation';
 import type { Community, CommunityRole } from '@/features/communities/types';
+import { ApprovalQueueCard } from '@/components/moderation/ApprovalQueueCard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -86,6 +88,7 @@ export function ModPage() {
       </div>
 
       {isAdmin && <CommunitySettingsCard community={community} onUpdated={setCommunity} />}
+      <ApprovalQueueCard slug={community.slug} />
       <ReportQueue slug={community.slug} />
       {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
       <FlairCard slug={community.slug} />
@@ -262,7 +265,9 @@ function CommunitySettingsCard({
 }) {
   const [name, setName] = useState(community.name);
   const [description, setDescription] = useState(community.description);
+  const { t } = useTranslation();
   const [isNsfw, setIsNsfw] = useState(community.is_nsfw);
+  const [requiresApproval, setRequiresApproval] = useState(community.requires_approval);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -282,6 +287,7 @@ function CommunitySettingsCard({
     name !== community.name ||
     description !== community.description ||
     isNsfw !== community.is_nsfw ||
+    requiresApproval !== community.requires_approval ||
     avatarFile !== null;
 
   async function handleSubmit(e: FormEvent) {
@@ -294,6 +300,7 @@ function CommunitySettingsCard({
         name: name.trim(),
         description,
         is_nsfw: isNsfw,
+        requires_approval: requiresApproval,
         avatar: avatarFile,
       });
       onUpdated(updated);
@@ -368,6 +375,15 @@ function CommunitySettingsCard({
             className="h-4 w-4 accent-[var(--color-accent)]"
           />
           Mark community as NSFW (18+)
+        </label>
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--color-text-soft)]">
+          <input
+            type="checkbox"
+            checked={requiresApproval}
+            onChange={(e) => setRequiresApproval(e.target.checked)}
+            className="h-4 w-4 accent-[var(--color-accent)]"
+          />
+          {t('mod.requiresApproval')}
         </label>
         <div className="flex items-center gap-3">
           <Button type="submit" loading={busy} disabled={!dirty || !name.trim()}>

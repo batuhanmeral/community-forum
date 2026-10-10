@@ -125,4 +125,20 @@ export const en = {
     sendFailed: 'Message could not be sent.',
     back: 'Back to conversations',
   },
+  post: {
+    pendingApproval: 'Awaiting moderator approval. Only you and the moderators can see this post.',
+  },
+  mod: {
+    loading: 'Loading…',
+    loadMore: 'Load more',
+    loadMoreFailed: 'Could not load more.',
+    actionFailed: 'Action failed. Try again.',
+    approvalTitle: 'Approval queue',
+    approvalHint:
+      'Posts held by AutoMod or by the approval setting. Approve to publish, reject to remove.',
+    approvalEmpty: 'No posts awaiting approval.',
+    approve: 'Approve',
+    reject: 'Reject',
+    requiresApproval: 'Hold new posts from members for moderator approval',
+  },
 } as const;

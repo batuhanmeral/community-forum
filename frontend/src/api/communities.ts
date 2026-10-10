@@ -60,6 +60,7 @@ export interface UpdateCommunityPayload {
   name?: string;
   description?: string;
   is_nsfw?: boolean;
+  requires_approval?: boolean;
   avatar?: File | null;
   banned_keywords?: string;
 }
@@ -73,6 +74,8 @@ export async function updateCommunity(
     if (payload.name !== undefined) form.append('name', payload.name);
     if (payload.description !== undefined) form.append('description', payload.description);
     if (payload.is_nsfw !== undefined) form.append('is_nsfw', String(payload.is_nsfw));
+    if (payload.requires_approval !== undefined)
+      form.append('requires_approval', String(payload.requires_approval));
     if (payload.banned_keywords !== undefined)
       form.append('banned_keywords', payload.banned_keywords);
     form.append('avatar', payload.avatar);

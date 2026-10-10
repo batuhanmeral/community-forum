@@ -129,4 +129,20 @@ export const tr: Translation = {
     sendFailed: 'Mesaj gönderilemedi.',
     back: 'Sohbetlere dön',
   },
+  post: {
+    pendingApproval: 'Moderatör onayı bekleniyor. Bu gönderiyi yalnızca sen ve moderatörler görebilir.',
+  },
+  mod: {
+    loading: 'Yükleniyor…',
+    loadMore: 'Daha fazla yükle',
+    loadMoreFailed: 'Daha fazlası yüklenemedi.',
+    actionFailed: 'İşlem başarısız oldu. Tekrar dene.',
+    approvalTitle: 'Onay kuyruğu',
+    approvalHint:
+      'AutoMod ya da onay ayarı tarafından bekletilen gönderiler. Yayınlamak için onayla, kaldırmak için reddet.',
+    approvalEmpty: 'Onay bekleyen gönderi yok.',
+    approve: 'Onayla',
+    reject: 'Reddet',
+    requiresApproval: 'Üyelerin yeni gönderilerini moderatör onayına kadar beklet',
+  },
 } as const;

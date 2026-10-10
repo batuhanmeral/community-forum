@@ -101,3 +101,18 @@ export async function setPostSticky(id: number, pinned: boolean): Promise<{ is_p
     : await api.delete<{ is_pinned: boolean }>(`/posts/${id}/sticky/`);
   return res.data;
 }
+
+export async function listApprovalQueue(slug: string, page = 1): Promise<Paginated<Post>> {
+  const res = await api.get<Paginated<Post>>(`/communities/${slug}/mod/approval-queue/`, {
+    params: { page },
+  });
+  return res.data;
+}
+
+export async function approvePost(id: number): Promise<void> {
+  await api.post(`/posts/${id}/approve/`);
+}
+
+export async function rejectPost(id: number): Promise<void> {
+  await api.delete(`/posts/${id}/approve/`);
+}
