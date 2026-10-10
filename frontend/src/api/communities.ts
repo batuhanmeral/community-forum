@@ -129,3 +129,27 @@ export async function createFlair(slug: string, name: string, color: string): Pr
 export async function deleteFlair(slug: string, id: number): Promise<void> {
   await api.delete(`/communities/${slug}/flairs/${id}/`);
 }
+
+export interface RulePayload {
+  short: string;
+  description: string;
+  order: number;
+}
+
+export async function createRule(slug: string, payload: RulePayload): Promise<CommunityRule> {
+  const res = await api.post<CommunityRule>(`/communities/${slug}/rules/`, payload);
+  return res.data;
+}
+
+export async function updateRule(
+  slug: string,
+  id: number,
+  payload: RulePayload,
+): Promise<CommunityRule> {
+  const res = await api.patch<CommunityRule>(`/communities/${slug}/rules/${id}/`, payload);
+  return res.data;
+}
+
+export async function deleteRule(slug: string, id: number): Promise<void> {
+  await api.delete(`/communities/${slug}/rules/${id}/`);
+}

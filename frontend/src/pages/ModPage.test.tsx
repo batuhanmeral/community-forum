@@ -14,6 +14,10 @@ vi.mock('@/api/communities', () => ({
   listFlairs: vi.fn(),
   createFlair: vi.fn(),
   deleteFlair: vi.fn(),
+  listRules: vi.fn(),
+  createRule: vi.fn(),
+  updateRule: vi.fn(),
+  deleteRule: vi.fn(),
 }));
 vi.mock('@/api/moderation', () => ({
   listModReports: vi.fn(),
@@ -64,6 +68,7 @@ describe('ModPage', () => {
     vi.clearAllMocks();
     vi.mocked(communitiesApi.getCommunity).mockResolvedValue(adminCommunity);
     vi.mocked(communitiesApi.listFlairs).mockResolvedValue([]);
+    vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
     vi.mocked(moderationApi.listModReports).mockResolvedValue([]);
     vi.mocked(moderationApi.listModLog).mockResolvedValue(empty);
     vi.mocked(postsApi.listApprovalQueue).mockResolvedValue(empty);
@@ -88,5 +93,10 @@ describe('ModPage', () => {
   it('shows the approval queue', async () => {
     renderPage();
     expect(await screen.findByText('Approval queue')).toBeInTheDocument();
+  });
+
+  it('shows the rules card', async () => {
+    renderPage();
+    expect(await screen.findByText('Rules')).toBeInTheDocument();
   });
 });

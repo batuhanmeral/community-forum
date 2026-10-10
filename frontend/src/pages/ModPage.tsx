@@ -23,6 +23,7 @@ import {
 } from '@/api/moderation';
 import type { Community, CommunityRole } from '@/features/communities/types';
 import { ApprovalQueueCard } from '@/components/moderation/ApprovalQueueCard';
+import { RulesCard } from '@/components/moderation/RulesCard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -91,6 +92,7 @@ export function ModPage() {
       <ApprovalQueueCard slug={community.slug} />
       <ReportQueue slug={community.slug} />
       {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
+      <RulesCard slug={community.slug} />
       <FlairCard slug={community.slug} />
       <BanUserCard slug={community.slug} />
       {isAdmin && <RoleCard slug={community.slug} />}
