@@ -22,6 +22,7 @@ import {
   type ReportStatus,
 } from '@/api/moderation';
 import type { Community, CommunityRole } from '@/features/communities/types';
+import { BannedListCard } from '@/components/moderation/BannedListCard';
 import { ApprovalQueueCard } from '@/components/moderation/ApprovalQueueCard';
 import { RulesCard } from '@/components/moderation/RulesCard';
 import { Card } from '@/components/ui/Card';
@@ -37,6 +38,7 @@ export function ModPage() {
   const [community, setCommunity] = useState<Community | null>(null);
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [bansVersion, setBansVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,7 +96,8 @@ export function ModPage() {
       {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
       <RulesCard slug={community.slug} />
       <FlairCard slug={community.slug} />
-      <BanUserCard slug={community.slug} />
+      <BanUserCard slug={community.slug} onBanned={() => setBansVersion((v) => v + 1)} />
+      <BannedListCard key={bansVersion} slug={community.slug} />
       {isAdmin && <RoleCard slug={community.slug} />}
       <ModLogCard slug={community.slug} />
     </div>
@@ -616,7 +619,7 @@ function FlairCard({ slug }: { slug: string }) {
   );
 }
 
-function BanUserCard({ slug }: { slug: string }) {
+function BanUserCard({ slug, onBanned }: { slug: string; onBanned: () => void }) {
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -631,6 +634,7 @@ function BanUserCard({ slug }: { slug: string }) {
       await banUser(slug, u);
       setMsg({ ok: true, text: `u/${u} has been banned from this community.` });
       setUsername('');
+      onBanned();
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??

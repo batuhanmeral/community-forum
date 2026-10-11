@@ -156,5 +156,10 @@ export const tr: Translation = {
     approve: 'Onayla',
     reject: 'Reddet',
     requiresApproval: 'Üyelerin yeni gönderilerini moderatör onayına kadar beklet',
+    bansTitle: 'Yasaklı üyeler',
+    bansEmpty: 'Yasaklı üye yok.',
+    bannedBy: 'yasaklayan: u/{{username}}',
+    unban: 'Yasağı kaldır',
+    unbanFailed: 'Bu yasak kaldırılamadı.',
   },
 } as const;

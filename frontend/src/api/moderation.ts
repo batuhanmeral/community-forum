@@ -110,3 +110,19 @@ export async function setMemberRole(
   );
   return res.data;
 }
+
+export interface BannedMember {
+  id: number;
+  username: string;
+  avatar: string | null;
+  banned_by_username: string | null;
+  banned_at: string | null;
+  joined_at: string;
+}
+
+export async function listBans(slug: string, page = 1): Promise<Paginated<BannedMember>> {
+  const res = await api.get<Paginated<BannedMember>>(`/communities/${slug}/mod/bans/`, {
+    params: { page },
+  });
+  return res.data;
+}

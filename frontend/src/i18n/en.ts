@@ -152,5 +152,10 @@ export const en = {
     approve: 'Approve',
     reject: 'Reject',
     requiresApproval: 'Hold new posts from members for moderator approval',
+    bansTitle: 'Banned members',
+    bansEmpty: 'No banned members.',
+    bannedBy: 'banned by u/{{username}}',
+    unban: 'Unban',
+    unbanFailed: 'Could not lift this ban.',
   },
 } as const;

@@ -26,6 +26,8 @@ vi.mock('@/api/moderation', () => ({
   banUser: vi.fn(),
   setMemberRole: vi.fn(),
   listModLog: vi.fn(),
+  listBans: vi.fn(),
+  unbanUser: vi.fn(),
 }));
 vi.mock('@/api/posts', () => ({
   listApprovalQueue: vi.fn(),
@@ -71,6 +73,7 @@ describe('ModPage', () => {
     vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
     vi.mocked(moderationApi.listModReports).mockResolvedValue([]);
     vi.mocked(moderationApi.listModLog).mockResolvedValue(empty);
+    vi.mocked(moderationApi.listBans).mockResolvedValue(empty);
     vi.mocked(postsApi.listApprovalQueue).mockResolvedValue(empty);
   });
 
@@ -98,5 +101,16 @@ describe('ModPage', () => {
   it('shows the rules card', async () => {
     renderPage();
     expect(await screen.findByText('Rules')).toBeInTheDocument();
+  });
+
+  it('refreshes the banned list after a ban', async () => {
+    vi.mocked(moderationApi.banUser).mockResolvedValue({} as never);
+    renderPage();
+    await screen.findByText('Banned members');
+    // The ban and role cards both use placeholder "username", so pick the ban input by name.
+    const input = document.querySelector<HTMLInputElement>('input[name="ban-username"]')!;
+    await userEvent.type(input, 'spammer');
+    await userEvent.click(screen.getByRole('button', { name: 'Ban user' }));
+    await waitFor(() => expect(moderationApi.listBans).toHaveBeenCalledTimes(2));
   });
 });
