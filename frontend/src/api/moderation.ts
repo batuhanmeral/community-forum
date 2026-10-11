@@ -4,12 +4,17 @@ import type { CommunityRole, Paginated } from '@/features/communities/types';
 export type ReportTarget = 'post' | 'comment' | 'user';
 export type ReportStatus = 'open' | 'resolved' | 'dismissed';
 
+export interface ReportTargetPreview {
+  text: string;
+  link: string;
+  is_deleted: boolean;
+}
+
 export interface Report {
   id: number;
-  reporter: number;
-  reporter_username: string;
   target_type: string;
   object_id: number;
+  target_preview: ReportTargetPreview | null;
   reason: string;
   status: ReportStatus;
   created_at: string;
@@ -30,13 +35,13 @@ export async function reportContent(
 
 export async function listModReports(
   slug: string,
-  status?: ReportStatus,
-): Promise<Report[]> {
-  const res = await api.get<Report[] | Paginated<Report>>(
-    `/communities/${slug}/mod/reports/`,
-    { params: status ? { status } : undefined },
-  );
-  return Array.isArray(res.data) ? res.data : res.data.results;
+  status: ReportStatus,
+  page = 1,
+): Promise<Paginated<Report>> {
+  const res = await api.get<Paginated<Report>>(`/communities/${slug}/mod/reports/`, {
+    params: { status, page },
+  });
+  return res.data;
 }
 
 export async function resolveReport(slug: string, id: number): Promise<Report> {

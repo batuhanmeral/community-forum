@@ -71,7 +71,7 @@ describe('ModPage', () => {
     vi.mocked(communitiesApi.getCommunity).mockResolvedValue(adminCommunity);
     vi.mocked(communitiesApi.listFlairs).mockResolvedValue([]);
     vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
-    vi.mocked(moderationApi.listModReports).mockResolvedValue([]);
+    vi.mocked(moderationApi.listModReports).mockResolvedValue(empty);
     vi.mocked(moderationApi.listModLog).mockResolvedValue(empty);
     vi.mocked(moderationApi.listBans).mockResolvedValue(empty);
     vi.mocked(postsApi.listApprovalQueue).mockResolvedValue(empty);
