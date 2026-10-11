@@ -131,6 +131,14 @@ export const tr: Translation = {
   },
   post: {
     pendingApproval: 'Moderatör onayı bekleniyor. Bu gönderiyi yalnızca sen ve moderatörler görebilir.',
+    edited: '(düzenlendi)',
+  },
+  history: {
+    title: 'Düzenleme geçmişi',
+    empty: 'Daha eski sürüm yok.',
+    loadFailed: 'Düzenleme geçmişi yüklenemedi.',
+    editedBy: 'Düzenleyen: u/{{username}}',
+    loadMore: 'Daha fazla yükle',
   },
   mod: {
     rulesTitle: 'Kurallar',

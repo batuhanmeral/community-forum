@@ -14,6 +14,7 @@ import { cn } from '@/lib/cn';
 interface CommentSectionProps {
   postId: number;
   canComment?: boolean;
+  isModerator?: boolean;
 }
 
 const SORTS: Array<{ value: CommentSort; label: string }> = [
@@ -24,7 +25,7 @@ const SORTS: Array<{ value: CommentSort; label: string }> = [
   { value: 'controversial', label: 'Controversial' },
 ];
 
-export function CommentSection({ postId, canComment = true }: CommentSectionProps) {
+export function CommentSection({ postId, canComment = true, isModerator = false }: CommentSectionProps) {
   const { t } = useTranslation();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [comments, setComments] = useState<Comment[]>([]);
@@ -171,6 +172,7 @@ export function CommentSection({ postId, canComment = true }: CommentSectionProp
             node={node}
             postId={postId}
             depth={0}
+            isModerator={isModerator}
             onReply={handleReply}
             onUpdate={handleUpdate}
             onDelete={handleDelete}

@@ -1,6 +1,6 @@
 import { api } from './client';
 import type { Paginated } from '@/features/communities/types';
-import type { Post, PostKind } from '@/features/posts/types';
+import type { Post, PostKind, PostRevision } from '@/features/posts/types';
 
 export type SortOption = 'new' | 'top' | 'hot';
 export type TimeWindow = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
@@ -115,4 +115,9 @@ export async function approvePost(id: number): Promise<void> {
 
 export async function rejectPost(id: number): Promise<void> {
   await api.delete(`/posts/${id}/approve/`);
+}
+
+export async function listPostRevisions(id: number, page = 1): Promise<Paginated<PostRevision>> {
+  const res = await api.get<Paginated<PostRevision>>(`/posts/${id}/revisions/`, { params: { page } });
+  return res.data;
 }

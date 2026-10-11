@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -15,9 +16,14 @@ vi.mock('@/api/posts', () => ({
   deletePost: vi.fn(),
   setPostSticky: vi.fn(),
   updatePost: vi.fn(),
+  listPostRevisions: vi.fn(),
 }));
 vi.mock('@/api/communities', () => ({ getCommunity: vi.fn() }));
-vi.mock('@/api/comments', () => ({ listComments: vi.fn(), createComment: vi.fn() }));
+vi.mock('@/api/comments', () => ({
+  listComments: vi.fn(),
+  createComment: vi.fn(),
+  listCommentRevisions: vi.fn(),
+}));
 vi.mock('@/api/search', () => ({ searchUsers: vi.fn() }));
 
 const basePost = {
@@ -128,5 +134,56 @@ describe('PostDetailPage pending banner', () => {
     renderPage();
     await screen.findByText('Title');
     expect(screen.queryByText(/awaiting moderator approval/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('PostDetailPage edit history', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('skip'));
+    vi.mocked(postsApi.listPostRevisions).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+  });
+
+  it('lets the author open the history of an edited post', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({
+      ...basePost,
+      author: 1,
+      edited_at: '2026-10-02T00:00:00Z',
+    });
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: '(edited)' }));
+    expect(await screen.findByText('Edit history')).toBeInTheDocument();
+    expect(postsApi.listPostRevisions).toHaveBeenCalledWith(5, 1);
+  });
+
+  it('shows a plain marker to other readers', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, edited_at: '2026-10-02T00:00:00Z' });
+    renderPage();
+    expect(await screen.findByText('(edited)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
+  });
+
+  it('hides the history button on a deleted post even for moderators', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'moderator' } as never);
+    vi.mocked(postsApi.getPost).mockResolvedValue({
+      ...basePost,
+      is_deleted: true,
+      edited_at: '2026-10-02T00:00:00Z',
+    });
+    renderPage();
+    expect(await screen.findByText('(edited)')).toBeInTheDocument();
+    await waitFor(() => expect(communitiesApi.getCommunity).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
   });
 });

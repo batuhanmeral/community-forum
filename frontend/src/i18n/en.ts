@@ -127,6 +127,14 @@ export const en = {
   },
   post: {
     pendingApproval: 'Awaiting moderator approval. Only you and the moderators can see this post.',
+    edited: '(edited)',
+  },
+  history: {
+    title: 'Edit history',
+    empty: 'No earlier versions.',
+    loadFailed: 'Could not load the edit history.',
+    editedBy: 'Edited by u/{{username}}',
+    loadMore: 'Load more',
   },
   mod: {
     rulesTitle: 'Rules',
