@@ -210,6 +210,9 @@ class CommentRevisionListView(generics.ListAPIView):
         if not post.is_approved and not can_see_unapproved(self.request.user, post):
             # Same 404 body a missing comment gets, so the response can't confirm existence.
             get_object_or_404(Comment.objects.none(), pk=self.kwargs["pk"])
+        if comment.deleted_at is not None:
+            # Deleted content is masked everywhere; its earlier versions must not stay readable.
+            get_object_or_404(Comment.objects.none(), pk=self.kwargs["pk"])
         if comment.author_id != self.request.user.id and not is_moderator(
             self.request.user, comment.post.community
         ):

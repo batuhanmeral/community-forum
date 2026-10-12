@@ -290,6 +290,9 @@ class PostRevisionListView(generics.ListAPIView):
 
     def get_queryset(self):
         post = _visible_post(self.request.user, self.kwargs["pk"])
+        if post.deleted_at is not None:
+            # Deleted content is masked everywhere; its earlier versions must not stay readable.
+            get_object_or_404(Post.objects.none(), pk=self.kwargs["pk"])
         if post.author_id != self.request.user.id and not is_moderator(
             self.request.user, post.community
         ):
