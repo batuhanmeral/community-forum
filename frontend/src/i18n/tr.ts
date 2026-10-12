@@ -128,6 +128,8 @@ export const tr: Translation = {
     loadOlderFailed: 'Daha eski mesajlar yüklenemedi.',
     sendFailed: 'Mesaj gönderilemedi.',
     back: 'Sohbetlere dön',
+    loadMoreConversations: 'Daha fazla sohbet yükle',
+    loadMoreConversationsFailed: 'Daha fazla sohbet yüklenemedi.',
   },
   post: {
     pendingApproval: 'Moderatör onayı bekleniyor. Bu gönderiyi yalnızca sen ve moderatörler görebilir.',

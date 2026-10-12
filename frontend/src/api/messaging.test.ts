@@ -7,9 +7,9 @@ vi.mock('./client', () => ({ api: { get: vi.fn() } }));
 describe('listConversations', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('asks for the largest page the backend allows', async () => {
+  it('asks for the requested page at the largest size the backend allows', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: { results: [] } });
-    await listConversations();
-    expect(api.get).toHaveBeenCalledWith('/conversations/', { params: { page_size: 100 } });
+    await listConversations(3);
+    expect(api.get).toHaveBeenCalledWith('/conversations/', { params: { page: 3, page_size: 100 } });
   });
 });

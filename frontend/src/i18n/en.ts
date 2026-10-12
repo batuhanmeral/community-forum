@@ -124,6 +124,8 @@ export const en = {
     loadOlderFailed: 'Could not load older messages.',
     sendFailed: 'Message could not be sent.',
     back: 'Back to conversations',
+    loadMoreConversations: 'Load more conversations',
+    loadMoreConversationsFailed: 'Could not load more conversations.',
   },
   post: {
     pendingApproval: 'Awaiting moderator approval. Only you and the moderators can see this post.',

@@ -53,6 +53,10 @@ function page(results: Message[], next: string | null) {
   return { count: results.length, next, previous: null, results };
 }
 
+function convs(results: Conversation[], next: string | null = null) {
+  return { count: results.length, next, previous: null, results };
+}
+
 function renderAt(path: string) {
   const store = configureStore({ reducer: { auth: authReducer, messaging: messagingReducer } });
   store.dispatch(
@@ -91,7 +95,7 @@ beforeAll(() => {
 describe('MessagesPage chat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.listConversations.mockResolvedValue([conversation]);
+    api.listConversations.mockResolvedValue(convs([conversation]));
     api.markConversationRead.mockResolvedValue();
   });
 
@@ -127,7 +131,7 @@ describe('MessagesPage chat', () => {
 describe('MessagesPage chat edge cases', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.listConversations.mockResolvedValue([conversation, otherConversation]);
+    api.listConversations.mockResolvedValue(convs([conversation, otherConversation]));
     api.markConversationRead.mockResolvedValue();
   });
 
@@ -168,7 +172,7 @@ describe('MessagesPage chat edge cases', () => {
 describe('MessagesPage polling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.listConversations.mockResolvedValue([conversation]);
+    api.listConversations.mockResolvedValue(convs([conversation]));
     api.markConversationRead.mockResolvedValue();
   });
 
@@ -282,7 +286,7 @@ function scrollUp(container: HTMLElement) {
 describe('MessagesPage scroll position', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.listConversations.mockResolvedValue([conversation]);
+    api.listConversations.mockResolvedValue(convs([conversation]));
     api.markConversationRead.mockResolvedValue();
   });
 
@@ -332,8 +336,8 @@ describe('MessagesPage conversation list', () => {
 
   it('refetches the list once when the routed conversation is not in it', async () => {
     api.listConversations
-      .mockResolvedValueOnce([conversation])
-      .mockResolvedValue([otherConversation, conversation]);
+      .mockResolvedValueOnce(convs([conversation]))
+      .mockResolvedValue(convs([otherConversation, conversation]));
     renderAt('/messages/2');
 
     expect(await screen.findByPlaceholderText(/message u\/carol/i)).toBeInTheDocument();
@@ -341,7 +345,7 @@ describe('MessagesPage conversation list', () => {
   });
 
   it('does not keep refetching when the routed conversation never appears', async () => {
-    api.listConversations.mockResolvedValue([conversation]);
+    api.listConversations.mockResolvedValue(convs([conversation]));
     renderAt('/messages/99');
 
     await screen.findByText('Select a conversation to start chatting.');
@@ -352,7 +356,7 @@ describe('MessagesPage conversation list', () => {
   });
 
   it('moves a conversation to the top of the list after sending in it', async () => {
-    api.listConversations.mockResolvedValue([conversation, otherConversation]);
+    api.listConversations.mockResolvedValue(convs([conversation, otherConversation]));
     api.sendMessage.mockResolvedValue(msg(7, 1, 2));
     renderAt('/messages/2');
 
@@ -373,8 +377,8 @@ describe('MessagesPage conversation list', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       api.listConversations
-        .mockResolvedValueOnce([conversation])
-        .mockResolvedValue([{ ...conversation, unread_count: 3 }]);
+        .mockResolvedValueOnce(convs([conversation]))
+        .mockResolvedValue(convs([{ ...conversation, unread_count: 3 }]));
       renderAt('/messages');
       await screen.findByText('u/bob');
 
@@ -382,6 +386,39 @@ describe('MessagesPage conversation list', () => {
         await vi.advanceTimersByTimeAsync(30_000);
       });
       expect(await screen.findByText('3')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('loads the next page of conversations on demand', async () => {
+    api.listConversations
+      .mockResolvedValueOnce(convs([conversation], 'p2'))
+      .mockResolvedValueOnce(convs([otherConversation]));
+    renderAt('/messages');
+    await userEvent.click(await screen.findByRole('button', { name: 'Load more conversations' }));
+    expect(await screen.findByText('u/carol')).toBeInTheDocument();
+    expect(api.listConversations).toHaveBeenLastCalledWith(2);
+    expect(screen.queryByRole('button', { name: 'Load more conversations' })).not.toBeInTheDocument();
+  });
+
+  it('keeps later-page conversations when the first page is polled', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      api.listConversations
+        .mockResolvedValueOnce(convs([conversation], 'p2'))
+        .mockResolvedValueOnce(convs([otherConversation]))
+        .mockResolvedValue(convs([{ ...conversation, unread_count: 2 }], 'p2'));
+      renderAt('/messages');
+      await userEvent.click(await screen.findByRole('button', { name: 'Load more conversations' }));
+      await screen.findByText('u/carol');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000);
+      });
+      expect(await screen.findByText('2')).toBeInTheDocument();
+      expect(screen.getByText('u/carol')).toBeInTheDocument();
+      expect(screen.getAllByText('u/bob')).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }

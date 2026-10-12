@@ -2,12 +2,12 @@ import { api } from './client';
 import type { Paginated } from '@/features/communities/types';
 import type { Conversation, Message } from '@/features/messaging/types';
 
-export async function listConversations(): Promise<Conversation[]> {
-  // Backend max page size; paging through the inbox is deferred to M3.
-  const res = await api.get<Conversation[] | Paginated<Conversation>>('/conversations/', {
-    params: { page_size: 100 },
+// Largest page the backend allows, so most inboxes arrive in one request.
+export async function listConversations(page = 1): Promise<Paginated<Conversation>> {
+  const res = await api.get<Paginated<Conversation>>('/conversations/', {
+    params: { page, page_size: 100 },
   });
-  return Array.isArray(res.data) ? res.data : res.data.results;
+  return res.data;
 }
 
 export async function startConversation(username: string): Promise<Conversation> {
