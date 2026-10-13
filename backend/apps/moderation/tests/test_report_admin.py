@@ -39,3 +39,15 @@ class TestReportAdmin:
         resp = admin_client.get(CHANGELIST, {"target_type": "post"})
         target_url = reverse("admin:posts_post_change", args=[reports["target"].pk])
         assert target_url in resp.content.decode()
+
+    def test_unknown_target_type_shows_a_dash(self, admin_client, reports):
+        owner = reports["target"].author
+        Report.objects.create(
+            reporter=owner,
+            content_type=ContentType.objects.get_for_model(ContentType),
+            object_id=1,
+            reason="r",
+        )
+        resp = admin_client.get(CHANGELIST)
+        assert resp.status_code == 200
+        assert '<td class="field-target_link">-</td>' in resp.content.decode()

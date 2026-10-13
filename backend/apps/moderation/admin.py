@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 
 from .models import Report
@@ -38,5 +38,8 @@ class ReportAdmin(admin.ModelAdmin):
     @admin.display(description="target")
     def target_link(self, obj: Report) -> str:
         ct = obj.content_type
-        url = reverse(f"admin:{ct.app_label}_{ct.model}_change", args=[obj.object_id])
+        try:
+            url = reverse(f"admin:{ct.app_label}_{ct.model}_change", args=[obj.object_id])
+        except NoReverseMatch:
+            return "-"
         return format_html('<a href="{}">open</a>', url)
