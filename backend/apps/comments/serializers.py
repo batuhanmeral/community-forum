@@ -93,11 +93,12 @@ class CommentSerializer(serializers.ModelSerializer):
             return value
         if value is None:
             return value
-        if value.deleted_at is not None:
-            raise serializers.ValidationError("You cannot reply to a deleted comment.")
         post = self.context.get("post")
         if post and value.post_id != post.id:
-            raise serializers.ValidationError("Parent comment belongs to a different post.")
+            # Same error as a missing id, so a parent on a hidden post cannot be probed.
+            self.fields["parent"].fail("does_not_exist", pk_value=value.pk)
+        if value.deleted_at is not None:
+            raise serializers.ValidationError("You cannot reply to a deleted comment.")
         return value
 
 

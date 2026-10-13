@@ -206,3 +206,34 @@ class TestHeldPostProbing:
         post = Post.objects.create(author=author, community=community, title="ok")
         api.force_authenticate(stranger)
         assert api.patch(post_url(post.pk), {"title": "x"}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+class TestReplyParentProbing:
+    @pytest.fixture
+    def visible(self, author, community):
+        return Post.objects.create(author=author, community=community, title="visible")
+
+    def _reply(self, api, post, parent):
+        return api.post(comments_url(post.pk), {"body": "hi", "parent": parent}, format="json")
+
+    @pytest.mark.parametrize("deleted", [False, True])
+    def test_parent_on_a_held_post_looks_like_a_missing_parent(
+        self, api, author, stranger, held, visible, deleted
+    ):
+        hidden = Comment.objects.create(
+            post=held, author=author, body="c", deleted_at=timezone.now() if deleted else None
+        )
+        api.force_authenticate(stranger)
+        hidden_resp = self._reply(api, visible, hidden.pk)
+        missing_resp = self._reply(api, visible, MISSING_ID)
+        assert hidden_resp.status_code == missing_resp.status_code == 400
+        # The message echoes the requested id, so compare with that id masked.
+        assert str(hidden_resp.data).replace(str(hidden.pk), "N") == str(missing_resp.data).replace(
+            str(MISSING_ID), "N"
+        )
+
+    def test_reply_to_a_comment_on_the_same_post_still_works(self, api, author, stranger, visible):
+        parent = Comment.objects.create(post=visible, author=author, body="c")
+        api.force_authenticate(stranger)
+        assert self._reply(api, visible, parent.pk).status_code == 201
