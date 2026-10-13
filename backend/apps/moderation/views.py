@@ -11,7 +11,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.communities.models import Community, Membership
-from apps.communities.services import can_assign_role, can_lift_ban, can_moderate_member
+from apps.communities.services import (
+    can_assign_role,
+    can_lift_ban,
+    can_moderate_member,
+    roles_below,
+)
 from apps.notifications.services import notify
 
 from .models import ModAction, Report
@@ -175,13 +180,18 @@ class CommunityBanView(_CommunityModView, APIView):
             raise PermissionDenied("You can only ban members ranked below you.")
         membership, _ = Membership.objects.get_or_create(user=target, community=community)
         # Conditional write: concurrent bans must not take the ban over or log twice.
-        banned = Membership.objects.filter(pk=membership.pk, is_banned=False).update(
+        # The role filter keeps a member promoted since the rank check from being demoted.
+        banned = Membership.objects.filter(
+            pk=membership.pk, is_banned=False, role__in=roles_below(request.user, community)
+        ).update(
             is_banned=True,
             role=Membership.Role.MEMBER,
             banned_by=request.user,
             banned_at=timezone.now(),
         )
         membership.refresh_from_db()
+        if not banned and not membership.is_banned:
+            raise PermissionDenied("You can only ban members ranked below you.")
         if banned:
             log_mod_action(
                 community, actor=request.user, action=ModAction.Action.USER_BAN, target=target

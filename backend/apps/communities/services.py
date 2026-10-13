@@ -80,3 +80,14 @@ def can_lift_ban(actor, membership: Membership, community: Community) -> bool:
         .first()
     ) or Membership.Role.MEMBER
     return _ROLE_RANK[actor_membership.role] >= _ROLE_RANK[issuer_role]
+
+
+def roles_below(actor, community: Community) -> tuple[str, ...]:
+    """Roles ranked strictly below the actor's own (all roles for the creator, none for non-mods)."""
+    actor_membership = active_membership(actor, community)
+    if actor_membership is None or actor_membership.role not in MOD_ROLES:
+        return ()
+    if actor.id == community.creator_id:
+        return tuple(_ROLE_RANK)
+    actor_rank = _ROLE_RANK[actor_membership.role]
+    return tuple(role for role, rank in _ROLE_RANK.items() if rank < actor_rank)

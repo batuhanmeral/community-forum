@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.communities.models import Community, Membership
+from apps.communities.services import roles_below
 from apps.moderation.models import ModAction
 from apps.moderation.views import CommunityBanView
 from apps.notifications.models import Notification
@@ -131,3 +132,25 @@ class TestBanAttribution:
         m = _membership(community, staff["mem"])
         assert (m.is_banned, m.banned_by) == (True, staff["adm"])
         assert ModAction.objects.filter(action=ModAction.Action.USER_UNBAN).count() == 1
+
+    def test_ban_does_not_demote_a_member_promoted_meanwhile(self, api, community, staff):
+        mem = staff["mem"]
+        # The stale permission check passes, then an admin promotes the target.
+        with patch("apps.moderation.views.can_moderate_member", return_value=True):
+            Membership.objects.filter(community=community, user=mem).update(
+                role=Membership.Role.MODERATOR
+            )
+            response = _ban(api, staff["mod"])
+        assert response.status_code == 403
+        m = _membership(community, mem)
+        assert (m.role, m.is_banned) == (Membership.Role.MODERATOR, False)
+        assert not ModAction.objects.filter(action=ModAction.Action.USER_BAN).exists()
+
+
+@pytest.mark.django_db
+class TestRolesBelow:
+    def test_ranks_strictly_below_the_actor(self, community, creator, staff):
+        assert roles_below(staff["mod"], community) == ("member",)
+        assert roles_below(staff["adm"], community) == ("member", "moderator")
+        assert roles_below(staff["mem"], community) == ()
+        assert roles_below(creator, community) == ("member", "moderator", "admin")
