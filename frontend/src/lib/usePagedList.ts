@@ -11,6 +11,8 @@ export function usePagedList<T extends { id: number }>(
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
   // Bumped on every reload and unmount so late responses are dropped.
   const version = useRef(0);
+  // Server page size, learned from a full first page.
+  const pageSize = useRef(0);
 
   const reload = useCallback(() => {
     version.current += 1;
@@ -22,6 +24,7 @@ export function usePagedList<T extends { id: number }>(
       .then((d) => {
         if (v !== version.current) return;
         setItems(d.results);
+        if (d.next) pageSize.current = d.results.length;
         setNextPage(d.next ? 2 : null);
       })
       .catch(() => {
@@ -51,14 +54,16 @@ export function usePagedList<T extends { id: number }>(
     if (nextPage === null) return;
     const v = version.current;
     setLoadMoreFailed(false);
+    // Rows removed locally also left the server, so the next unseen row sits at items.length.
+    const target = pageSize.current ? Math.floor(items.length / pageSize.current) + 1 : nextPage;
     try {
-      const d = await fetchPage(nextPage);
+      const d = await fetchPage(target);
       if (v !== version.current) return;
       setItems((prev) => {
         const seen = new Set(prev.map((i) => i.id));
         return [...prev, ...d.results.filter((i) => !seen.has(i.id))];
       });
-      setNextPage(d.next ? nextPage + 1 : null);
+      setNextPage(d.next ? target + 1 : null);
     } catch {
       if (v === version.current) setLoadMoreFailed(true);
     }

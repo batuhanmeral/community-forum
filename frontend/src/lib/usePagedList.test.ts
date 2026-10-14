@@ -43,4 +43,23 @@ describe('usePagedList', () => {
     await waitFor(() => expect(result.current.loadFailed).toBe(true));
     expect(result.current.items).toEqual([]);
   });
+
+  it('does not skip rows when loading more after removing one', async () => {
+    let server = [1, 2, 3, 4, 5, 6, 7];
+    const size = 3;
+    const fetchPage = vi.fn(async (p: number) => {
+      const rows = server.slice((p - 1) * size, p * size);
+      return page(rows, p * size < server.length ? 'more' : null);
+    });
+    const { result } = renderHook(() => usePagedList<Row>(fetchPage));
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
+
+    server = server.filter((id) => id !== 2);
+    act(() => result.current.remove(2));
+    await act(() => result.current.loadMore());
+
+    expect(fetchPage).toHaveBeenLastCalledWith(1);
+    expect(result.current.items.map((r) => r.id)).toEqual([1, 3, 4]);
+    expect(result.current.loadMoreFailed).toBe(false);
+  });
 });
