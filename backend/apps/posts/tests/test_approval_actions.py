@@ -95,7 +95,9 @@ class TestApprovalActions:
         stale = Post.objects.get(pk=post.pk)
         api.delete(approve_url(post.pk))
         with patch.object(PostApprovalView, "_get", return_value=stale):
-            assert api.post(approve_url(post.pk)).status_code == 200
+            response = api.post(approve_url(post.pk))
+        assert response.status_code == 200
+        assert response.data == {"is_approved": False, "deleted": True}
         fresh = Post.objects.get(pk=post.pk)
         assert fresh.is_approved is False
         assert fresh.deleted_at is not None

@@ -400,7 +400,12 @@ class PostApprovalView(APIView):
 
             # Author wrote the mention, so they are the actor, not the approver.
             notify_mentions(post.body, actor=post.author, target=post)
-        return Response({"is_approved": True})
+            return Response({"is_approved": True})
+        # Lost the race: report what the row really is now.
+        state = Post.objects.values("is_approved", "deleted_at").get(pk=post.pk)
+        return Response(
+            {"is_approved": state["is_approved"], "deleted": state["deleted_at"] is not None}
+        )
 
     def delete(self, request, pk):
         post = self._get(pk)
