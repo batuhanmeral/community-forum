@@ -56,4 +56,11 @@ describe('BannedListCard', () => {
     expect(await screen.findByText(/ranked at least as high/)).toBeInTheDocument();
     expect(screen.getByText('u/spammer')).toBeInTheDocument();
   });
+
+  it('shows a load error instead of the empty state', async () => {
+    api.listBans.mockRejectedValue(new Error('down'));
+    renderCard();
+    expect(await screen.findByText(/Could not load this list/)).toBeInTheDocument();
+    expect(screen.queryByText('No banned members.')).not.toBeInTheDocument();
+  });
 });

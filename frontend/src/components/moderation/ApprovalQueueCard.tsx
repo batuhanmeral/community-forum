@@ -10,7 +10,7 @@ import { timeAgo } from '@/lib/time';
 export function ApprovalQueueCard({ slug }: { slug: string }) {
   const { t } = useTranslation();
   const fetchPage = useCallback((page: number) => listApprovalQueue(slug, page), [slug]);
-  const { items, loading, nextPage, loadMore, loadMoreFailed, remove } = usePagedList(fetchPage);
+  const { items, loading, loadFailed, nextPage, loadMore, loadMoreFailed, remove } = usePagedList(fetchPage);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +36,8 @@ export function ApprovalQueueCard({ slug }: { slug: string }) {
       <div className="mt-3 flex flex-col gap-2">
         {loading ? (
           <p className="text-sm text-[var(--color-text-muted)]">{t('mod.loading')}</p>
+        ) : loadFailed ? (
+          <p className="text-sm text-[var(--color-danger)]">{t('mod.loadFailed')}</p>
         ) : items.length === 0 ? (
           <p className="text-sm text-[var(--color-text-muted)]">{t('mod.approvalEmpty')}</p>
         ) : (

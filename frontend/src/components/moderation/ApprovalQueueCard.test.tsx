@@ -76,4 +76,11 @@ describe('ApprovalQueueCard', () => {
     renderCard();
     expect(await screen.findByText('No posts awaiting approval.')).toBeInTheDocument();
   });
+
+  it('shows a load error instead of the empty state', async () => {
+    api.listApprovalQueue.mockRejectedValue(new Error('down'));
+    renderCard();
+    expect(await screen.findByText(/Could not load this list/)).toBeInTheDocument();
+    expect(screen.queryByText('No posts awaiting approval.')).not.toBeInTheDocument();
+  });
 });

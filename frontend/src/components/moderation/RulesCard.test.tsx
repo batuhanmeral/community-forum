@@ -75,4 +75,11 @@ describe('RulesCard', () => {
     expect(await screen.findByText('Could not save the rule.')).toBeInTheDocument();
     expect(screen.getByLabelText('Rule')).toHaveValue('Oops');
   });
+
+  it('shows a load error instead of the empty state', async () => {
+    api.listRules.mockRejectedValue(new Error('down'));
+    render(<RulesCard slug="py" />);
+    expect(await screen.findByText(/Could not load this list/)).toBeInTheDocument();
+    expect(screen.queryByText('No rules yet.')).not.toBeInTheDocument();
+  });
 });

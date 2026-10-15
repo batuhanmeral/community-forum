@@ -154,6 +154,7 @@ export const en = {
     loading: 'Loading…',
     loadMore: 'Load more',
     loadMoreFailed: 'Could not load more.',
+    loadFailed: 'Could not load this list. Try again later.',
     actionFailed: 'Action failed. Try again.',
     reportsTitle: 'Report queue',
     reportsEmpty: 'No reports with this status.',

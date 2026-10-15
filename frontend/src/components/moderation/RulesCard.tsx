@@ -18,6 +18,7 @@ export function RulesCard({ slug }: { slug: string }) {
   const { t } = useTranslation();
   const [rules, setRules] = useState<CommunityRule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<RulePayload>(EMPTY_RULE);
   const [busy, setBusy] = useState(false);
@@ -27,10 +28,14 @@ export function RulesCard({ slug }: { slug: string }) {
     let cancelled = false;
     listRules(slug)
       .then((r) => {
-        if (!cancelled) setRules(sortRules(r));
+        if (cancelled) return;
+        setRules(sortRules(r));
+        setLoadFailed(false);
       })
       .catch(() => {
-        if (!cancelled) setRules([]);
+        if (cancelled) return;
+        setRules([]);
+        setLoadFailed(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -91,6 +96,8 @@ export function RulesCard({ slug }: { slug: string }) {
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('mod.rulesHint')}</p>
       {loading ? (
         <p className="mt-3 text-sm text-[var(--color-text-muted)]">{t('mod.loading')}</p>
+      ) : loadFailed ? (
+        <p className="mt-3 text-sm text-[var(--color-danger)]">{t('mod.loadFailed')}</p>
       ) : rules.length === 0 ? (
         <p className="mt-3 text-sm text-[var(--color-text-muted)]">{t('mod.rulesEmpty')}</p>
       ) : (

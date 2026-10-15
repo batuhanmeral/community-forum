@@ -23,7 +23,7 @@ export function ReportQueueCard({ slug }: { slug: string }) {
     (page: number) => listModReports(slug, status, page),
     [slug, status],
   );
-  const { items, loading, nextPage, loadMore, loadMoreFailed, remove } = usePagedList(fetchPage);
+  const { items, loading, loadFailed, nextPage, loadMore, loadMoreFailed, remove } = usePagedList(fetchPage);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +68,8 @@ export function ReportQueueCard({ slug }: { slug: string }) {
       <div className="mt-4 flex flex-col gap-2.5">
         {loading ? (
           <p className="text-sm text-[var(--color-text-muted)]">{t('mod.loading')}</p>
+        ) : loadFailed ? (
+          <p className="text-sm text-[var(--color-danger)]">{t('mod.loadFailed')}</p>
         ) : items.length === 0 ? (
           <p className="text-sm text-[var(--color-text-muted)]">{t('mod.reportsEmpty')}</p>
         ) : (
@@ -111,12 +113,17 @@ function ReportRow({ report: r, busy, onAct }: ReportRowProps) {
           <span>{timeAgo(r.created_at)}</span>
         </div>
         {preview ? (
-          <p className="truncate text-sm">
-            <Link to={preview.link} className="text-[var(--color-accent)] hover:underline">
+          <p className="flex min-w-0 items-baseline gap-1 text-sm">
+            <Link
+              to={preview.link}
+              className="truncate text-[var(--color-accent)] hover:underline"
+            >
               {preview.text}
             </Link>
             {preview.is_deleted && (
-              <span className="ml-1 text-[var(--color-text-muted)]">({t('mod.targetDeleted')})</span>
+              <span className="shrink-0 text-[var(--color-text-muted)]">
+                ({t('mod.targetDeleted')})
+              </span>
             )}
           </p>
         ) : (

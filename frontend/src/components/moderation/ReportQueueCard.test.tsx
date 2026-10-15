@@ -84,4 +84,26 @@ describe('ReportQueueCard', () => {
     await waitFor(() => expect(screen.queryByText('comment 1')).not.toBeInTheDocument());
     expect(api.resolveReport).toHaveBeenCalledWith('py', 1);
   });
+
+  it('shows a load error instead of the empty state', async () => {
+    api.listModReports.mockRejectedValue(new Error('down'));
+    renderCard();
+    expect(await screen.findByText(/Could not load this list/)).toBeInTheDocument();
+    expect(screen.queryByText('No reports with this status.')).not.toBeInTheDocument();
+  });
+
+  it('keeps the deleted marker outside the truncated link', async () => {
+    api.listModReports.mockResolvedValue(
+      page([
+        report(1, {
+          target_preview: { text: 'x'.repeat(300), link: '/posts/1', is_deleted: true },
+        }),
+      ]),
+    );
+    renderCard();
+    const link = await screen.findByRole('link');
+    const marker = screen.getByText('(deleted)');
+    expect(link.contains(marker)).toBe(false);
+    expect(marker.closest('.truncate')).toBeNull();
+  });
 });
