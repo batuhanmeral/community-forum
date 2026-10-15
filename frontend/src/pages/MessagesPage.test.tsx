@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer, { setUser } from '@/features/auth/authSlice';
-import messagingReducer from '@/features/messaging/messagingSlice';
+import messagingReducer, { setDMUnreadCount } from '@/features/messaging/messagingSlice';
 import type { Conversation, Message } from '@/features/messaging/types';
 import { MessagesPage } from './MessagesPage';
 import * as messagingApi from '@/api/messaging';
@@ -57,8 +57,9 @@ function convs(results: Conversation[], next: string | null = null) {
   return { count: results.length, next, previous: null, results };
 }
 
-function renderAt(path: string) {
+function renderAt(path: string, initialUnread = 0) {
   const store = configureStore({ reducer: { auth: authReducer, messaging: messagingReducer } });
+  store.dispatch(setDMUnreadCount(initialUnread));
   store.dispatch(
     setUser({
       id: 1,
@@ -72,7 +73,7 @@ function renderAt(path: string) {
       comment_karma: 0,
     }),
   );
-  return render(
+  const result = render(
     <Provider store={store}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
@@ -82,6 +83,7 @@ function renderAt(path: string) {
       </MemoryRouter>
     </Provider>,
   );
+  return { ...result, store };
 }
 
 function isBefore(a: HTMLElement, b: HTMLElement) {
@@ -389,6 +391,13 @@ describe('MessagesPage conversation list', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('keeps the unread badge when the first conversation load fails', async () => {
+    api.listConversations.mockRejectedValueOnce(new Error('down'));
+    const { store } = renderAt('/messages', 5);
+    expect(await screen.findByText('No conversations yet.')).toBeInTheDocument();
+    expect(store.getState().messaging.dmUnreadCount).toBe(5);
   });
 
   it('loads the next page of conversations on demand', async () => {

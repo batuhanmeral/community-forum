@@ -39,6 +39,7 @@ export function MessagesPage() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [convsLoading, setConvsLoading] = useState(true);
+  const [convsLoaded, setConvsLoaded] = useState(false);
   const [nextConvPage, setNextConvPage] = useState<number | null>(null);
   const [loadingMoreConvs, setLoadingMoreConvs] = useState(false);
   const [loadMoreConvsFailed, setLoadMoreConvsFailed] = useState(false);
@@ -47,9 +48,10 @@ export function MessagesPage() {
 
   // Counted from everything loaded, so conversations fetched with "load more" count too.
   useEffect(() => {
-    if (convsLoading) return;
+    // A failed first load must not reset the badge to zero.
+    if (!convsLoaded) return;
     dispatch(setDMUnreadCount(conversations.reduce((acc, c) => acc + c.unread_count, 0)));
-  }, [conversations, convsLoading, dispatch]);
+  }, [conversations, convsLoaded, dispatch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +60,7 @@ export function MessagesPage() {
         if (cancelled) return;
         setConversations(d.results);
         setNextConvPage(d.next ? 2 : null);
+        setConvsLoaded(true);
       })
       .catch(() => undefined)
       .finally(() => {
