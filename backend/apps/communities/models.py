@@ -43,6 +43,15 @@ class Community(models.Model):
                 return kw
         return None
 
+    def banned_keyword_added(self, before: tuple[str, ...], after: tuple[str, ...]) -> str | None:
+        """First banned keyword present in `after` but not in `before`."""
+        old = " ".join(t.lower() for t in before if t)
+        new = " ".join(t.lower() for t in after if t)
+        for kw in self.banned_keyword_list():
+            if kw in new and kw not in old:
+                return kw
+        return None
+
 
 class Membership(models.Model):
     class Role(models.TextChoices):
@@ -70,6 +79,15 @@ class Membership(models.Model):
         max_length=16, choices=NotifyLevel.choices, default=NotifyLevel.ALL
     )
     is_banned = models.BooleanField(default=False)
+    # Who issued the ban: lifting it needs at least their rank (null = issued before this was recorded).
+    banned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    banned_at = models.DateTimeField(null=True, blank=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

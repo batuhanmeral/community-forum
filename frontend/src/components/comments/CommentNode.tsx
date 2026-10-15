@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { Comment } from '@/features/comments/types';
-import { createComment, deleteComment, updateComment } from '@/api/comments';
+import { createComment, deleteComment, listCommentRevisions, updateComment } from '@/api/comments';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { toggleSave } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
 import { ReportModal } from '@/components/moderation/ReportModal';
+import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
 import { CommentForm } from './CommentForm';
 import type { CommentWithChildren } from './tree';
 import { timeAgo } from '@/lib/time';
@@ -16,12 +18,21 @@ interface CommentNodeProps {
   node: CommentWithChildren;
   postId: number;
   depth: number;
+  isModerator: boolean;
   onReply: (parentId: number, created: Comment) => void;
   onUpdate: (updated: Comment) => void;
   onDelete: (id: number) => void;
 }
 
-export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }: CommentNodeProps) {
+export function CommentNode({
+  node,
+  postId,
+  depth,
+  isModerator,
+  onReply,
+  onUpdate,
+  onDelete,
+}: CommentNodeProps) {
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [replying, setReplying] = useState(false);
@@ -32,6 +43,13 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
   const isAuthor = currentUserId !== undefined && node.author === currentUserId;
   const canModify = isAuthor && !node.is_deleted;
   const canReport = isAuthed && !isAuthor && !node.is_deleted;
+  const { t } = useTranslation();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const loadRevisions = useCallback(
+    (page: number) => listCommentRevisions(node.id, page),
+    [node.id],
+  );
+  const canViewHistory = !node.is_deleted && (isAuthor || isModerator);
 
   async function handleEdit(body: string) {
     const updated = await updateComment(node.id, body);
@@ -69,7 +87,14 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(node.created_at)}</span>
-          {node.edited_at && <span className="italic">(edited)</span>}
+          {node.edited_at &&
+            (canViewHistory ? (
+              <button type="button" onClick={() => setHistoryOpen(true)} className="italic hover:underline">
+                {t('post.edited')}
+              </button>
+            ) : (
+              <span className="italic">{t('post.edited')}</span>
+            ))}
         </div>
 
         {!collapsed && (
@@ -162,6 +187,7 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
                     node={child}
                     postId={postId}
                     depth={depth + 1}
+                    isModerator={isModerator}
                     onReply={onReply}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
@@ -190,6 +216,7 @@ export function CommentNode({ node, postId, depth, onReply, onUpdate, onDelete }
         objectId={node.id}
         label="comment"
       />
+      <EditHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} load={loadRevisions} />
     </div>
   );
 }

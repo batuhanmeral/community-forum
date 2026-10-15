@@ -15,7 +15,7 @@ from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -115,6 +115,22 @@ def _apply_sort(qs, sort: str):
     return qs.order_by("-is_pinned", "-created_at")
 
 
+def _visible_post(user, pk) -> Post:
+    """404 for a held post the user may not see, so mod endpoints can't confirm it exists."""
+    post = get_object_or_404(Post, pk=pk)
+    if not post.is_approved and not can_see_unapproved(user, post):
+        # Same 404 body a missing row gets, so the response can't confirm existence.
+        get_object_or_404(Post.objects.none(), pk=pk)
+    return post
+
+
+def _keyword_added_by_edit(post: Post, new_title: str, new_body: str) -> str | None:
+    # Only newly added keywords count: a post a mod approved with a keyword must survive typo fixes.
+    if not post.is_approved or is_moderator(post.author, post.community):
+        return None
+    return post.community.banned_keyword_added((post.title, post.body), (new_title, new_body))
+
+
 class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCommunityMember)
@@ -205,9 +221,12 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = _annotate_score(_base_post_qs())
 
     def get_object(self):
-        post = super().get_object()
+        post = get_object_or_404(self.filter_queryset(self.get_queryset()), pk=self.kwargs["pk"])
         if not post.is_approved and not can_see_unapproved(self.request.user, post):
-            raise NotFound()
+            # Same 404 body a missing row gets, so the response can't confirm existence.
+            get_object_or_404(Post.objects.none(), pk=self.kwargs["pk"])
+        # Permissions only after the visibility check, or a 403 would confirm a hidden post exists.
+        self.check_object_permissions(self.request, post)
         return post
 
     def perform_destroy(self, instance):
@@ -233,10 +252,18 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
         if instance.deleted_at is not None:
             raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
+        keyword = _keyword_added_by_edit(
+            instance,
+            serializer.validated_data.get("title", old_title),
+            serializer.validated_data.get("body", old_body),
+        )
+        # One write carries the hold, so no reader or racing edit ever sees the keyword approved.
+        hold = {"is_approved": False, "is_pinned": False} if keyword else {}
         post = serializer.save(
             # An NSFW community's posts can't be un-flagged by their author.
             is_nsfw=serializer.validated_data.get("is_nsfw", instance.is_nsfw)
-            or instance.community.is_nsfw
+            or instance.community.is_nsfw,
+            **hold,
         )
         if (post.title, post.body) != (old_title, old_body):
             PostRevision.objects.create(
@@ -244,6 +271,13 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
             )
             post.edited_at = timezone.now()
             post.save(update_fields=["edited_at"])
+            if keyword:
+                log_mod_action(
+                    post.community,
+                    action=ModAction.Action.AUTOMOD_HOLD,
+                    target=post,
+                    detail=f"matched keyword on edit: {keyword}",
+                )
             if post.is_approved:
                 from apps.comments.views import notify_mentions
 
@@ -255,7 +289,10 @@ class PostRevisionListView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        post = get_object_or_404(Post, pk=self.kwargs["pk"])
+        post = _visible_post(self.request.user, self.kwargs["pk"])
+        if post.deleted_at is not None:
+            # Deleted content is masked everywhere; its earlier versions must not stay readable.
+            get_object_or_404(Post.objects.none(), pk=self.kwargs["pk"])
         if post.author_id != self.request.user.id and not is_moderator(
             self.request.user, post.community
         ):
@@ -269,7 +306,7 @@ class PostStickyView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def _get_post(self, pk):
-        return get_object_or_404(Post, pk=pk)
+        return _visible_post(self.request.user, pk)
 
     def _require_mod(self, request, post):
         if not is_moderator(request.user, post.community):
@@ -326,7 +363,9 @@ class ApprovalQueueView(generics.ListAPIView):
         if not is_moderator(self.request.user, community):
             raise PermissionDenied("Moderator role required.")
         return _annotate_score(
-            _base_post_qs(Post.objects.filter(community=community, is_approved=False))
+            _base_post_qs(
+                Post.objects.filter(community=community, is_approved=False, deleted_at__isnull=True)
+            )
         ).order_by("created_at")
 
 
@@ -336,7 +375,7 @@ class PostApprovalView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def _get(self, pk):
-        return get_object_or_404(Post, pk=pk)
+        return _visible_post(self.request.user, pk)
 
     def _require_mod(self, request, post):
         if not is_moderator(request.user, post.community):
@@ -345,9 +384,11 @@ class PostApprovalView(APIView):
     def post(self, request, pk):
         post = self._get(pk)
         self._require_mod(request, post)
-        if not post.is_approved:
-            post.is_approved = True
-            post.save(update_fields=["is_approved"])
+        # Conditional UPDATE: of two racing approvals only one changes the row and reports it.
+        approved = Post.objects.filter(
+            pk=post.pk, is_approved=False, deleted_at__isnull=True
+        ).update(is_approved=True)
+        if approved:
             log_mod_action(
                 post.community,
                 actor=request.user,
@@ -355,21 +396,24 @@ class PostApprovalView(APIView):
                 target=post,
             )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
-            if post.deleted_at is None:
-                from apps.comments.views import notify_mentions
+            from apps.comments.views import notify_mentions
 
-                # Author wrote the mention, so they are the actor, not the approver.
-                notify_mentions(post.body, actor=post.author, target=post)
-        return Response({"is_approved": True})
+            # Author wrote the mention, so they are the actor, not the approver.
+            notify_mentions(post.body, actor=post.author, target=post)
+            return Response({"is_approved": True})
+        # Lost the race: report what the row really is now.
+        state = Post.objects.values("is_approved", "deleted_at").get(pk=post.pk)
+        return Response(
+            {"is_approved": state["is_approved"], "deleted": state["deleted_at"] is not None}
+        )
 
     def delete(self, request, pk):
         post = self._get(pk)
         self._require_mod(request, post)
-        if post.deleted_at is None:
-            post.deleted_at = timezone.now()
-            post.deleted_by = request.user
-            post.is_pinned = False
-            post.save(update_fields=["deleted_at", "deleted_by", "is_pinned"])
+        rejected = Post.objects.filter(pk=post.pk, deleted_at__isnull=True).update(
+            deleted_at=timezone.now(), deleted_by=request.user, is_pinned=False
+        )
+        if rejected:
             log_mod_action(
                 post.community,
                 actor=request.user,

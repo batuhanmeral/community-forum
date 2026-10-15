@@ -14,6 +14,7 @@ vi.mock('@/api/comments', () => ({
   createComment: vi.fn(),
   updateComment: vi.fn(),
   deleteComment: vi.fn(),
+  listCommentRevisions: vi.fn(),
 }));
 
 const listComments = vi.mocked(commentsApi.listComments);
@@ -37,12 +38,12 @@ function comment(id: number, parent: number | null = null): Comment {
   };
 }
 
-function renderSection(path = '/posts/1') {
+function renderSection(path = '/posts/1', isModerator = false) {
   const store = configureStore({ reducer: { auth: authReducer } });
   return render(
     <Provider store={store}>
       <MemoryRouter initialEntries={[path]}>
-        <CommentSection postId={1} />
+        <CommentSection postId={1} isModerator={isModerator} />
       </MemoryRouter>
     </Provider>,
   );
@@ -125,5 +126,36 @@ describe('CommentSection', () => {
     await screen.findByText('body 5');
     await waitFor(() => expect(screen.queryByText('Loading comments…')).not.toBeInTheDocument());
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a moderator open the history of an edited comment', async () => {
+    const edited = { ...comment(1), edited_at: '2026-10-02T00:00:00Z' };
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [edited] });
+    vi.mocked(commentsApi.listCommentRevisions).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    renderSection('/posts/1', true);
+    await userEvent.click(await screen.findByRole('button', { name: '(edited)' }));
+    expect(await screen.findByText('Edit history')).toBeInTheDocument();
+    expect(commentsApi.listCommentRevisions).toHaveBeenCalledWith(1, 1);
+  });
+
+  it('shows a plain marker to readers who are neither author nor moderator', async () => {
+    const edited = { ...comment(1), edited_at: '2026-10-02T00:00:00Z' };
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [edited] });
+    renderSection();
+    expect(await screen.findByText('(edited)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
+  });
+
+  it('hides the history button on a deleted comment even for moderators', async () => {
+    const deleted = { ...comment(1), is_deleted: true, edited_at: '2026-10-02T00:00:00Z' };
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [deleted] });
+    renderSection('/posts/1', true);
+    expect(await screen.findByText('(edited)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
   });
 });

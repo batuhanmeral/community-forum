@@ -16,3 +16,11 @@ export interface Comment {
 }
 
 export type CommentSort = 'best' | 'top' | 'new' | 'old' | 'controversial';
+
+export interface CommentRevision {
+  id: number;
+  body: string;
+  edited_at: string;
+  edited_by: number | null;
+  edited_by_username: string | null;
+}

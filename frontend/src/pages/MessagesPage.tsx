@@ -10,6 +10,7 @@ import {
   startConversation,
 } from '@/api/messaging';
 import type { Conversation, Message } from '@/features/messaging/types';
+import { appendPage, mergeFirstPage } from '@/features/messaging/conversations';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setDMUnreadCount } from '@/features/messaging/messagingSlice';
 import { Avatar } from '@/components/ui/Avatar';
@@ -32,27 +33,34 @@ function byTimeThenId(a: Message, b: Message) {
 export function MessagesPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [convsLoading, setConvsLoading] = useState(true);
+  const [convsLoaded, setConvsLoaded] = useState(false);
+  const [nextConvPage, setNextConvPage] = useState<number | null>(null);
+  const [loadingMoreConvs, setLoadingMoreConvs] = useState(false);
+  const [loadMoreConvsFailed, setLoadMoreConvsFailed] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const refetchedForId = useRef<string | null>(null);
 
-  const applyConversations = useCallback(
-    (d: Conversation[]) => {
-      setConversations(d);
-      dispatch(setDMUnreadCount(d.reduce((acc, c) => acc + c.unread_count, 0)));
-    },
-    [dispatch],
-  );
+  // Counted from everything loaded, so conversations fetched with "load more" count too.
+  useEffect(() => {
+    // A failed first load must not reset the badge to zero.
+    if (!convsLoaded) return;
+    dispatch(setDMUnreadCount(conversations.reduce((acc, c) => acc + c.unread_count, 0)));
+  }, [conversations, convsLoaded, dispatch]);
 
   useEffect(() => {
     let cancelled = false;
-    listConversations()
+    listConversations(1)
       .then((d) => {
-        if (!cancelled) applyConversations(d);
+        if (cancelled) return;
+        setConversations(d.results);
+        setNextConvPage(d.next ? 2 : null);
+        setConvsLoaded(true);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -61,11 +69,29 @@ export function MessagesPage() {
     return () => {
       cancelled = true;
     };
-  }, [applyConversations]);
+  }, []);
 
   const refreshConversations = useCallback(() => {
-    listConversations().then(applyConversations).catch(() => undefined);
-  }, [applyConversations]);
+    // Only page 1 is polled; rows loaded from later pages stay below it.
+    listConversations(1)
+      .then((d) => setConversations((prev) => mergeFirstPage(d.results, prev)))
+      .catch(() => undefined);
+  }, []);
+
+  async function loadMoreConversations() {
+    if (nextConvPage === null || loadingMoreConvs) return;
+    setLoadingMoreConvs(true);
+    setLoadMoreConvsFailed(false);
+    try {
+      const d = await listConversations(nextConvPage);
+      setConversations((prev) => appendPage(prev, d.results));
+      setNextConvPage(d.next ? nextConvPage + 1 : null);
+    } catch {
+      setLoadMoreConvsFailed(true);
+    } finally {
+      setLoadingMoreConvs(false);
+    }
+  }
 
   // Keeps unread counts and previews of the other conversations current.
   usePolling(refreshConversations, CONVERSATIONS_POLL_MS, !convsLoading);
@@ -82,19 +108,11 @@ export function MessagesPage() {
     refreshConversations();
   }, [convsLoading, id, selected, refreshConversations]);
 
-  function handleConvChange(updater: (prev: Conversation[]) => Conversation[]) {
-    setConversations((prev) => {
-      const next = updater(prev);
-      dispatch(setDMUnreadCount(next.reduce((acc, c) => acc + c.unread_count, 0)));
-      return next;
-    });
-  }
-
   async function handleNew(username: string): Promise<string | null> {
     try {
       const conv = await startConversation(username);
       // Avoid duplicate if already in list
-      handleConvChange((prev) => (prev.some((c) => c.id === conv.id) ? prev : [conv, ...prev]));
+      setConversations((prev) => (prev.some((c) => c.id === conv.id) ? prev : [conv, ...prev]));
       setNewOpen(false);
       navigate(`/messages/${conv.id}`);
       return null;
@@ -135,6 +153,18 @@ export function MessagesPage() {
               />
             ))
           )}
+          {nextConvPage !== null && (
+            <div className="px-4 py-3">
+              <Button variant="secondary" size="sm" loading={loadingMoreConvs} onClick={loadMoreConversations}>
+                {t('messages.loadMoreConversations')}
+              </Button>
+              {loadMoreConvsFailed && (
+                <p className="mt-2 text-[12.5px] text-[var(--color-danger)]">
+                  {t('messages.loadMoreConversationsFailed')}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </aside>
 
@@ -147,14 +177,14 @@ export function MessagesPage() {
             currentUserId={currentUserId}
             onMessageSent={(msg) => {
               // The list is ordered by latest activity, so the conversation moves to the top.
-              handleConvChange((prev) => {
+              setConversations((prev) => {
                 const sentIn = prev.find((c) => c.id === selected.id);
                 if (!sentIn) return prev;
                 return [{ ...sentIn, last_message: msg }, ...prev.filter((c) => c !== sentIn)];
               });
             }}
             onRead={() => {
-              handleConvChange((prev) =>
+              setConversations((prev) =>
                 prev.map((c) => (c.id === selected.id ? { ...c, unread_count: 0 } : c)),
               );
             }}

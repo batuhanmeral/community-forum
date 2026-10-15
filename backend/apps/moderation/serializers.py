@@ -1,12 +1,17 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
+from apps.comments.models import Comment
+from apps.comments.serializers import _mask_body as _mask_comment_body
 from apps.communities.models import Membership
+from apps.posts.models import Post
+from apps.posts.services import can_see_unapproved
 
 from .models import ModAction, Report
 
 ALLOWED_TARGETS = {"post", "comment", "user"}
 _APP_FOR = {"post": "posts", "comment": "comments", "user": "users"}
+PREVIEW_CHARS = 140
 
 
 class ReportCreateSerializer(serializers.Serializer):
@@ -29,24 +34,32 @@ class ReportCreateSerializer(serializers.Serializer):
         except ContentType.DoesNotExist as exc:
             raise serializers.ValidationError({"content_type": "Unknown content type."}) from exc
         model = ct.model_class()
-        if not model.objects.filter(pk=attrs["object_id"]).exists():
+        target = model.objects.filter(pk=attrs["object_id"]).first()
+        # A held post (or a comment on one) must look exactly like a missing target.
+        if target is None or not self._is_visible(target):
             raise serializers.ValidationError({"object_id": "Target object not found."})
         attrs["_content_type"] = ct
         return attrs
 
+    def _is_visible(self, target) -> bool:
+        post = target if isinstance(target, Post) else getattr(target, "post", None)
+        if post is None or post.is_approved:
+            return True
+        return can_see_unapproved(self.context["request"].user, post)
+
 
 class ReportSerializer(serializers.ModelSerializer):
     target_type = serializers.SerializerMethodField()
-    reporter_username = serializers.CharField(source="reporter.username", read_only=True)
+    target_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Report
+        # Reporter identity stays out of the API (D5); staff see it in Django admin.
         fields = (
             "id",
-            "reporter",
-            "reporter_username",
             "target_type",
             "object_id",
+            "target_preview",
             "reason",
             "status",
             "created_at",
@@ -55,6 +68,22 @@ class ReportSerializer(serializers.ModelSerializer):
 
     def get_target_type(self, obj: Report) -> str:
         return obj.content_type.model
+
+    def get_target_preview(self, obj: Report) -> dict | None:
+        target = obj.target
+        if isinstance(target, Post):
+            return {
+                "text": target.title,
+                "link": f"/posts/{target.pk}",
+                "is_deleted": target.deleted_at is not None,
+            }
+        if isinstance(target, Comment):
+            return {
+                "text": _mask_comment_body(target)[:PREVIEW_CHARS],
+                "link": f"/posts/{target.post_id}#comment-{target.pk}",
+                "is_deleted": target.deleted_at is not None,
+            }
+        return None
 
 
 class ModActionSerializer(serializers.ModelSerializer):
@@ -84,3 +113,16 @@ class MembershipRoleSerializer(serializers.ModelSerializer):
         model = Membership
         fields = ("id", "user", "community", "role", "is_banned", "joined_at")
         read_only_fields = ("id", "user", "community", "joined_at")
+
+
+class BannedMemberSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    avatar = serializers.ImageField(source="user.avatar", read_only=True)
+    banned_by_username = serializers.CharField(
+        source="banned_by.username", read_only=True, default=None
+    )
+
+    class Meta:
+        model = Membership
+        fields = ("id", "username", "avatar", "banned_by_username", "banned_at", "joined_at")
+        read_only_fields = fields

@@ -76,7 +76,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
     if (status !== 'authenticated') return;
     const fetchCounts = () => {
       listConversations()
-        .then((convs) => dispatch(setDMUnreadCount(convs.reduce((acc, c) => acc + c.unread_count, 0))))
+        .then((d) => dispatch(setDMUnreadCount(d.results.reduce((acc, c) => acc + c.unread_count, 0))))
         .catch(() => undefined);
       listNotifications({ unread: true })
         .then((d) => dispatch(setUnreadCount(d.count)))

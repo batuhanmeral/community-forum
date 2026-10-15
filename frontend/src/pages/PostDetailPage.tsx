@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { deletePost, getPost, setPostSticky, updatePost } from '@/api/posts';
+import { useTranslation } from 'react-i18next';
+import { deletePost, getPost, listPostRevisions, setPostSticky, updatePost } from '@/api/posts';
 import { getCommunity } from '@/api/communities';
 import type { Post } from '@/features/posts/types';
 import type { CommunityRole } from '@/features/communities/types';
@@ -14,12 +15,14 @@ import { CommentSection } from '@/components/comments/CommentSection';
 import { PollCard } from '@/components/posts/PollCard';
 import { SaveButton } from '@/components/saves/SaveButton';
 import { ReportModal } from '@/components/moderation/ReportModal';
+import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
 export function PostDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
@@ -33,6 +36,8 @@ export function PostDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [stickyBusy, setStickyBusy] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const loadRevisions = useCallback((page: number) => listPostRevisions(Number(id), page), [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -101,6 +106,14 @@ export function PostDetailPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <Card>
+        {!post.is_approved && !post.is_deleted && (
+          <p
+            role="status"
+            className="mb-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text-soft)]"
+          >
+            {t('post.pendingApproval')}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-text-muted)]">
           <Link to={`/c/${post.community}`} className="font-semibold text-[var(--color-text)] hover:underline">
             c/{post.community}
@@ -115,7 +128,14 @@ export function PostDetailPage() {
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(post.created_at)}</span>
-          {post.edited_at && <span className="italic">(edited)</span>}
+          {post.edited_at &&
+            (!post.is_deleted && (isAuthor || isMod) ? (
+              <button type="button" onClick={() => setHistoryOpen(true)} className="italic hover:underline">
+                {t('post.edited')}
+              </button>
+            ) : (
+              <span className="italic">{t('post.edited')}</span>
+            ))}
           {post.flair_detail && (
             <span
               className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
@@ -235,7 +255,11 @@ export function PostDetailPage() {
         )}
       </Card>
 
-      <CommentSection postId={post.id} canComment={!post.is_deleted && post.is_approved} />
+      <CommentSection
+        postId={post.id}
+        canComment={!post.is_deleted && post.is_approved}
+        isModerator={isMod}
+      />
 
       <Modal
         open={confirmDelete}
@@ -263,6 +287,8 @@ export function PostDetailPage() {
         target="post"
         objectId={post.id}
       />
+
+      <EditHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} load={loadRevisions} />
     </div>
   );
 }

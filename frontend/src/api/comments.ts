@@ -1,6 +1,6 @@
 import { api } from './client';
 import type { Paginated } from '@/features/communities/types';
-import type { Comment, CommentSort } from '@/features/comments/types';
+import type { Comment, CommentRevision, CommentSort } from '@/features/comments/types';
 
 export async function listComments(
   postId: number,
@@ -26,4 +26,14 @@ export async function updateComment(id: number, body: string): Promise<Comment> 
 
 export async function deleteComment(id: number): Promise<void> {
   await api.delete(`/comments/${id}/`);
+}
+
+export async function listCommentRevisions(
+  id: number,
+  page = 1,
+): Promise<Paginated<CommentRevision>> {
+  const res = await api.get<Paginated<CommentRevision>>(`/comments/${id}/revisions/`, {
+    params: { page },
+  });
+  return res.data;
 }

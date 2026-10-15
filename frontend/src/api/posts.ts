@@ -1,6 +1,6 @@
 import { api } from './client';
 import type { Paginated } from '@/features/communities/types';
-import type { Post, PostKind } from '@/features/posts/types';
+import type { Post, PostKind, PostRevision } from '@/features/posts/types';
 
 export type SortOption = 'new' | 'top' | 'hot';
 export type TimeWindow = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
@@ -99,5 +99,25 @@ export async function setPostSticky(id: number, pinned: boolean): Promise<{ is_p
   const res = pinned
     ? await api.post<{ is_pinned: boolean }>(`/posts/${id}/sticky/`)
     : await api.delete<{ is_pinned: boolean }>(`/posts/${id}/sticky/`);
+  return res.data;
+}
+
+export async function listApprovalQueue(slug: string, page = 1): Promise<Paginated<Post>> {
+  const res = await api.get<Paginated<Post>>(`/communities/${slug}/mod/approval-queue/`, {
+    params: { page },
+  });
+  return res.data;
+}
+
+export async function approvePost(id: number): Promise<void> {
+  await api.post(`/posts/${id}/approve/`);
+}
+
+export async function rejectPost(id: number): Promise<void> {
+  await api.delete(`/posts/${id}/approve/`);
+}
+
+export async function listPostRevisions(id: number, page = 1): Promise<Paginated<PostRevision>> {
+  const res = await api.get<Paginated<PostRevision>>(`/posts/${id}/revisions/`, { params: { page } });
   return res.data;
 }

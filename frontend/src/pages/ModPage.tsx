@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   createFlair,
   deleteFlair,
@@ -11,29 +12,27 @@ import { Avatar } from '@/components/ui/Avatar';
 import type { Flair } from '@/features/communities/types';
 import {
   banUser,
-  dismissReport,
   listModLog,
-  listModReports,
-  resolveReport,
   setMemberRole,
   type ModLogEntry,
-  type Report,
-  type ReportStatus,
 } from '@/api/moderation';
 import type { Community, CommunityRole } from '@/features/communities/types';
+import { BannedListCard } from '@/components/moderation/BannedListCard';
+import { ApprovalQueueCard } from '@/components/moderation/ApprovalQueueCard';
+import { ReportQueueCard } from '@/components/moderation/ReportQueueCard';
+import { RulesCard } from '@/components/moderation/RulesCard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
-const STATUSES: ReportStatus[] = ['open', 'resolved', 'dismissed'];
-
 export function ModPage() {
   const { slug = '' } = useParams<{ slug: string }>();
   const [community, setCommunity] = useState<Community | null>(null);
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [bansVersion, setBansVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,10 +85,13 @@ export function ModPage() {
       </div>
 
       {isAdmin && <CommunitySettingsCard community={community} onUpdated={setCommunity} />}
-      <ReportQueue slug={community.slug} />
+      <ApprovalQueueCard slug={community.slug} />
+      <ReportQueueCard slug={community.slug} />
       {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
+      <RulesCard slug={community.slug} />
       <FlairCard slug={community.slug} />
-      <BanUserCard slug={community.slug} />
+      <BanUserCard slug={community.slug} onBanned={() => setBansVersion((v) => v + 1)} />
+      <BannedListCard key={bansVersion} slug={community.slug} />
       {isAdmin && <RoleCard slug={community.slug} />}
       <ModLogCard slug={community.slug} />
     </div>
@@ -262,7 +264,9 @@ function CommunitySettingsCard({
 }) {
   const [name, setName] = useState(community.name);
   const [description, setDescription] = useState(community.description);
+  const { t } = useTranslation();
   const [isNsfw, setIsNsfw] = useState(community.is_nsfw);
+  const [requiresApproval, setRequiresApproval] = useState(community.requires_approval);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -282,6 +286,7 @@ function CommunitySettingsCard({
     name !== community.name ||
     description !== community.description ||
     isNsfw !== community.is_nsfw ||
+    requiresApproval !== community.requires_approval ||
     avatarFile !== null;
 
   async function handleSubmit(e: FormEvent) {
@@ -294,6 +299,7 @@ function CommunitySettingsCard({
         name: name.trim(),
         description,
         is_nsfw: isNsfw,
+        requires_approval: requiresApproval,
         avatar: avatarFile,
       });
       onUpdated(updated);
@@ -369,6 +375,15 @@ function CommunitySettingsCard({
           />
           Mark community as NSFW (18+)
         </label>
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--color-text-soft)]">
+          <input
+            type="checkbox"
+            checked={requiresApproval}
+            onChange={(e) => setRequiresApproval(e.target.checked)}
+            className="h-4 w-4 accent-[var(--color-accent)]"
+          />
+          {t('mod.requiresApproval')}
+        </label>
         <div className="flex items-center gap-3">
           <Button type="submit" loading={busy} disabled={!dirty || !name.trim()}>
             Save settings
@@ -380,123 +395,6 @@ function CommunitySettingsCard({
           )}
         </div>
       </form>
-    </Card>
-  );
-}
-
-function ReportQueue({ slug }: { slug: string }) {
-  const [status, setStatus] = useState<ReportStatus>('open');
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    listModReports(slug, status)
-      .then((r) => {
-        if (!cancelled) setReports(r);
-      })
-      .catch(() => {
-        if (!cancelled) setReports([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [slug, status]);
-
-  async function act(id: number, kind: 'resolve' | 'dismiss') {
-    setBusyId(id);
-    try {
-      if (kind === 'resolve') await resolveReport(slug, id);
-      else await dismissReport(slug, id);
-      // Drop it from the current (open) list once actioned.
-      setReports((arr) => arr.filter((r) => r.id !== id));
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  return (
-    <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold tracking-tight">Report queue</h2>
-        <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStatus(s)}
-              className={cn(
-                'rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
-                status === s
-                  ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
-              )}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-2.5">
-        {loading ? (
-          <p className="text-sm text-[var(--color-text-muted)]">Loading reports…</p>
-        ) : reports.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)]">No {status} reports.</p>
-        ) : (
-          reports.map((r) => (
-            <div
-              key={r.id}
-              className="flex flex-wrap items-start justify-between gap-3 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-3"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-mono mb-1 flex flex-wrap items-center gap-2 text-[11.5px] text-[var(--color-text-dim)]">
-                  <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] px-2 py-0.5 capitalize text-[var(--color-text-soft)]">
-                    {r.target_type}
-                  </span>
-                  {r.target_type === 'post' ? (
-                    <Link to={`/posts/${r.object_id}`} className="text-[var(--color-accent)] hover:underline">
-                      #{r.object_id}
-                    </Link>
-                  ) : (
-                    <span>#{r.object_id}</span>
-                  )}
-                  <span>·</span>
-                  <span>by u/{r.reporter_username}</span>
-                  <span>·</span>
-                  <span>{timeAgo(r.created_at)}</span>
-                </div>
-                <p className="text-sm text-[var(--color-text-soft)]">{r.reason}</p>
-              </div>
-              {r.status === 'open' && (
-                <div className="flex shrink-0 gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => act(r.id, 'dismiss')}
-                    loading={busyId === r.id}
-                  >
-                    Dismiss
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => act(r.id, 'resolve')}
-                    loading={busyId === r.id}
-                  >
-                    Resolve
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
     </Card>
   );
 }
@@ -598,7 +496,7 @@ function FlairCard({ slug }: { slug: string }) {
   );
 }
 
-function BanUserCard({ slug }: { slug: string }) {
+function BanUserCard({ slug, onBanned }: { slug: string; onBanned: () => void }) {
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -613,6 +511,7 @@ function BanUserCard({ slug }: { slug: string }) {
       await banUser(slug, u);
       setMsg({ ok: true, text: `u/${u} has been banned from this community.` });
       setUsername('');
+      onBanned();
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??

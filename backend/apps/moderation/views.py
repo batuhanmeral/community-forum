@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -10,12 +11,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.communities.models import Community, Membership
-from apps.communities.services import can_assign_role, can_moderate_member
+from apps.communities.services import (
+    can_assign_role,
+    can_lift_ban,
+    can_moderate_member,
+    roles_below,
+)
 from apps.notifications.services import notify
 
 from .models import ModAction, Report
 from .permissions import IsCommunityAdmin, IsCommunityModerator
 from .serializers import (
+    BannedMemberSerializer,
     MembershipRoleSerializer,
     ModActionSerializer,
     ReportCreateSerializer,
@@ -41,7 +48,7 @@ class ReportCreateView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
-        payload = ReportCreateSerializer(data=request.data)
+        payload = ReportCreateSerializer(data=request.data, context={"request": request})
         payload.is_valid(raise_exception=True)
         ct = payload.validated_data["_content_type"]
         object_id = payload.validated_data["object_id"]
@@ -92,7 +99,7 @@ class CommunityReportListView(_CommunityModView, generics.ListAPIView):
         )
         if self.request.query_params.get("status") in ("open", "resolved", "dismissed"):
             qs = qs.filter(status=self.request.query_params["status"])
-        return qs.select_related("reporter", "content_type").order_by("-created_at")
+        return qs.select_related("content_type").prefetch_related("target").order_by("-created_at")
 
 
 class _ReportActionView(_CommunityModView, APIView):
@@ -142,11 +149,25 @@ class ReportDismissView(_ReportActionView):
     new_status = Report.Status.DISMISSED
 
 
+class CommunityBanListView(_CommunityModView, generics.ListAPIView):
+    serializer_class = BannedMemberSerializer
+
+    def get_queryset(self):
+        return (
+            Membership.objects.filter(community=self.get_community(), is_banned=True)
+            .select_related("user", "banned_by")
+            .order_by(F("banned_at").desc(nulls_last=True), "-id")
+        )
+
+
 class CommunityBanView(_CommunityModView, APIView):
     """POST → ban (set is_banned=True); DELETE → unban."""
 
     def _get_target(self, username):
         return get_object_or_404(User, username__iexact=username)
+
+    def _find_membership(self, target, community):
+        return Membership.objects.filter(user=target, community=community).first()
 
     def post(self, request, slug, username):
         community = self.get_community()
@@ -157,15 +178,25 @@ class CommunityBanView(_CommunityModView, APIView):
             raise ValidationError("Cannot ban yourself.")
         if not can_moderate_member(request.user, target, community):
             raise PermissionDenied("You can only ban members ranked below you.")
-        membership, _ = Membership.objects.update_or_create(
-            user=target,
-            community=community,
-            defaults={"is_banned": True, "role": Membership.Role.MEMBER},
+        membership, _ = Membership.objects.get_or_create(user=target, community=community)
+        # Conditional write: concurrent bans must not take the ban over or log twice.
+        # The role filter keeps a member promoted since the rank check from being demoted.
+        banned = Membership.objects.filter(
+            pk=membership.pk, is_banned=False, role__in=roles_below(request.user, community)
+        ).update(
+            is_banned=True,
+            role=Membership.Role.MEMBER,
+            banned_by=request.user,
+            banned_at=timezone.now(),
         )
-        log_mod_action(
-            community, actor=request.user, action=ModAction.Action.USER_BAN, target=target
-        )
-        notify(target, actor=request.user, verb="mod_action", target=community)
+        membership.refresh_from_db()
+        if not banned and not membership.is_banned:
+            raise PermissionDenied("You can only ban members ranked below you.")
+        if banned:
+            log_mod_action(
+                community, actor=request.user, action=ModAction.Action.USER_BAN, target=target
+            )
+            notify(target, actor=request.user, verb="mod_action", target=community)
         return Response(MembershipRoleSerializer(membership).data, status=status.HTTP_200_OK)
 
     def delete(self, request, slug, username):
@@ -173,13 +204,21 @@ class CommunityBanView(_CommunityModView, APIView):
         target = self._get_target(username)
         if not can_moderate_member(request.user, target, community):
             raise PermissionDenied("You can only unban members ranked below you.")
-        membership = Membership.objects.filter(user=target, community=community).first()
+        membership = self._find_membership(target, community)
         if membership and membership.is_banned:
-            membership.is_banned = False
-            membership.save(update_fields=["is_banned"])
-            log_mod_action(
-                community, actor=request.user, action=ModAction.Action.USER_UNBAN, target=target
-            )
+            if not can_lift_ban(request.user, membership, community):
+                raise PermissionDenied(
+                    "Only a moderator ranked at least as high as the one who issued this ban "
+                    "can lift it."
+                )
+            # Lift only the ban that was checked, not one re-issued since the read.
+            lifted = Membership.objects.filter(
+                pk=membership.pk, is_banned=True, banned_by_id=membership.banned_by_id
+            ).update(is_banned=False, banned_by=None, banned_at=None)
+            if lifted:
+                log_mod_action(
+                    community, actor=request.user, action=ModAction.Action.USER_UNBAN, target=target
+                )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

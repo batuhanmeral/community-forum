@@ -44,3 +44,12 @@ export interface Post {
   created_at: string;
   edited_at: string | null;
 }
+
+export interface PostRevision {
+  id: number;
+  title: string;
+  body: string;
+  edited_at: string;
+  edited_by: number | null;
+  edited_by_username: string | null;
+}
