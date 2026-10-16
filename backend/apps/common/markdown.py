@@ -82,12 +82,33 @@ _ALLOWED_ATTRS = {
     "code": {"class"},
 }
 _LANGUAGE_CLASS = re.compile(r"^language-[A-Za-z0-9_+-]+$")
+_URL_SCHEMES = {"http", "https", "mailto"}
+_URL_SCHEME = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
+_URL_IGNORED_CHARS = re.compile(r"[\t\n\r]")
+_URL_LEADING_JUNK = "".join(map(chr, range(0x21)))
+
+
+def _safe_href(value: str) -> str | None:
+    # Browsers drop these characters before parsing, so `/\t/host` would still mean `//host`.
+    href = _URL_IGNORED_CHARS.sub("", value).lstrip(_URL_LEADING_JUNK)
+    if href.startswith("#"):
+        return href
+    scheme = _URL_SCHEME.match(href)
+    if scheme:
+        # nh3 checks url_schemes before this filter, not on the value returned from it.
+        return href if scheme.group(1).lower() in _URL_SCHEMES else None
+    # `//host` and `/\host` leave the site; other relative paths resolve per page.
+    if href.startswith("/") and href[1:2] not in ("/", "\\"):
+        return href
+    return None
 
 
 def _keep_safe_attribute(tag: str, attr: str, value: str) -> str | None:
     # Arbitrary classes would let users restyle the app (e.g. full-screen fake banners).
     if attr == "class":
         return value if tag == "code" and _LANGUAGE_CLASS.match(value) else None
+    if tag == "a" and attr == "href":
+        return _safe_href(value)
     return value
 
 
@@ -119,8 +140,8 @@ def render_markdown(text: str) -> str:
         tags=_ALLOWED_TAGS,
         attributes=_ALLOWED_ATTRS,
         attribute_filter=_keep_safe_attribute,
-        url_schemes={"http", "https", "mailto"},
-        link_rel="nofollow noopener ugc",
+        url_schemes=_URL_SCHEMES,
+        link_rel="nofollow noopener noreferrer ugc",
     )
     if len(html) > max(MAX_HTML_EXPANSION * len(text), MIN_HTML_LIMIT):
         return "<p>" + escape(text).replace("\n", "<br>\n") + "</p>"

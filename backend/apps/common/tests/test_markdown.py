@@ -1,4 +1,6 @@
-from apps.common.markdown import render_markdown
+import pytest
+
+from apps.common.markdown import _safe_href, render_markdown
 
 
 class TestMarkdown:
@@ -10,7 +12,7 @@ class TestMarkdown:
 
     def test_link_gets_rel(self):
         out = render_markdown("[x](https://example.com)")
-        assert "nofollow" in out
+        assert 'rel="nofollow noopener noreferrer ugc"' in out
 
     def test_strips_script(self):
         out = render_markdown("<script>alert(1)</script>hello")
@@ -82,3 +84,42 @@ class TestMarkdown:
 
     def test_double_tilde_stays_literal(self):
         assert "~~gone~~" in render_markdown("~~gone~~")
+
+
+@pytest.mark.parametrize("src", ["[a](//evil.com)", "[a](../x)", "[a](x/y)"])
+def test_non_root_relative_href_is_dropped(src):
+    assert "href" not in render_markdown(src)
+
+
+@pytest.mark.parametrize(
+    "src",
+    [
+        '<a href="/\\evil.com">a</a>',
+        '<a href=" //evil.com">a</a>',
+        '<a href="/&#9;/evil.com">a</a>',
+    ],
+)
+def test_disguised_protocol_relative_href_is_dropped(src):
+    assert "href" not in render_markdown(src)
+
+
+@pytest.mark.parametrize(
+    "src,href",
+    [
+        ("[a](/c/python)", "/c/python"),
+        ("[a](#comment-5)", "#comment-5"),
+        ("[a](https://x.com)", "https://x.com"),
+        ("[a](mailto:a@x.com)", "mailto:a@x.com"),
+    ],
+)
+def test_allowed_hrefs_are_kept(src, href):
+    assert f'href="{href}"' in render_markdown(src)
+
+
+def test_links_carry_noreferrer():
+    assert 'rel="nofollow noopener noreferrer ugc"' in render_markdown("[a](https://x.com)")
+
+
+def test_safe_href_rejects_schemes_outside_the_allowlist():
+    # nh3 does not re-check url_schemes on the value the attribute filter returns.
+    assert _safe_href("java\tscript:alert(1)") is None
