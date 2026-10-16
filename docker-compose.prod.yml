@@ -21,6 +21,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    # Cache + throttle counters only: eviction beats OOM.
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -57,6 +59,12 @@ services:
       NUM_PROXIES: ${NUM_PROXIES:-1}
     volumes:
       - nexus_media:/app/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/api/v1/health/', headers={'Host': 'backend'}), timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,7 +82,8 @@ services:
     volumes:
       - nexus_media:/usr/share/nginx/media:ro
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

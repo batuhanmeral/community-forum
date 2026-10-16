@@ -53,6 +53,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Container healthchecks probe over plain HTTP; inert while SECURE_SSL_REDIRECT is off.
+SECURE_REDIRECT_EXEMPT = [r"^api/v1/health/$"]
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
