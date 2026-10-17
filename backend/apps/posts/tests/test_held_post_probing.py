@@ -237,3 +237,27 @@ class TestReplyParentProbing:
         parent = Comment.objects.create(post=visible, author=author, body="c")
         api.force_authenticate(stranger)
         assert self._reply(api, visible, parent.pk).status_code == 201
+
+    def test_error_echoes_the_parent_as_sent(self, api, author, stranger, held, visible):
+        hidden = Comment.objects.create(post=held, author=author, body="c")
+        api.force_authenticate(stranger)
+        resp = self._reply(api, visible, f"0{hidden.pk}")
+        assert resp.data["parent"] == [f'Invalid pk "0{hidden.pk}" - object does not exist.']
+
+    def test_editing_to_a_parent_on_another_post_looks_missing(self, api, author, held, visible):
+        own = Comment.objects.create(post=visible, author=author, body="c")
+        foreign = Comment.objects.create(post=held, author=author, body="f")
+        api.force_authenticate(author)
+        foreign_resp = api.patch(comment_url(own.pk), {"parent": foreign.pk}, format="json")
+        missing_resp = api.patch(comment_url(own.pk), {"parent": MISSING_ID}, format="json")
+        assert foreign_resp.status_code == missing_resp.status_code == 400
+        assert str(foreign_resp.data).replace(str(foreign.pk), "N") == str(
+            missing_resp.data
+        ).replace(str(MISSING_ID), "N")
+
+    def test_editing_to_another_parent_on_the_same_post_is_refused(self, api, author, visible):
+        own = Comment.objects.create(post=visible, author=author, body="c")
+        other = Comment.objects.create(post=visible, author=author, body="o")
+        api.force_authenticate(author)
+        resp = api.patch(comment_url(own.pk), {"parent": other.pk}, format="json")
+        assert resp.data["parent"] == ["Parent cannot be changed."]

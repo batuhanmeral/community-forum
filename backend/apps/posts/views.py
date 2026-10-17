@@ -402,7 +402,10 @@ class PostApprovalView(APIView):
             notify_mentions(post.body, actor=post.author, target=post)
             return Response({"is_approved": True})
         # Lost the race: report what the row really is now.
-        state = Post.objects.values("is_approved", "deleted_at").get(pk=post.pk)
+        state = Post.objects.filter(pk=post.pk).values("is_approved", "deleted_at").first()
+        if state is None:
+            # Hard-deleted meanwhile: answer exactly as for an id that never existed.
+            get_object_or_404(Post.objects.none(), pk=pk)
         return Response(
             {"is_approved": state["is_approved"], "deleted": state["deleted_at"] is not None}
         )
