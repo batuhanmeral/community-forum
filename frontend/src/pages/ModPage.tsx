@@ -235,6 +235,7 @@ function AutoModCard({
       <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
         <textarea
           value={keywords}
+          maxLength={2000}
           rows={4}
           onChange={(e) => setKeywords(e.target.value)}
           placeholder={'crypto scam\nbuy followers'}

@@ -18,7 +18,7 @@ class User(AbstractUser):
         error_messages={"unique": _("A user with that username already exists.")},
     )
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
-    bio = models.TextField(blank=True, default="")
+    bio = models.CharField(max_length=500, blank=True, default="")
     post_karma = models.IntegerField(default=0)
     comment_karma = models.IntegerField(default=0)
     show_nsfw = models.BooleanField(default=False)

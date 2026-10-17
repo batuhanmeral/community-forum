@@ -145,6 +145,7 @@ export function RulesCard({ slug }: { slug: string }) {
           <textarea
             id="rule-description"
             rows={2}
+            maxLength={500}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
