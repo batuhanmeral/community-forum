@@ -108,6 +108,17 @@ class TestCommunityCRUD:
         community.refresh_from_db()
         assert community.is_nsfw is True
 
+    def test_banned_creator_cannot_update(self, api, community, alice):
+        Membership.objects.filter(user=alice, community=community).update(is_banned=True)
+        api.force_authenticate(alice)
+        resp = api.patch(detail(community.slug), {"description": "x"}, format="json")
+        assert resp.status_code == 403
+
+    def test_creator_without_membership_cannot_delete(self, api, community, alice):
+        Membership.objects.filter(user=alice, community=community).delete()
+        api.force_authenticate(alice)
+        assert api.delete(detail(community.slug)).status_code == 403
+
     def test_search(self, api, community, alice):
         Community.objects.create(slug="rust", name="Rust", creator=alice)
         resp = api.get(LIST, {"search": "py"})

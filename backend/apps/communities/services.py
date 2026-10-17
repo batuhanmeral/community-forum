@@ -37,6 +37,16 @@ def is_banned(user, community: Community) -> bool:
     return Membership.objects.filter(user=user, community=community, is_banned=True).exists()
 
 
+def can_edit_community(user, community: Community) -> bool:
+    """Community settings are editable by active admins only (the creator is an admin)."""
+    return has_role(user, community, Membership.Role.ADMIN)
+
+
+def can_delete_community(user, community: Community) -> bool:
+    """Only the creator may delete, and only while still an active admin."""
+    return user.id == community.creator_id and can_edit_community(user, community)
+
+
 def can_assign_role(actor, community: Community, new_role: str) -> bool:
     """Mods may only hand out roles ranked below their own; the creator may assign any."""
     actor_membership = active_membership(actor, community)
