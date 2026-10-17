@@ -261,13 +261,12 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
 
 interface IconButtonProps {
   title: string;
-  dot?: boolean;
   count?: number;
   to?: string;
   children: React.ReactNode;
 }
 
-function IconButton({ title, dot, count, to, children }: IconButtonProps) {
+function IconButton({ title, count, to, children }: IconButtonProps) {
   const className = cn(
     'relative grid h-[38px] w-[38px] place-items-center rounded-[11px]',
     'text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
@@ -282,11 +281,6 @@ function IconButton({ title, dot, count, to, children }: IconButtonProps) {
         >
           {count > 99 ? '99+' : count}
         </span>
-      ) : dot ? (
-        <span
-          className="absolute right-[9px] top-[9px] block h-[7px] w-[7px] rounded-full bg-[var(--color-accent)]"
-          style={{ boxShadow: '0 0 0 2px var(--color-bg), 0 0 8px var(--color-accent-glow)' }}
-        />
       ) : null}
     </>
   );

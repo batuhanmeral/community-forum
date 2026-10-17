@@ -3,7 +3,6 @@ export type NotificationVerb =
   | 'reply'
   | 'mention'
   | 'follow'
-  | 'vote'
   | 'dm'
   | 'mod_action';
 
