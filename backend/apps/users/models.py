@@ -3,9 +3,20 @@ from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.db.models.functions import Lower
+from django.utils.translation import gettext_lazy as _
+
+from .validators import username_validator
 
 
 class User(AbstractUser):
+    username = models.CharField(
+        _("username"),
+        max_length=150,
+        unique=True,
+        help_text=_("3-30 characters: letters, digits and underscores."),
+        validators=[username_validator],
+        error_messages={"unique": _("A user with that username already exists.")},
+    )
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     bio = models.TextField(blank=True, default="")
     post_karma = models.IntegerField(default=0)

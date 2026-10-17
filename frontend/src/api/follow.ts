@@ -9,29 +9,29 @@ export interface FollowUser {
 }
 
 export async function followUser(username: string): Promise<void> {
-  await api.post(`/users/${username}/follow/`);
+  await api.post(`/users/${encodeURIComponent(username)}/follow/`);
 }
 
 export async function unfollowUser(username: string): Promise<void> {
-  await api.delete(`/users/${username}/follow/`);
+  await api.delete(`/users/${encodeURIComponent(username)}/follow/`);
 }
 
 export async function listFollowers(username: string, page = 1): Promise<Paginated<FollowUser>> {
-  const res = await api.get<Paginated<FollowUser>>(`/users/${username}/followers/`, { params: { page } });
+  const res = await api.get<Paginated<FollowUser>>(`/users/${encodeURIComponent(username)}/followers/`, { params: { page } });
   return res.data;
 }
 
 export async function listFollowing(username: string, page = 1): Promise<Paginated<FollowUser>> {
-  const res = await api.get<Paginated<FollowUser>>(`/users/${username}/following/`, { params: { page } });
+  const res = await api.get<Paginated<FollowUser>>(`/users/${encodeURIComponent(username)}/following/`, { params: { page } });
   return res.data;
 }
 
 export async function blockUser(username: string): Promise<void> {
-  await api.post(`/users/${username}/block/`);
+  await api.post(`/users/${encodeURIComponent(username)}/block/`);
 }
 
 export async function unblockUser(username: string): Promise<void> {
-  await api.delete(`/users/${username}/block/`);
+  await api.delete(`/users/${encodeURIComponent(username)}/block/`);
 }
 
 export async function listBlocked(page = 1): Promise<Paginated<FollowUser>> {

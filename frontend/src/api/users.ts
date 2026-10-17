@@ -26,19 +26,19 @@ export async function getLeaderboard(): Promise<UserProfile[]> {
 }
 
 export async function getUserProfile(username: string): Promise<UserProfile> {
-  const res = await api.get<UserProfile>(`/users/${username}/`);
+  const res = await api.get<UserProfile>(`/users/${encodeURIComponent(username)}/`);
   return res.data;
 }
 
 export async function getUserPosts(username: string, page = 1): Promise<Paginated<Post>> {
-  const res = await api.get<Paginated<Post>>(`/users/${username}/posts/`, {
+  const res = await api.get<Paginated<Post>>(`/users/${encodeURIComponent(username)}/posts/`, {
     params: { page },
   });
   return res.data;
 }
 
 export async function getUserComments(username: string, page = 1): Promise<Paginated<Comment>> {
-  const res = await api.get<Paginated<Comment>>(`/users/${username}/comments/`, {
+  const res = await api.get<Paginated<Comment>>(`/users/${encodeURIComponent(username)}/comments/`, {
     params: { page },
   });
   return res.data;
