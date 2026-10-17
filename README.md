@@ -13,7 +13,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Four post kinds: text, link, image (with upload validation), and poll
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
 - Nested comment trees with inline replies and `@username` mention autocomplete
-- Markdown editor with server-rendered, sanitized preview
+- Markdown editor with server-rendered, sanitized preview; links keep only absolute `http(s)`/`mailto`, site-root (`/…`) and `#…` targets (anything else renders as plain text) and always carry `rel="nofollow noopener noreferrer ugc"`
 - Post drafts — debounced autosave to localStorage with restore/discard
 
 **Voting & Feeds**
@@ -46,7 +46,7 @@ The project is split into two independent applications: a Django REST Framework 
 - JWT auth (SimpleJWT) with refresh rotation and blacklist, register/login/logout
 - Password reset and email verification flows (console backend in dev, SMTP via env)
 - Account settings: NSFW preference, password change, account deactivation
-- EN/TR interface language with an in-app picker (i18next)
+- Interface language picker (EN/TR via i18next); Turkish coverage is partial, full coverage is tracked for M6
 - Uploaded images are automatically downscaled (avatars 512px, post images 1920px)
 - Rate throttling per scope (auth, write, vote), pagination, and permission classes throughout
 
@@ -67,7 +67,7 @@ The project is split into two independent applications: a Django REST Framework 
 backend/    Django project — config/ (settings, urls) + apps/ (users, communities,
             posts, comments, votes, messaging, notifications, social, polls,
             saves, moderation, search, seo, common)
-frontend/   React SPA — src/ (api, app, components, features, lib, pages, router)
+frontend/   React SPA — src/ (api, app, components, features, i18n, lib, pages, router)
 ```
 
 ## Getting Started
@@ -81,7 +81,7 @@ docker compose up -d          # starts PostgreSQL on :5432
 # Backend — http://localhost:8000
 cd backend
 python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # runtime deps + pytest/ruff; the Docker image installs requirements.txt only
 cp .env.example .env          # fill in values
 python manage.py migrate
 python manage.py seed              # optional: demo users/communities/posts (login: any user / password123)
@@ -118,7 +118,11 @@ cp .env.prod.example .env     # set real secrets
 docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 ```
 
-TLS is expected to be terminated by an edge proxy in front of nginx (`SECURE_SSL_REDIRECT` env).
+- **`SECRET_KEY`** must be at least 50 characters; the backend refuses to start otherwise. Generate one with `python -c "import secrets; print(secrets.token_urlsafe(50))"`.
+- **Logging:** the backend logs to stdout at `LOG_LEVEL` (default `INFO`).
+- **Health:** `GET /api/v1/health/` returns `200 {"status":"ok"}` or `503 {"status":"unavailable"}` (no auth, exempt from the HTTPS redirect). The compose backend healthcheck uses it with `Host: backend`, so keep `backend` in `ALLOWED_HOSTS`; the frontend container waits for a healthy backend. Redis is capped at 128 MB with LRU eviction.
+- **Security headers:** nginx sends a CSP (Google Fonts allowed), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy` and `Permissions-Policy` (`frontend/nginx/security-headers.conf`). A split deploy with a different API origin must extend `connect-src`.
+- **TLS and proxies:** TLS is expected to be terminated by an edge proxy in front of nginx (`SECURE_SSL_REDIRECT` env). The edge proxy must overwrite (not append to) `X-Forwarded-Proto`, and `NUM_PROXIES` must equal the number of proxies in front of Django: nginx (1) plus every proxy before it.
 
 ## License
 
