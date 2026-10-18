@@ -1,6 +1,8 @@
 from django.db.models import Q
 from rest_framework import generics, permissions
 
+from apps.communities.services import joined_community_ids
+
 from .models import Post
 from .serializers import PostSerializer
 from .views import _annotate_score, _apply_sort, _apply_time_window, _base_post_qs
@@ -25,7 +27,7 @@ class FeedView(generics.ListAPIView):
         request = self.request
         scope = request.query_params.get("scope")
         if request.user.is_authenticated and scope != "all":
-            qs = Post.objects.filter(community__memberships__user=request.user).distinct()
+            qs = Post.objects.filter(community_id__in=joined_community_ids(request.user))
         else:
             qs = Post.objects.all()
         qs = qs.filter(is_approved=True, deleted_at__isnull=True)
