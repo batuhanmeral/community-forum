@@ -95,6 +95,11 @@ class TestCommunityCRUD:
         resp = api.delete(detail("python"))
         assert resp.status_code == 403
 
+    def test_creator_can_delete(self, api, community, alice):
+        api.force_authenticate(alice)
+        assert api.delete(detail(community.slug)).status_code == 204
+        assert not Community.objects.filter(pk=community.pk).exists()
+
     def test_slug_is_immutable(self, api, community, alice):
         api.force_authenticate(alice)
         resp = api.patch(detail("python"), {"slug": "snake"}, format="json")
