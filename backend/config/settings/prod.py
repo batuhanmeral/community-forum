@@ -22,7 +22,7 @@ LOGGING = {
     "handlers": {
         "console": {"class": "logging.StreamHandler", "formatter": "default"},
     },
-    "root": {"handlers": ["console"], "level": config("LOG_LEVEL", default="INFO")},
+    "root": {"handlers": ["console"], "level": config("LOG_LEVEL", default="INFO").upper()},
 }
 
 # Serve collected static files straight from gunicorn via WhiteNoise.

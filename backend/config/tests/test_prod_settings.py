@@ -46,3 +46,9 @@ def test_log_level_defaults_to_info():
     code = "import django, logging; django.setup(); print(logging.getLogger().getEffectiveLevel())"
     result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50))
     assert result.stdout.strip() == "20"
+
+
+def test_log_level_is_case_insensitive():
+    code = "import django, logging; django.setup(); print(logging.getLogger().getEffectiveLevel())"
+    result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50), LOG_LEVEL="error")
+    assert result.stdout.strip() == "40", result.stderr
