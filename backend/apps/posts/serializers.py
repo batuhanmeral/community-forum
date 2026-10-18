@@ -1,6 +1,7 @@
 from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 
+from apps.common.viewer import viewer_saved, viewer_vote
 from apps.communities.serializers import FlairSerializer
 from apps.polls.serializers import PollCreateInputSerializer, PollSerializer
 
@@ -93,9 +94,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_is_saved(self, obj: Post) -> bool:
         request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return False
-        return any(s.user_id == request.user.id for s in obj.saves.all())
+        return viewer_saved(obj, request.user) if request else False
 
     def get_poll(self, obj: Post):
         poll = getattr(obj, "poll", None)
@@ -105,10 +104,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_user_vote(self, obj: Post) -> int | None:
         request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return None
-        vote = next((v for v in obj.votes.all() if v.user_id == request.user.id), None)
-        return vote.value if vote else None
+        return viewer_vote(obj, request.user) if request else None
 
     def validate_image(self, value):
         if value is None:

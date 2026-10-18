@@ -78,6 +78,7 @@ class TrendingPostsView(ListAPIView):
                     community__is_nsfw=False,
                     is_approved=True,
                     deleted_at__isnull=True,
-                )
+                ),
+                user=self.request.user,
             )
         ).order_by("-score", "-created_at")[:20]

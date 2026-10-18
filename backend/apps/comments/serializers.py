@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.common.viewer import viewer_saved, viewer_vote
+
 from .models import Comment, CommentRevision
 
 COMMENT_BODY_MAX_CHARS = 10_000
@@ -63,16 +65,11 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_is_saved(self, obj: Comment) -> bool:
         request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return False
-        return any(s.user_id == request.user.id for s in obj.saves.all())
+        return viewer_saved(obj, request.user) if request else False
 
     def get_user_vote(self, obj: Comment) -> int | None:
         request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return None
-        vote = next((v for v in obj.votes.all() if v.user_id == request.user.id), None)
-        return vote.value if vote else None
+        return viewer_vote(obj, request.user) if request else None
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

@@ -45,7 +45,7 @@ class SearchView(ListAPIView):
         if type_param == "post":
             qs = qs.filter(is_approved=True, deleted_at__isnull=True)
             qs = _apply_nsfw_filter(qs, self.request)
-            qs = _annotate_score(_base_post_qs(qs))
+            qs = _annotate_score(_base_post_qs(qs, user=self.request.user))
         elif type_param == "community":
             qs = qs.annotate(
                 member_count=Count("memberships", filter=Q(memberships__is_banned=False))

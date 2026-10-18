@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.throttling import WriteThrottleMixin
+from apps.common.viewer import viewer_prefetches
 from apps.communities.models import Community
 from apps.communities.services import is_banned, is_moderator
 from apps.moderation.models import ModAction
@@ -63,12 +64,12 @@ def _annotate_score(qs):
     )
 
 
-def _base_post_qs(qs=None):
+def _base_post_qs(qs=None, user=None):
     """Common relations every PostSerializer render needs (avoids N+1)."""
     if qs is None:
         qs = Post.objects.all()
     return qs.select_related("author", "community", "flair", "poll").prefetch_related(
-        "votes", "saves", "poll__options"
+        *viewer_prefetches(user), "poll__options"
     )
 
 
@@ -149,7 +150,8 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
                     community=self.get_community(),
                     is_approved=True,
                     deleted_at__isnull=True,
-                )
+                ),
+                user=self.request.user,
             )
         )
         sort = self.request.query_params.get("sort", "new")
@@ -207,7 +209,8 @@ class UserPostListView(generics.ListAPIView):
         author = get_object_or_404(User, username__iexact=self.kwargs["username"])
         qs = _annotate_score(
             _base_post_qs(
-                Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True)
+                Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True),
+                user=self.request.user,
             )
         )
         return _apply_sort(qs, self.request.query_params.get("sort", "new"))
@@ -218,7 +221,9 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
     throttle_scope = "write"
-    queryset = _annotate_score(_base_post_qs())
+
+    def get_queryset(self):
+        return _annotate_score(_base_post_qs(user=self.request.user))
 
     def get_object(self):
         post = get_object_or_404(self.filter_queryset(self.get_queryset()), pk=self.kwargs["pk"])
@@ -364,7 +369,10 @@ class ApprovalQueueView(generics.ListAPIView):
             raise PermissionDenied("Moderator role required.")
         return _annotate_score(
             _base_post_qs(
-                Post.objects.filter(community=community, is_approved=False, deleted_at__isnull=True)
+                Post.objects.filter(
+                    community=community, is_approved=False, deleted_at__isnull=True
+                ),
+                user=self.request.user,
             )
         ).order_by("created_at")
 

@@ -29,7 +29,7 @@ class FeedView(generics.ListAPIView):
         else:
             qs = Post.objects.all()
         qs = qs.filter(is_approved=True, deleted_at__isnull=True)
-        qs = _annotate_score(_base_post_qs(qs))
+        qs = _annotate_score(_base_post_qs(qs, user=request.user))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new" if request.user.is_authenticated else "top")
         if sort == "top":
@@ -50,7 +50,7 @@ class FollowingFeedView(generics.ListAPIView):
             is_approved=True,
             deleted_at__isnull=True,
         ).distinct()
-        qs = _annotate_score(_base_post_qs(qs))
+        qs = _annotate_score(_base_post_qs(qs, user=request.user))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new")
         if sort == "top":
