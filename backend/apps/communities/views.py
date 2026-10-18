@@ -16,7 +16,7 @@ from .serializers import (
     FlairSerializer,
     MembershipSerializer,
 )
-from .services import is_banned, is_moderator, joined_community_ids
+from .services import is_banned, is_moderator, joined_community_ids, prefetch_viewer_membership
 
 
 def _require_mod(user, community):
@@ -39,7 +39,7 @@ class CommunityViewSet(WriteThrottleMixin, viewsets.ModelViewSet):
     parser_classes = (JSONParser, FormParser, MultiPartParser)
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = prefetch_viewer_membership(super().get_queryset(), self.request.user)
         if self.action == "list" and self.request.query_params.get("joined") == "true":
             if not self.request.user.is_authenticated:
                 return qs.none()

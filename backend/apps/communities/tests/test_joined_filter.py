@@ -36,7 +36,7 @@ def test_listing_looks_up_each_membership_once(django_assert_max_num_queries):
 
     client = APIClient()
     client.force_authenticate(me)
-    # Fixed overhead plus one membership lookup per community; five per community today.
-    with django_assert_max_num_queries(15):
+    # The viewer's memberships are prefetched, so the count no longer grows per community.
+    with django_assert_max_num_queries(5):
         resp = client.get(LIST, {"joined": "true"})
     assert len(resp.data["results"]) == 10
