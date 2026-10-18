@@ -22,8 +22,6 @@ export function formatNotification(n: Notification): FormattedNotification {
       return { icon: '@', text: `${actorLabel} mentioned you`, to };
     case 'follow':
       return { icon: '★', text: `${actorLabel} followed you`, to };
-    case 'vote':
-      return { icon: '↑', text: `${actorLabel} upvoted your ${n.target_type ?? 'post'}`, to };
     case 'dm':
       return { icon: '✉', text: `${actorLabel} sent you a message`, to };
     case 'mod_action':

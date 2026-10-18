@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Community, CommunityRule, Flair, Membership
+from .models import HEX_COLOR_PATTERN, Community, CommunityRule, Flair, Membership
 from .services import MOD_ROLES
 
 
@@ -88,7 +88,7 @@ class CommunityRuleSerializer(serializers.ModelSerializer):
 
 
 class FlairSerializer(serializers.ModelSerializer):
-    color = serializers.RegexField(r"^#[0-9a-fA-F]{6}\Z", required=False)
+    color = serializers.RegexField(HEX_COLOR_PATTERN, required=False)
 
     class Meta:
         model = Flair

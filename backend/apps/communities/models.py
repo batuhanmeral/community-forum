@@ -1,18 +1,22 @@
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
+from django.core.validators import RegexValidator
 from django.db import models
+
+HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}\Z"
+DEFAULT_FLAIR_COLOR = "#888888"
 
 
 class Community(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, default="")
+    description = models.CharField(max_length=500, blank=True, default="")
     avatar = models.ImageField(upload_to="community_avatars/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     # AutoMod: newline-separated keywords; matching posts are held for mod approval.
-    banned_keywords = models.TextField(blank=True, default="")
+    banned_keywords = models.CharField(max_length=2000, blank=True, default="")
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -101,7 +105,7 @@ class CommunityRule(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="rules")
     order = models.PositiveSmallIntegerField(default=0)
     short = models.CharField(max_length=100)
-    description = models.TextField(blank=True, default="")
+    description = models.CharField(max_length=500, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -115,7 +119,11 @@ class CommunityRule(models.Model):
 class Flair(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="flairs")
     name = models.CharField(max_length=50)
-    color = models.CharField(max_length=7, default="#888888")
+    color = models.CharField(
+        max_length=7,
+        default=DEFAULT_FLAIR_COLOR,
+        validators=[RegexValidator(HEX_COLOR_PATTERN)],
+    )
 
     class Meta:
         unique_together = ("community", "name")

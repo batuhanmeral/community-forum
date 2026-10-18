@@ -1,7 +1,6 @@
-import re
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
@@ -9,10 +8,9 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.utils import get_md5_hash_password
 
-User = get_user_model()
+from .validators import username_validator
 
-# Mentions match this charset, so usernames must stay inside it.
-USERNAME_RE = re.compile(r"[A-Za-z0-9_]{3,30}")
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -150,10 +148,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
     def validate_username(self, value: str) -> str:
-        if not USERNAME_RE.fullmatch(value):
-            raise serializers.ValidationError(
-                "Use 3-30 characters: letters, digits and underscores."
-            )
+        # Direct callers (and tests) bypass the field validators, so re-check the charset.
+        try:
+            username_validator(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
         if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError("A user with this username already exists.")
         return value

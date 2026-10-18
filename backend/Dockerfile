@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps: libpq for psycopg, build tools only while installing.
+# System deps: libpq runtime library for psycopg.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libpq5 \
     && rm -rf /var/lib/apt/lists/*
@@ -19,7 +19,7 @@ COPY . .
 
 # Collect static into STATIC_ROOT so WhiteNoise can serve it. A throwaway
 # SECRET_KEY is fine here — collectstatic does not need the real one.
-RUN SECRET_KEY=build-only DJANGO_SETTINGS_MODULE=config.settings.prod \
+RUN SECRET_KEY=collectstatic-only-not-a-secret-collectstatic-only-not-a-secret DJANGO_SETTINGS_MODULE=config.settings.prod \
     SECURE_SSL_REDIRECT=False \
     python manage.py collectstatic --noinput
 

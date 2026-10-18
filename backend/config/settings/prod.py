@@ -1,9 +1,29 @@
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F401,F403
 from .base import MIDDLEWARE
 
 DEBUG = False
+
+# No default: prod must never boot with the insecure dev key from base.py.
+MIN_SECRET_KEY_LENGTH = 50
+SECRET_KEY = config("SECRET_KEY")
+if len(SECRET_KEY) < MIN_SECRET_KEY_LENGTH:
+    raise ImproperlyConfigured(f"SECRET_KEY must be at least {MIN_SECRET_KEY_LENGTH} characters.")
+
+# Log to stdout so the container runtime collects it; level is tunable without a rebuild.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "default"},
+    },
+    "root": {"handlers": ["console"], "level": config("LOG_LEVEL", default="INFO").upper()},
+}
 
 # Serve collected static files straight from gunicorn via WhiteNoise.
 MIDDLEWARE = [

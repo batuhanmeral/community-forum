@@ -104,3 +104,13 @@ class TestApprovalActions:
         assert ModAction.objects.filter(action=ModAction.Action.POST_APPROVE).count() == 0
         assert Notification.objects.filter(verb="mention").count() == 0
         assert _mod_notifications(author) == 1
+
+    def test_approve_after_hard_delete_looks_missing(self, api, author, community):
+        post = _held(author, community)
+        stale = Post.objects.get(pk=post.pk)
+        Post.objects.filter(pk=post.pk).delete()
+        with patch.object(PostApprovalView, "_get", return_value=stale):
+            resp = api.post(approve_url(post.pk))
+        missing = api.post(approve_url(999_999))
+        assert resp.status_code == missing.status_code == 404
+        assert str(resp.data) == str(missing.data)

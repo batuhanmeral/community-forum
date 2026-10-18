@@ -1,6 +1,9 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import IntegrityError
 from django.urls import reverse
 from rest_framework.exceptions import ValidationError
@@ -143,3 +146,15 @@ class TestDatabaseConstraints:
     def test_multiple_blank_emails_allowed(self, db):
         User.objects.create_user(username="nomail1", email="", password="x")
         User.objects.create_user(username="nomail2", email="", password="x")
+
+
+@pytest.mark.parametrize("name", ["john.doe", "ab", "a" * 31, "jöhn"])
+def test_model_rejects_username_outside_charset(db, name):
+    with pytest.raises(DjangoValidationError) as exc:
+        User(username=name, email="j@x.com").full_clean(exclude=["password"])
+    assert "username" in exc.value.message_dict
+
+
+def test_createsuperuser_rejects_dotted_username(db):
+    with pytest.raises(CommandError):
+        call_command("createsuperuser", interactive=False, username="john.doe", email="j@x.com")

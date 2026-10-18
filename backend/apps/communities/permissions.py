@@ -1,10 +1,10 @@
 from rest_framework import permissions
 
-from .services import has_role
+from .services import can_delete_community, can_edit_community
 
 
 class IsCreatorOrReadOnly(permissions.BasePermission):
-    """Write access for the community creator or admin-role members; read for anyone."""
+    """Write access for active admins (delete: the creator only); read for anyone."""
 
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
@@ -14,10 +14,6 @@ class IsCreatorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-        if obj.creator_id == request.user.id:
-            return True
         if request.method == "DELETE":
-            return False
-        from .models import Membership
-
-        return has_role(request.user, obj, Membership.Role.ADMIN)
+            return can_delete_community(request.user, obj)
+        return can_edit_community(request.user, obj)

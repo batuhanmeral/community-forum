@@ -10,7 +10,6 @@ class Notification(models.Model):
         REPLY = "reply", "Reply"
         MENTION = "mention", "Mention"
         FOLLOW = "follow", "Follow"
-        VOTE = "vote", "Vote"
         DM = "dm", "DM"
         MOD_ACTION = "mod_action", "Mod action"
 

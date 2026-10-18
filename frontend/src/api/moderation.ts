@@ -64,12 +64,12 @@ export interface MembershipRole {
 }
 
 export async function banUser(slug: string, username: string): Promise<MembershipRole> {
-  const res = await api.post<MembershipRole>(`/communities/${slug}/mod/ban/${username}/`);
+  const res = await api.post<MembershipRole>(`/communities/${slug}/mod/ban/${encodeURIComponent(username)}/`);
   return res.data;
 }
 
 export async function unbanUser(slug: string, username: string): Promise<void> {
-  await api.delete(`/communities/${slug}/mod/ban/${username}/`);
+  await api.delete(`/communities/${slug}/mod/ban/${encodeURIComponent(username)}/`);
 }
 
 export type ModLogAction =
@@ -110,7 +110,7 @@ export async function setMemberRole(
   role: CommunityRole,
 ): Promise<MembershipRole> {
   const res = await api.patch<MembershipRole>(
-    `/communities/${slug}/mod/members/${username}/`,
+    `/communities/${slug}/mod/members/${encodeURIComponent(username)}/`,
     { role },
   );
   return res.data;

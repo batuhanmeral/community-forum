@@ -85,8 +85,14 @@ class CommentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"body": "Body cannot be empty."})
         return attrs
 
+    def _fail_as_missing_parent(self):
+        # Echo the raw input as DRF does for a truly missing id ("05" must not become "5").
+        self.fields["parent"].fail("does_not_exist", pk_value=self.initial_data.get("parent"))
+
     def validate_parent(self, value):
         if self.instance is not None:
+            if value is not None and value.post_id != self.instance.post_id:
+                self._fail_as_missing_parent()
             # Re-parenting an existing comment would let it jump threads.
             if value != self.instance.parent:
                 raise serializers.ValidationError("Parent cannot be changed.")
@@ -96,7 +102,7 @@ class CommentSerializer(serializers.ModelSerializer):
         post = self.context.get("post")
         if post and value.post_id != post.id:
             # Same error as a missing id, so a parent on a hidden post cannot be probed.
-            self.fields["parent"].fail("does_not_exist", pk_value=value.pk)
+            self._fail_as_missing_parent()
         if value.deleted_at is not None:
             raise serializers.ValidationError("You cannot reply to a deleted comment.")
         return value

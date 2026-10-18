@@ -95,6 +95,11 @@ class TestCommunityCRUD:
         resp = api.delete(detail("python"))
         assert resp.status_code == 403
 
+    def test_creator_can_delete(self, api, community, alice):
+        api.force_authenticate(alice)
+        assert api.delete(detail(community.slug)).status_code == 204
+        assert not Community.objects.filter(pk=community.pk).exists()
+
     def test_slug_is_immutable(self, api, community, alice):
         api.force_authenticate(alice)
         resp = api.patch(detail("python"), {"slug": "snake"}, format="json")
@@ -107,6 +112,17 @@ class TestCommunityCRUD:
         assert resp.status_code == 200
         community.refresh_from_db()
         assert community.is_nsfw is True
+
+    def test_banned_creator_cannot_update(self, api, community, alice):
+        Membership.objects.filter(user=alice, community=community).update(is_banned=True)
+        api.force_authenticate(alice)
+        resp = api.patch(detail(community.slug), {"description": "x"}, format="json")
+        assert resp.status_code == 403
+
+    def test_creator_without_membership_cannot_delete(self, api, community, alice):
+        Membership.objects.filter(user=alice, community=community).delete()
+        api.force_authenticate(alice)
+        assert api.delete(detail(community.slug)).status_code == 403
 
     def test_search(self, api, community, alice):
         Community.objects.create(slug="rust", name="Rust", creator=alice)

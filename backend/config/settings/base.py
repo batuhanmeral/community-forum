@@ -53,6 +53,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Container healthchecks probe over plain HTTP; inert while SECURE_SSL_REDIRECT is off.
+SECURE_REDIRECT_EXEMPT = [r"^api/v1/health/$"]
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
@@ -109,7 +112,6 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticatedOrReadOnly",),
     "DEFAULT_PAGINATION_CLASS": "config.pagination.DefaultPagination",
-    "PAGE_SIZE": 20,
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
