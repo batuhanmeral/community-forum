@@ -27,6 +27,7 @@ from apps.communities.services import is_banned, is_moderator
 from apps.moderation.models import ModAction
 from apps.moderation.services import log_mod_action
 from apps.notifications.services import notify
+from apps.polls.services import poll_prefetches
 
 from .models import Post, PostRevision
 from .permissions import IsAuthorOrModeratorForDelete, IsCommunityMember
@@ -69,7 +70,7 @@ def _base_post_qs(qs=None, user=None):
     if qs is None:
         qs = Post.objects.all()
     return qs.select_related("author", "community", "flair", "poll").prefetch_related(
-        *viewer_prefetches(user), "poll__options"
+        *viewer_prefetches(user), *poll_prefetches(user, "poll__")
     )
 
 

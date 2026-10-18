@@ -11,13 +11,19 @@ from apps.posts.services import can_see_unapproved
 
 from .models import Poll, PollOption, PollVote
 from .serializers import PollSerializer, PollVoteInputSerializer
+from .services import poll_prefetches
 
 
 class PollDetailView(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def get(self, request, pk):
-        poll = get_object_or_404(Poll.objects.select_related("post__community"), pk=pk)
+        poll = get_object_or_404(
+            Poll.objects.select_related("post__community").prefetch_related(
+                *poll_prefetches(request.user)
+            ),
+            pk=pk,
+        )
         hidden = poll.post.deleted_at is not None or (
             not poll.post.is_approved and not can_see_unapproved(request.user, poll.post)
         )
@@ -62,6 +68,8 @@ class PollVoteView(APIView):
         else:
             created = False
 
+        # Re-fetch so the prefetched counts and choice include the vote just written.
+        poll = Poll.objects.prefetch_related(*poll_prefetches(request.user)).get(pk=poll.pk)
         return Response(
             PollSerializer(poll, context={"request": request}).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
