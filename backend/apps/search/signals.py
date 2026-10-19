@@ -18,16 +18,27 @@ def _refresh_vector(model, pk: int, *fields_with_weights) -> None:
     model.objects.filter(pk=pk).update(search_vector=vector)
 
 
+def _touches(update_fields, indexed: set[str]) -> bool:
+    # None means a full save; otherwise refresh only if an indexed field was written.
+    return update_fields is None or not indexed.isdisjoint(update_fields)
+
+
 @receiver(post_save, sender=Post)
 def _update_post_vector(sender, instance: Post, **kwargs):
+    if not _touches(kwargs.get("update_fields"), {"title", "body"}):
+        return
     _refresh_vector(Post, instance.pk, ("title", "A"), ("body", "B"))
 
 
 @receiver(post_save, sender=Community)
 def _update_community_vector(sender, instance: Community, **kwargs):
+    if not _touches(kwargs.get("update_fields"), {"name", "slug", "description"}):
+        return
     _refresh_vector(Community, instance.pk, ("name", "A"), ("slug", "A"), ("description", "B"))
 
 
 @receiver(post_save, sender=User)
 def _update_user_vector(sender, instance: User, **kwargs):
+    if not _touches(kwargs.get("update_fields"), {"username", "bio"}):
+        return
     _refresh_vector(User, instance.pk, ("username", "A"), ("bio", "B"))
