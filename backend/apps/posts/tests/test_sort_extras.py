@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 
 from apps.communities.models import Community
 from apps.posts.models import Post
+from apps.social.models import Follow
 from apps.votes.models import Vote
 
 User = get_user_model()
@@ -41,6 +42,12 @@ def _vote(user, post, value):
         object_id=post.id,
         value=value,
     )
+
+
+FEED = reverse("api_v1:feed:feed")
+FOLLOWING_FEED = reverse("api_v1:feed:feed-following")
+COMMUNITY_POSTS = reverse("api_v1:community-posts:community-posts", args=["c"])
+USER_POSTS = reverse("api_v1:posts:user-posts", args=["alice"])
 
 
 def list_url(slug):
@@ -85,3 +92,41 @@ class TestHotSort:
         new_post = Post.objects.create(author=alice, community=community, kind="text", title="new")
         ids = [p["id"] for p in api.get(list_url("c"), {"sort": "hot"}).data["results"]]
         assert ids.index(new_post.id) < ids.index(old_post.id)
+
+    def test_hot_balances_score_and_age(self, api, alice, community):
+        now = timezone.now()
+        voters = User.objects.bulk_create(
+            [User(username=f"v{i}", email=f"v{i}@x.com") for i in range(100)]
+        )
+        a = Post.objects.create(author=alice, community=community, kind="text", title="a")
+        b = Post.objects.create(author=alice, community=community, kind="text", title="b")
+        c = Post.objects.create(author=alice, community=community, kind="text", title="c")
+        d = Post.objects.create(
+            author=alice, community=community, kind="text", title="d", is_pinned=True
+        )
+        for voter in voters:
+            _vote(voter, a, 1)
+        for voter in voters[:10]:
+            _vote(voter, c, -1)
+        Post.objects.filter(pk=a.pk).update(created_at=now - timedelta(hours=12))
+        Post.objects.filter(pk=d.pk).update(created_at=now - timedelta(days=2))
+        ids = [p["id"] for p in api.get(list_url("c"), {"sort": "hot"}).data["results"]]
+        # Pinned first; then 100 votes outweigh 12 h of age; a negative score ranks below zero.
+        assert ids == [d.id, a.id, b.id, c.id]
+
+    @pytest.mark.parametrize(
+        "url, extra",
+        [
+            (FEED, {}),
+            (FEED, {"scope": "all"}),
+            (FOLLOWING_FEED, {}),
+            (COMMUNITY_POSTS, {}),
+            (USER_POSTS, {}),
+        ],
+    )
+    def test_hot_works_on_every_post_list(self, api, alice, bob, community, url, extra):
+        Follow.objects.create(follower=bob, followed=alice)
+        Post.objects.create(author=alice, community=community, kind="text", title="a")
+        api.force_authenticate(bob)
+        resp = api.get(url, {"sort": "hot", **extra})
+        assert resp.status_code == 200

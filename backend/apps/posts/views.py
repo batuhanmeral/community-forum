@@ -3,15 +3,14 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.db.models import (
     Count,
-    ExpressionWrapper,
+    F,
     FloatField,
     IntegerField,
     OuterRef,
     Subquery,
     Sum,
 )
-from django.db.models.expressions import RawSQL
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Abs, Cast, Coalesce, Extract, Greatest, Log, Sign
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -88,25 +87,12 @@ def _apply_time_window(qs, t: str | None):
 def _annotate_hot(qs):
     """Reddit's hot: sign(score) * log10(max(|score|,1)) + epoch/45000.
 
-    Postgres can compute this in SQL via GREATEST/LOG/SIGN.
+    Needs the `score` annotation (never NULL: Coalesce'd in _annotate_score).
     """
-    return qs.annotate(
-        hot=ExpressionWrapper(
-            RawSQL(
-                "SIGN(COALESCE((SELECT SUM(value) FROM votes_vote v "
-                "WHERE v.content_type_id = ("
-                "  SELECT id FROM django_content_type WHERE app_label='posts' AND model='post'"
-                ") AND v.object_id = posts_post.id), 0)) "
-                "* LOG(10, GREATEST(ABS(COALESCE((SELECT SUM(value) FROM votes_vote v "
-                "WHERE v.content_type_id = ("
-                "  SELECT id FROM django_content_type WHERE app_label='posts' AND model='post'"
-                ") AND v.object_id = posts_post.id), 0)), 1)) "
-                "+ EXTRACT(EPOCH FROM posts_post.created_at) / 45000.0",
-                [],
-            ),
-            output_field=FloatField(),
-        )
-    )
+    score = F("score")
+    # Cast: Postgres LOG(10, int) and EXTRACT return numeric; the API wants a float.
+    hot = Sign(score) * Log(10, Greatest(Abs(score), 1)) + Extract("created_at", "epoch") / 45000
+    return qs.annotate(hot=Cast(hot, FloatField()))
 
 
 def _apply_sort(qs, sort: str):
