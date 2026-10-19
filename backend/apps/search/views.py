@@ -12,6 +12,7 @@ from apps.posts.feed import _apply_nsfw_filter
 from apps.posts.models import Post
 from apps.posts.serializers import PostSerializer
 from apps.posts.views import _annotate_score, _base_post_qs
+from apps.social.services import with_social_annotations
 from apps.users.serializers import PublicUserSerializer
 
 User = get_user_model()
@@ -55,5 +56,5 @@ class SearchView(ListAPIView):
                 self.request.user,
             )
         elif type_param == "user":
-            qs = qs.filter(is_active=True)
+            qs = with_social_annotations(qs.filter(is_active=True), self.request.user)
         return qs.annotate(rank=SearchRank("search_vector", sq)).order_by("-rank")

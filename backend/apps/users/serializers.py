@@ -86,10 +86,12 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.post_karma + obj.comment_karma
 
     def get_followers_count(self, obj: User) -> int:
-        return obj.followers.count()
+        count = getattr(obj, "followers_count", None)
+        return obj.followers.count() if count is None else count
 
     def get_following_count(self, obj: User) -> int:
-        return obj.following.count()
+        count = getattr(obj, "following_count", None)
+        return obj.following.count() if count is None else count
 
     def get_is_following(self, obj: User) -> bool:
         request = self.context.get("request")
@@ -97,6 +99,9 @@ class UserSerializer(serializers.ModelSerializer):
             return False
         if request.user.id == obj.id:
             return False
+        follows = getattr(obj, "viewer_follows", None)
+        if follows is not None:
+            return follows
         return obj.followers.filter(follower=request.user).exists()
 
 
@@ -114,6 +119,9 @@ class PublicUserSerializer(UserSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated or request.user.id == obj.id:
             return False
+        blocks = getattr(obj, "viewer_blocks", None)
+        if blocks is not None:
+            return blocks
         return request.user.blocks.filter(blocked=obj).exists()
 
 

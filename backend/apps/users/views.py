@@ -11,6 +11,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.social.services import with_social_annotations
+
 from .emails import send_password_reset_email, send_verification_email
 from .serializers import (
     ChangePasswordSerializer,
@@ -151,11 +153,10 @@ class LeaderboardView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return (
-            User.objects.filter(is_active=True)
-            .annotate(karma=F("post_karma") + F("comment_karma"))
-            .order_by("-karma", "username")[:10]
+        users = User.objects.filter(is_active=True).annotate(
+            karma=F("post_karma") + F("comment_karma")
         )
+        return with_social_annotations(users, self.request.user).order_by("-karma", "username")[:10]
 
 
 class UserProfileView(generics.RetrieveAPIView):
@@ -163,4 +164,6 @@ class UserProfileView(generics.RetrieveAPIView):
     permission_classes = (permissions.AllowAny,)
     lookup_field = "username__iexact"
     lookup_url_kwarg = "username"
-    queryset = User.objects.filter(is_active=True)
+
+    def get_queryset(self):
+        return with_social_annotations(User.objects.filter(is_active=True), self.request.user)
