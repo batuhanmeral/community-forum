@@ -500,22 +500,22 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
           {t('messages.conversationUnavailable')}
         </p>
       ) : (
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-end gap-2 border-t border-[var(--color-border)] px-4 py-3"
-      >
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={1}
-          placeholder={`Message u/${other?.username}…`}
-          className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-        />
-        <Button type="submit" size="md" loading={sending} disabled={!body.trim()}>
-          Send
-        </Button>
-      </form>
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-end gap-2 border-t border-[var(--color-border)] px-4 py-3"
+        >
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={1}
+            placeholder={`Message u/${other?.username}…`}
+            className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+          />
+          <Button type="submit" size="md" loading={sending} disabled={!body.trim()}>
+            Send
+          </Button>
+        </form>
       )}
       {sendError && (
         <p role="alert" className="px-4 pb-3 text-xs text-[var(--color-danger)]">

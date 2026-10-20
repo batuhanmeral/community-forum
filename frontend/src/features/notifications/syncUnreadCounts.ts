@@ -3,7 +3,7 @@ import { getUnreadCounts } from '@/api/users';
 import { setDMUnreadCount } from '@/features/messaging/messagingSlice';
 import { setUnreadCount } from './notificationSlice';
 
-/** Single writer for both nav badges; a failed request keeps the last values. */
+/** The one place that fetches both nav badge counts; a failed request keeps the last values. */
 export async function syncUnreadCounts(dispatch: AppDispatch): Promise<void> {
   let counts;
   try {
