@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { logout } from '@/features/auth/authSlice';
 
 interface NotificationState {
   unreadCount: number;
@@ -21,6 +22,9 @@ const notificationSlice = createSlice({
     clearUnread(state) {
       state.unreadCount = 0;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(logout, () => initialState);
   },
 });
 

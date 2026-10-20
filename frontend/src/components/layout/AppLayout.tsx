@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import type { RootState } from '@/app/store';
 import { fetchMe } from '@/api/auth';
-import { logout, setUser } from '@/features/auth/authSlice';
+import { setUser } from '@/features/auth/authSlice';
+import { jwtUserId } from '@/features/auth/jwt';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { HomeRightSidebar } from './HomeRightSidebar';
@@ -10,17 +13,30 @@ import { cn } from '@/lib/cn';
 
 export function AppLayout() {
   const dispatch = useAppDispatch();
+  const { getState } = useStore<RootState>();
   const { accessToken, user } = useAppSelector((s) => s.auth);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
 
   useEffect(() => {
-    if (accessToken && !user) {
-      fetchMe()
-        .then((u) => dispatch(setUser(u)))
-        .catch(() => dispatch(logout()));
-    }
-  }, [accessToken, user, dispatch]);
+    if (!accessToken || user) return;
+    let active = true;
+    const load = () =>
+      fetchMe().then((u) => {
+        // A logout or account switch (possibly in another tab) while loading makes this user stale.
+        const current = getState().auth.accessToken;
+        if (active && current && jwtUserId(current) === String(u.id)) dispatch(setUser(u));
+      });
+    const retry = () => void load().catch(() => undefined);
+    // Logout belongs to the refresh path; a failed load (often offline) retries once on reconnect.
+    load().catch(() => {
+      if (active) window.addEventListener('online', retry, { once: true });
+    });
+    return () => {
+      active = false;
+      window.removeEventListener('online', retry);
+    };
+  }, [accessToken, user, dispatch, getState]);
 
   return (
     <div className="min-h-screen text-[var(--color-text)]">

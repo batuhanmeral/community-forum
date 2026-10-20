@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { logout } from '@/features/auth/authSlice';
 
 interface MessagingState {
   dmUnreadCount: number;
@@ -15,6 +16,9 @@ const messagingSlice = createSlice({
     setDMUnreadCount(state, action: PayloadAction<number>) {
       state.dmUnreadCount = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(logout, () => initialState);
   },
 });
 

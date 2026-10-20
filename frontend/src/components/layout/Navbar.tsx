@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { logout } from '@/features/auth/authSlice';
+import type { RootState } from '@/app/store';
+import { logout, readStoredTokens } from '@/features/auth/authSlice';
 import { logoutRequest } from '@/api/auth';
+import { withAuthLock } from '@/api/client';
 import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
 import { usePolling } from '@/lib/usePolling';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
@@ -35,8 +38,9 @@ const panelRightIcon = (
 export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: NavbarProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const { getState } = useStore<RootState>();
   const navigate = useNavigate();
-  const { user, refreshToken, status } = useAppSelector((s) => s.auth);
+  const { user, status } = useAppSelector((s) => s.auth);
   const dmUnread = useAppSelector((s) => s.messaging.dmUnreadCount);
   const notifUnread = useAppSelector((s) => s.notifications.unreadCount);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -74,8 +78,8 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
 
   const isAuthed = status === 'authenticated';
   const syncCounts = useCallback(() => {
-    void syncUnreadCounts(dispatch);
-  }, [dispatch]);
+    void syncUnreadCounts(dispatch, getState);
+  }, [dispatch, getState]);
 
   // Sync right away on login, then every 30 s while the tab is visible.
   useEffect(() => {
@@ -105,8 +109,12 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
   }, [menuOpen]);
 
   async function handleLogout() {
-    if (refreshToken) await logoutRequest(refreshToken);
-    dispatch(logout());
+    // Under the refresh lock so a refresh in flight can't store a new session after this logout.
+    await withAuthLock(async () => {
+      const { refresh } = readStoredTokens();
+      if (refresh) await logoutRequest(refresh);
+      dispatch(logout());
+    });
     setMenuOpen(false);
     navigate('/');
   }

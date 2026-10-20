@@ -11,7 +11,9 @@ import {
 } from '@/api/messaging';
 import type { Conversation, Message } from '@/features/messaging/types';
 import { appendPage, mergeFirstPage } from '@/features/messaging/conversations';
+import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import type { RootState } from '@/app/store';
 import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +37,7 @@ export function MessagesPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const { getState } = useStore<RootState>();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -178,7 +181,7 @@ export function MessagesPage() {
               setConversations((prev) =>
                 prev.map((c) => (c.id === selected.id ? { ...c, unread_count: 0 } : c)),
               );
-              void syncUnreadCounts(dispatch);
+              void syncUnreadCounts(dispatch, getState);
             }}
           />
         ) : (
