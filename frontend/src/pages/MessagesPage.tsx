@@ -19,6 +19,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { usePolling } from '@/lib/usePolling';
@@ -425,7 +426,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         <Avatar alt={other?.username} size="md" />
         <div className="min-w-0 flex-1">
           <Link
-            to={`/u/${other?.username}`}
+            to={userPath(other?.username ?? '')}
             className="text-[14px] font-semibold hover:text-[var(--color-accent)]"
           >
             u/{other?.username}

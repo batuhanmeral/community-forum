@@ -11,6 +11,7 @@ import { ReportModal } from '@/components/moderation/ReportModal';
 import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
 import { CommentForm } from './CommentForm';
 import type { CommentWithChildren } from './tree';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -77,7 +78,7 @@ export function CommentNode({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--color-text-muted)]">
           {node.author_username ? (
             <Link
-              to={`/u/${node.author_username}`}
+              to={userPath(node.author_username)}
               className="font-semibold text-[var(--color-text)] hover:underline"
             >
               {node.author_username}

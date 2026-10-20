@@ -18,6 +18,7 @@ import { ReportModal } from '@/components/moderation/ReportModal';
 import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -120,7 +121,7 @@ export function PostDetailPage() {
           </Link>
           <span className="text-[var(--color-text-dim)]">·</span>
           {post.author_username ? (
-            <Link to={`/u/${post.author_username}`} className="hover:underline">
+            <Link to={userPath(post.author_username)} className="hover:underline">
               u/{post.author_username}
             </Link>
           ) : (

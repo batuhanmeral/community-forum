@@ -3,6 +3,7 @@ import type { Post } from '@/features/posts/types';
 import type { VoteValue } from '@/api/votes';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import { SaveButton } from '@/components/saves/SaveButton';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -44,7 +45,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           )}
           {post.author_username ? (
             <Link
-              to={`/u/${post.author_username}`}
+              to={userPath(post.author_username)}
               onClick={(e) => e.stopPropagation()}
               className="text-[var(--color-text-soft)] hover:text-[var(--color-accent)]"
             >

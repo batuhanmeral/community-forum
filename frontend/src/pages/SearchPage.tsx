@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FollowButton } from '@/components/follow/FollowButton';
+import { userPath } from '@/lib/paths';
 import { cn } from '@/lib/cn';
 
 const TABS: { type: SearchType; label: string }[] = [
@@ -209,10 +210,10 @@ function UserResult({ user }: { user: UserProfile }) {
   const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-4 py-3.5 transition hover:border-[var(--color-border-strong)]">
-      <Link to={`/u/${user.username}`} className="shrink-0">
+      <Link to={userPath(user.username)} className="shrink-0">
         <Avatar src={user.avatar} alt={user.username} size="md" />
       </Link>
-      <Link to={`/u/${user.username}`} className="min-w-0 flex-1">
+      <Link to={userPath(user.username)} className="min-w-0 flex-1">
         <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]">
           u/{user.username}
         </h3>

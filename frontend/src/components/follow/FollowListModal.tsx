@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { listFollowers, listFollowing, type FollowUser } from '@/api/follow';
 import { Avatar } from '@/components/ui/Avatar';
 import { Modal } from '@/components/ui/Modal';
+import { userPath } from '@/lib/paths';
 import { FollowButton } from './FollowButton';
 
 type Mode = 'followers' | 'following';
@@ -68,7 +69,7 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
                 key={u.id}
                 className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[var(--color-surface)]"
               >
-                <Link to={`/u/${u.username}`} onClick={onClose} className="flex flex-1 items-center gap-3">
+                <Link to={userPath(u.username)} onClick={onClose} className="flex flex-1 items-center gap-3">
                   <Avatar src={u.avatar} alt={u.username} size="sm" />
                   <span className="text-sm font-medium">u/{u.username}</span>
                 </Link>

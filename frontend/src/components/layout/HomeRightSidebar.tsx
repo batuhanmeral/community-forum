@@ -8,6 +8,7 @@ import type { Community } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import { membershipsChanged } from '@/features/communities/membershipsSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
@@ -81,7 +82,7 @@ export function HomeRightSidebar() {
           {topUsers.map((u, i) => (
             <Link
               key={u.id}
-              to={`/u/${u.username}`}
+              to={userPath(u.username)}
               className="flex items-center gap-2.5 border-t border-[var(--color-border)] px-4 py-2 text-[12.5px] transition hover:bg-[var(--color-surface)]"
             >
               <span className={cn('font-mono w-3 text-[10.5px]', i === 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-dim)]')}>
