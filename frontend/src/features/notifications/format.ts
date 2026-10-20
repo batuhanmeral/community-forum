@@ -1,7 +1,9 @@
 import type { Notification } from './types';
 
+export type NotificationKind = 'comment' | 'reply' | 'mention' | 'follow' | 'message' | 'mod' | 'other';
+
 export interface FormattedNotification {
-  icon: string;
+  kind: NotificationKind;
   text: string;
   to: string | null;
 }
@@ -15,18 +17,18 @@ export function formatNotification(n: Notification): FormattedNotification {
 
   switch (n.verb) {
     case 'comment':
-      return { icon: '💬', text: `${actorLabel} commented on your post`, to };
+      return { kind: 'comment', text: `${actorLabel} commented on your post`, to };
     case 'reply':
-      return { icon: '↪', text: `${actorLabel} replied to your comment`, to };
+      return { kind: 'reply', text: `${actorLabel} replied to your comment`, to };
     case 'mention':
-      return { icon: '@', text: `${actorLabel} mentioned you`, to };
+      return { kind: 'mention', text: `${actorLabel} mentioned you`, to };
     case 'follow':
-      return { icon: '★', text: `${actorLabel} followed you`, to };
+      return { kind: 'follow', text: `${actorLabel} followed you`, to };
     case 'dm':
-      return { icon: '✉', text: `${actorLabel} sent you a message`, to };
+      return { kind: 'message', text: `${actorLabel} sent you a message`, to };
     case 'mod_action':
-      return { icon: '⚑', text: `A moderator acted on your ${n.target_type ?? 'content'}`, to };
+      return { kind: 'mod', text: `A moderator acted on your ${n.target_type ?? 'content'}`, to };
     default:
-      return { icon: '•', text: `${actorLabel} interacted with your content`, to };
+      return { kind: 'other', text: `${actorLabel} interacted with your content`, to };
   }
 }

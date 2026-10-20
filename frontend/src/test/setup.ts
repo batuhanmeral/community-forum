@@ -22,12 +22,14 @@ if (!globalThis.localStorage) {
 }
 
 // jsdom has no modal <dialog> API; emulate the open attribute and the close event.
-if (!HTMLDialogElement.prototype.showModal) {
+// Skipped under the node environment (lint-rule tests have no DOM).
+const hasDom = typeof HTMLDialogElement !== 'undefined';
+if (hasDom && !HTMLDialogElement.prototype.showModal) {
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
     this.open = true;
   };
 }
-if (!HTMLDialogElement.prototype.close) {
+if (hasDom && !HTMLDialogElement.prototype.close) {
   HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
     if (!this.open) return;
     this.open = false;

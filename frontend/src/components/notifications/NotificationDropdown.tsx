@@ -7,6 +7,8 @@ import { useAppDispatch } from '@/app/hooks';
 import { setUnreadCount } from '@/features/notifications/notificationSlice';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { NotificationIcon } from '@/components/notifications/NotificationIcon';
+import { ArrowRight, Bell } from 'lucide-react';
 
 interface NotificationDropdownProps {
   unreadCount: number;
@@ -77,9 +79,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
           open && 'bg-[var(--color-bg-elevated)] text-[var(--color-text)]',
         )}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-          <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6zM10 19a2 2 0 0 0 4 0" />
-        </svg>
+        <Bell className="h-[18px] w-[18px]" />
         {unreadCount > 0 && (
           <span
             className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[#061218]"
@@ -135,7 +135,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
                           : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',
                       )}
                     >
-                      {fmt.icon}
+                      <NotificationIcon kind={fmt.kind} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className={cn('text-[13px] leading-snug', unread ? 'text-[var(--color-text)]' : 'text-[var(--color-text-soft)]')}>
@@ -156,9 +156,10 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
             <Link
               to="/inbox"
               onClick={() => setOpen(false)}
-              className="text-[12px] font-medium text-[var(--color-accent)] hover:underline"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-accent)] hover:underline"
             >
-              See all notifications →
+              See all notifications
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
         </div>

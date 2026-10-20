@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/Card';
 import { PostCard } from '@/components/posts/PostCard';
 import { PostSortTabs } from '@/components/posts/PostSortTabs';
 import { cn } from '@/lib/cn';
+import { ArrowLeft, Bell, ChevronDown, ShieldCheck } from 'lucide-react';
 
 const notifyLabels: Record<NotifyLevel, string> = {
   all: 'All updates',
@@ -171,8 +172,9 @@ export function CommunityDetailPage() {
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
           The community c/{slug} doesn't exist.
         </p>
-        <Link to="/c" className="mt-3 inline-block text-sm text-[var(--color-accent)] hover:underline">
-          ← Browse communities
+        <Link to="/c" className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-accent)] hover:underline">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Browse communities
         </Link>
       </Card>
     );
@@ -210,9 +212,7 @@ export function CommunityDetailPage() {
               {(community.my_role === 'admin' || community.my_role === 'moderator') && (
                 <Link to={`/c/${community.slug}/mod`}>
                   <Button variant="secondary" size="md">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                      <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
-                    </svg>
+                    <ShieldCheck className="h-4 w-4" />
                     Mod tools
                   </Button>
                 </Link>
@@ -328,14 +328,9 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
         className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
         aria-label="Notification level"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-          <path d="M6 8a6 6 0 1 1 12 0v4l1.5 3h-15L6 12V8Z" />
-          <path d="M10 19a2 2 0 0 0 4 0" />
-        </svg>
+        <Bell className="h-4 w-4" />
         <span className="hidden sm:inline">{notifyLabels[value]}</span>
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-[var(--color-text-muted)]">
-          <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" />
-        </svg>
+        <ChevronDown className="h-4 w-4 text-[var(--color-text-muted)]" />
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-2xl">

@@ -12,6 +12,7 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
+import { ArrowBigUp, ArrowRight, Plus } from 'lucide-react';
 
 export function HomeRightSidebar() {
   const { t } = useTranslation();
@@ -94,7 +95,7 @@ export function HomeRightSidebar() {
                 </div>
               </div>
               <span className="font-mono text-[10.5px] text-[var(--color-text-dim)]">
-                ↑ {formatCount(u.total_karma)}
+                <span className="inline-flex items-center gap-0.5"><ArrowBigUp className="h-3 w-3" />{formatCount(u.total_karma)}</span>
               </span>
             </Link>
           ))}
@@ -109,9 +110,7 @@ export function HomeRightSidebar() {
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent)] px-3.5 py-[7px] text-[12.5px] font-semibold text-[#061218]"
             style={{ boxShadow: '0 4px 16px rgba(97, 218, 251, 0.28), inset 0 1px 0 rgba(255,255,255,0.4)' }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-              <path d="M12 5v14m-7-7h14" />
-            </svg>
+            <Plus strokeWidth={2.2} className="h-[13px] w-[13px]" />
             {t('rightbar.createCommunity')}
           </Link>
         </div>
@@ -151,8 +150,9 @@ function CardHead({ title, more }: { title: React.ReactNode; more?: string }) {
         {title}
       </h3>
       {more && (
-        <Link to={more} className="text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)]">
+        <Link to={more} className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)]">
           {t('rightbar.seeAll')}
+          <ArrowRight className="h-3 w-3" />
         </Link>
       )}
     </div>

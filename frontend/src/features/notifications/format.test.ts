@@ -57,7 +57,23 @@ describe('formatNotification', () => {
 
   it('has a default branch for unknown verbs', () => {
     const f = formatNotification(make({ verb: 'unknown' as Notification['verb'] }));
-    expect(f.icon).toBe('•');
+    expect(f.kind).toBe('other');
     expect(f.to).toBe('/posts/42#comment-7');
+  });
+
+  it('maps each verb to its kind and never returns an icon field', () => {
+    const kinds = {
+      comment: 'comment',
+      reply: 'reply',
+      mention: 'mention',
+      follow: 'follow',
+      dm: 'message',
+      mod_action: 'mod',
+    } as const;
+    for (const [verb, kind] of Object.entries(kinds)) {
+      const f = formatNotification(make({ verb: verb as Notification['verb'] }));
+      expect(f.kind).toBe(kind);
+      expect(f).not.toHaveProperty('icon');
+    }
   });
 });

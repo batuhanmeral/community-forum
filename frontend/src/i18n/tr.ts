@@ -39,7 +39,7 @@ export const tr: Translation = {
     noCommunities: 'Aktif topluluk yok.',
     karmaLeaders: 'Karma liderleri',
     createCommunity: 'Topluluk oluştur',
-    seeAll: 'Tümünü gör →',
+    seeAll: 'Tümünü gör',
     members: 'üye',
     joined: 'Üyesin',
     join: 'Katıl',

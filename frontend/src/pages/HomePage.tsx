@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { PostCard } from '@/components/posts/PostCard';
 import { cn } from '@/lib/cn';
+import { ArrowRight, ArrowUpToLine, BarChart3, Clock, Flame, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
 interface SortTab {
   id: SortOption;
@@ -17,20 +18,13 @@ interface SortTab {
 }
 
 const hotIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-    <path d="M13 3s4 4 4 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 0 0 2 2 2 0-4 2-7 2-7z" />
-  </svg>
+  <Flame className="h-[13px] w-[13px]" />
 );
 const newIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </svg>
+  <Clock className="h-[13px] w-[13px]" />
 );
 const topIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-    <path d="M7 14l5-7 5 7M5 21h14" />
-  </svg>
+  <ArrowUpToLine className="h-[13px] w-[13px]" />
 );
 
 const SORT_TABS: SortTab[] = [
@@ -295,23 +289,13 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
           </div>
           <div className="relative z-10 flex gap-1">
             <ComposeTool title="Image" kind="image">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <circle cx="9" cy="10" r="1.5" />
-                <path d="M21 16l-5-5-9 8" />
-              </svg>
+              <ImageIcon className="h-[17px] w-[17px]" />
             </ComposeTool>
             <ComposeTool title="Link" kind="link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11 7M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7L13 17" />
-              </svg>
+              <LinkIcon className="h-[17px] w-[17px]" />
             </ComposeTool>
             <ComposeTool title="Poll" kind="poll">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                <rect x="3" y="11" width="4" height="9" rx="1" />
-                <rect x="10" y="6" width="4" height="14" rx="1" />
-                <rect x="17" y="13" width="4" height="7" rx="1" />
-              </svg>
+              <BarChart3 className="h-[17px] w-[17px]" />
             </ComposeTool>
           </div>
         </div>
@@ -330,15 +314,17 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             feedKind === 'following' ? (
               <>
                 You aren't following anyone yet.{' '}
-                <Link to="/search?type=user" className="text-[var(--color-accent)] hover:underline">
-                  Discover users →
+                <Link to="/search?type=user" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+                  Discover users
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : isAuthed ? (
               <>
                 Your feed is empty.{' '}
-                <Link to="/c" className="text-[var(--color-accent)] hover:underline">
-                  Browse communities →
+                <Link to="/c" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+                  Browse communities
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : (

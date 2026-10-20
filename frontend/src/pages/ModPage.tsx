@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { ArrowLeft, X } from 'lucide-react';
 
 export function ModPage() {
   const { slug = '' } = useParams<{ slug: string }>();
@@ -64,8 +65,9 @@ export function ModPage() {
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
           You don't have moderator permissions for c/{slug}.
         </p>
-        <Link to={`/c/${slug}`} className="mt-3 inline-block text-sm text-[var(--color-accent)] hover:underline">
-          ← Back to community
+        <Link to={`/c/${slug}`} className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-accent)] hover:underline">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to community
         </Link>
       </Card>
     );
@@ -463,9 +465,7 @@ function FlairCard({ slug }: { slug: string }) {
                 aria-label={`Delete flair ${f.name}`}
                 className="opacity-60 transition hover:opacity-100"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
-                  <path d="M6 6l12 12M6 18 18 6" />
-                </svg>
+                <X className="h-3 w-3" />
               </button>
             </span>
           ))}

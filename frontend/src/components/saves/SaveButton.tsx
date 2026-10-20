@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toggleSave, type SaveTarget } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
+import { Bookmark } from 'lucide-react';
 
 interface SaveButtonProps {
   target: SaveTarget;
@@ -14,17 +15,7 @@ interface SaveButtonProps {
 }
 
 const bookmarkIcon = (filled: boolean) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill={filled ? 'currentColor' : 'none'}
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-[15px] w-[15px]"
-  >
-    <path d="M6 4h12v17l-6-4-6 4z" />
-  </svg>
+  <Bookmark fill={filled ? 'currentColor' : 'none'} className="h-[15px] w-[15px]" />
 );
 
 export function SaveButton({

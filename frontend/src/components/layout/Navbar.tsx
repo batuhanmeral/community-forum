@@ -13,6 +13,7 @@ import { usePolling } from '@/lib/usePolling';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
+import { ArrowBigUp, Menu, MessageSquare, PanelLeft, PanelRight, Plus, Search } from 'lucide-react';
 
 const UNREAD_POLL_MS = 30_000;
 
@@ -25,28 +26,17 @@ interface NavbarProps {
 }
 
 const panelLeftIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[16px] w-[16px]">
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <path d="M9 3v18" />
-  </svg>
+  <PanelLeft className="h-[16px] w-[16px]" />
 );
 const panelRightIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[16px] w-[16px]">
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <path d="M15 3v18" />
-  </svg>
+  <PanelRight className="h-[16px] w-[16px]" />
 );
 
 const menuIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-    <path d="M4 7h16M4 12h16M4 17h16" />
-  </svg>
+  <Menu className="h-[18px] w-[18px]" />
 );
 const searchIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-    <circle cx="11" cy="11" r="7" />
-    <path d="M20 20l-3.5-3.5" />
-  </svg>
+  <Search className="h-4 w-4" />
 );
 
 export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpenMenu }: NavbarProps) {
@@ -199,18 +189,14 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
           {isAuthed && user ? (
             <>
               <IconButton title={t('nav.messages')} to="/messages" count={dmUnread}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-                  <path d="M4 6h16v11h-7l-4 3v-3H4z" />
-                </svg>
+                <MessageSquare className="h-[18px] w-[18px]" />
               </IconButton>
               <NotificationDropdown unreadCount={notifUnread} />
               <Link
                 to="/submit"
                 className="btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold tracking-tight max-[480px]:px-2.5"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-                  <path d="M12 5v14m-7-7h14" />
-                </svg>
+                <Plus strokeWidth={2.2} className="h-[15px] w-[15px]" />
                 <span className="max-[480px]:sr-only">{t('nav.post')}</span>
               </Link>
               <div ref={menuRef} className="relative">
@@ -227,7 +213,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
                     <div className="px-4 py-2.5 text-xs text-[var(--color-text-muted)]">
                       {t('nav.signedInAs')} <span className="font-semibold text-[var(--color-text)]">{user.username}</span>
                       <div className="font-mono mt-1 flex gap-3 text-[11px] text-[var(--color-text-dim)]">
-                        <span>↑ <span className="text-[var(--color-accent)]">{user.post_karma + user.comment_karma}</span> {t('nav.karma')}</span>
+                        <span className="inline-flex items-center gap-0.5"><ArrowBigUp className="h-3.5 w-3.5" /><span className="text-[var(--color-accent)]">{user.post_karma + user.comment_karma}</span> {t('nav.karma')}</span>
                       </div>
                     </div>
                     <div className="border-t border-[var(--color-border)]" />

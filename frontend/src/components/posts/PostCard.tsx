@@ -7,6 +7,7 @@ import { SaveButton } from '@/components/saves/SaveButton';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { MessageSquare, Pin, Share } from 'lucide-react';
 
 interface PostCardProps {
   post: Post;
@@ -76,9 +77,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {post.is_nsfw && <Flair kind="news">NSFW</Flair>}
           {isPinned && (
             <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-accent)]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
-                <path d="M12 17v5m4-12V4H8v6L5 13v2h14v-2z" />
-              </svg>
+              <Pin className="h-3 w-3" />
               Pinned
             </span>
           )}
@@ -189,17 +188,13 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         />
 
         <ActionBtn href={`/posts/${post.id}`} icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-            <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.5-8.5 8.4 8.4 0 0 1 8.5 8.5z" />
-          </svg>
+          <MessageSquare className="h-[15px] w-[15px]" />
         }>
           <span className="font-mono text-[12px]">{post.comment_count}</span>
         </ActionBtn>
 
         <ActionBtn icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-            <path d="M4 12v8h16v-8M16 6l-4-4-4 4m4-4v14" />
-          </svg>
+          <Share className="h-[15px] w-[15px]" />
         }>
           <span className="max-[480px]:hidden">Share</span>
         </ActionBtn>

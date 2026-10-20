@@ -13,45 +13,35 @@ import { MarkdownEditor } from '@/components/posts/MarkdownEditor';
 import { clearDraft, loadDraft, saveDraft } from '@/lib/draft';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { AlignLeft, BarChart3, Image as ImageIcon, Link as LinkIcon, X } from 'lucide-react';
 
 const KIND_TABS: Array<{ value: PostKind; label: string; icon: React.ReactNode }> = [
   {
     value: 'text',
     label: 'Text',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <path d="M4 6h16M4 12h16M4 18h10" />
-      </svg>
+      <AlignLeft className="h-4 w-4" />
     ),
   },
   {
     value: 'image',
     label: 'Image',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <circle cx="9" cy="10" r="2" />
-        <path d="m3 18 6-5 5 4 4-3 3 3" />
-      </svg>
+      <ImageIcon className="h-4 w-4" />
     ),
   },
   {
     value: 'link',
     label: 'Link',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66L11 7" />
-        <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66L13 17" />
-      </svg>
+      <LinkIcon className="h-4 w-4" />
     ),
   },
   {
     value: 'poll',
     label: 'Poll',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <path d="M4 20V8M10 20V4M16 20v-8M22 20H2" />
-      </svg>
+      <BarChart3 className="h-4 w-4" />
     ),
   },
 ];
@@ -339,9 +329,7 @@ export function PostCreatePage() {
                         className="rounded-full p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)]"
                         aria-label="Remove option"
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                          <path d="M6 6l12 12M6 18 18 6" />
-                        </svg>
+                        <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { NotificationIcon } from '@/components/notifications/NotificationIcon';
+import { ArrowRight } from 'lucide-react';
 
 type Filter = 'all' | 'unread';
 
@@ -124,8 +126,9 @@ export function InboxPage() {
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
             {filter === 'unread' ? "You're all caught up." : 'No notifications yet.'}{' '}
-            <Link to="/" className="text-[var(--color-accent)] hover:underline">
-              Back to feed →
+            <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+              Back to feed
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </p>
         </Card>
@@ -153,7 +156,7 @@ export function InboxPage() {
                       : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',
                   )}
                 >
-                  {fmt.icon}
+                  <NotificationIcon kind={fmt.kind} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className={cn('text-sm leading-snug', unread ? 'text-[var(--color-text)]' : 'text-[var(--color-text-soft)]')}>

@@ -11,6 +11,7 @@ import { PostCard } from '@/components/posts/PostCard';
 import { FollowButton } from '@/components/follow/FollowButton';
 import { userPath } from '@/lib/paths';
 import { cn } from '@/lib/cn';
+import { ArrowBigUp } from 'lucide-react';
 
 const TABS: { type: SearchType; label: string }[] = [
   { type: 'post', label: 'search.posts' },
@@ -218,7 +219,7 @@ function UserResult({ user }: { user: UserProfile }) {
           u/{user.username}
         </h3>
         <p className="font-mono mt-0.5 text-[11.5px] text-[var(--color-text-dim)]">
-          ↑ {user.total_karma.toLocaleString()} karma · {user.followers_count.toLocaleString()}{' '}
+          <ArrowBigUp className="inline h-3.5 w-3.5 align-text-bottom" /> {user.total_karma.toLocaleString()} karma · {user.followers_count.toLocaleString()}{' '}
           {user.followers_count === 1 ? t('search.follower') : t('search.followers')}
         </p>
         {user.bio && (

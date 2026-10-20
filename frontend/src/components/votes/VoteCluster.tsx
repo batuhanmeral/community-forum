@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { castVote, type VoteTarget, type VoteValue } from '@/api/votes';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
+import { ArrowBigDown, ArrowBigUp } from 'lucide-react';
 
 interface VoteClusterProps {
   target: VoteTarget;
@@ -163,17 +164,7 @@ function ArrowBtn({ direction, active, size, btnSize, onClick }: ArrowBtnProps) 
         active && direction === 'down' && 'bg-[rgba(255,106,138,0.12)] text-[var(--color-danger)] hover:bg-[rgba(255,106,138,0.12)] hover:text-[var(--color-danger)]',
       )}
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ width: size, height: size }}
-      >
-        {direction === 'up' ? <path d="M12 19V5m-6 6l6-6 6 6" /> : <path d="M12 5v14m6-6l-6 6-6-6" />}
-      </svg>
+      {direction === 'up' ? <ArrowBigUp size={size} /> : <ArrowBigDown size={size} />}
     </button>
   );
 }

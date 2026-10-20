@@ -35,7 +35,7 @@ export const en = {
     noCommunities: 'No active communities.',
     karmaLeaders: 'Karma leaders',
     createCommunity: 'Create a community',
-    seeAll: 'See all →',
+    seeAll: 'See all',
     members: 'members',
     joined: 'Joined',
     join: 'Join',

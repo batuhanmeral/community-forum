@@ -23,6 +23,7 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { usePolling } from '@/lib/usePolling';
+import { Check, CheckCheck, ChevronLeft } from 'lucide-react';
 
 const POLL_MS = 10_000;
 const CONVERSATIONS_POLL_MS = 30_000;
@@ -419,9 +420,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
           aria-label={t('messages.back')}
           className="grid h-8 w-8 place-items-center rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-[721px]:hidden"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+          <ChevronLeft className="h-4 w-4" />
         </Link>
         <Avatar alt={other?.username} size="md" />
         <div className="min-w-0 flex-1">
@@ -487,7 +486,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                       {timeAgo(m.created_at)}
                       {own && (
                         <span title={m.read_at ? 'Read' : 'Sent'}>
-                          {m.read_at ? '✓✓' : '✓'}
+                          {m.read_at ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
                         </span>
                       )}
                     </div>

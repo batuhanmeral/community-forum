@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SidebarNav } from './Sidebar';
+import { X } from 'lucide-react';
 
 interface MobileNavProps {
   open: boolean;
@@ -8,9 +9,7 @@ interface MobileNavProps {
 }
 
 const closeIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-    <path d="M6 6l12 12M18 6L6 18" />
-  </svg>
+  <X className="h-[18px] w-[18px]" />
 );
 
 export function MobileNav({ open, onClose }: MobileNavProps) {

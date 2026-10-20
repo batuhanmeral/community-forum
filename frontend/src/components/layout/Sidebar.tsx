@@ -5,6 +5,7 @@ import { listCommunities } from '@/api/communities';
 import type { Community } from '@/features/communities/types';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
+import { Bookmark, Globe, Home, Plus, Settings, TrendingUp } from 'lucide-react';
 
 interface NavItem {
   to: string;
@@ -13,36 +14,22 @@ interface NavItem {
 }
 
 const homeIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z" />
-  </svg>
+  <Home className="h-full w-full" />
 );
 const trendIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 17l6-6 4 4 8-9M14 6h7v7" />
-  </svg>
+  <TrendingUp className="h-full w-full" />
 );
 const globeIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-  </svg>
+  <Globe className="h-full w-full" />
 );
 const bookmarkIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 4h12v17l-6-4-6 4z" />
-  </svg>
+  <Bookmark className="h-full w-full" />
 );
 const settingsIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <circle cx="12" cy="12" r="9" />
-  </svg>
+  <Settings className="h-full w-full" />
 );
 const plusIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 5v14m-7-7h14" />
-  </svg>
+  <Plus className="h-full w-full" />
 );
 
 const navItems: NavItem[] = [

@@ -24,6 +24,7 @@ import { ReportModal } from '@/components/moderation/ReportModal';
 import { fieldErrors } from '@/lib/apiErrors';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { ArrowBigUp, Flag } from 'lucide-react';
 
 export function UserProfilePage() {
   const { username = '' } = useParams<{ username: string }>();
@@ -149,9 +150,7 @@ export function UserProfilePage() {
                         aria-label="Report user"
                         className="grid h-9 w-9 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                          <path d="M4 21V4h12l-2 4 2 4H4" />
-                        </svg>
+                        <Flag className="h-[17px] w-[17px]" />
                       </button>
                     )}
                   </>
@@ -321,8 +320,9 @@ function ProfileCommentRow({ comment }: { comment: Comment }) {
         <span>{timeAgo(comment.created_at)}</span>
         {comment.edited_at && <span className="italic">(edited)</span>}
         <span>·</span>
-        <span className="text-[var(--color-text-soft)]">
-          ↑ {comment.score.toLocaleString()}
+        <span className="inline-flex items-center gap-0.5 text-[var(--color-text-soft)]">
+          <ArrowBigUp className="h-3.5 w-3.5" />
+          {comment.score.toLocaleString()}
         </span>
       </div>
       <p className="line-clamp-3 text-sm text-[var(--color-text-soft)] whitespace-pre-wrap">

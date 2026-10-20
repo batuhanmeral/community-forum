@@ -5,6 +5,7 @@ import type { Poll } from '@/features/posts/types';
 import { useAppSelector } from '@/app/hooks';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { Check } from 'lucide-react';
 
 interface PollCardProps {
   poll: Poll;
@@ -76,9 +77,7 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
             )}
             <span className="relative z-10 flex items-center gap-2">
               {voted && (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-[var(--color-accent)]">
-                  <path d="M5 12l5 5L20 7" />
-                </svg>
+                <Check strokeWidth={2.4} className="h-3.5 w-3.5 text-[var(--color-accent)]" />
               )}
               <span>{opt.text}</span>
             </span>

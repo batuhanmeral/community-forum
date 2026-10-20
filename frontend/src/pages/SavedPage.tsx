@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { PostCard } from '@/components/posts/PostCard';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { ArrowRight } from 'lucide-react';
 
 type Filter = 'all' | 'post' | 'comment';
 
@@ -96,8 +97,9 @@ export function SavedPage() {
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
             You haven't saved anything yet.{' '}
-            <Link to="/" className="text-[var(--color-accent)] hover:underline">
-              Browse the feed →
+            <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+              Browse the feed
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </p>
         </Card>
