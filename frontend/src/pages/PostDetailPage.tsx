@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
+import { NsfwReveal } from '@/components/posts/NsfwReveal';
 import { PollCard } from '@/components/posts/PollCard';
 import { SaveButton } from '@/components/saves/SaveButton';
 import { ReportModal } from '@/components/moderation/ReportModal';
@@ -20,7 +21,6 @@ import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
-import { cn } from '@/lib/cn';
 
 export function PostDetailPage() {
   const { t } = useTranslation();
@@ -104,6 +104,10 @@ export function PostDetailPage() {
   const isMod = myRole === 'admin' || myRole === 'moderator';
   const canReport = isAuthed && !isAuthor;
 
+  const image = post.image && (
+    <img src={post.image} alt={post.title} className="max-h-[600px] w-full object-contain" />
+  );
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <Card>
@@ -179,14 +183,7 @@ export function PostDetailPage() {
 
             {post.kind === 'image' && post.image && (
               <div className="mt-3 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className={cn(
-                    'max-h-[600px] w-full object-contain',
-                    post.is_nsfw && 'blur-2xl hover:blur-0 transition',
-                  )}
-                />
+                {post.is_nsfw ? <NsfwReveal>{image}</NsfwReveal> : image}
               </div>
             )}
 

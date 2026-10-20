@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Post } from '@/features/posts/types';
 import type { VoteValue } from '@/api/votes';
+import { NsfwReveal } from '@/components/posts/NsfwReveal';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import { SaveButton } from '@/components/saves/SaveButton';
 import { userPath } from '@/lib/paths';
@@ -14,6 +15,9 @@ interface PostCardProps {
 
 export function PostCard({ post, hideCommunity }: PostCardProps) {
   const isPinned = post.is_pinned;
+  const image = post.image && (
+    <img src={post.image} alt={post.title} className="max-h-[420px] w-full object-contain" loading="lazy" />
+  );
 
   return (
     <article
@@ -139,12 +143,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               background: `repeating-linear-gradient(135deg, rgba(255,255,255,0.018) 0 12px, transparent 12px 24px), var(--color-bg-elevated)`,
             }}
           >
-            <img
-              src={post.image}
-              alt={post.title}
-              className={cn('max-h-[420px] w-full object-contain', post.is_nsfw && 'blur-2xl transition hover:blur-0')}
-              loading="lazy"
-            />
+            {post.is_nsfw ? <NsfwReveal>{image}</NsfwReveal> : image}
           </div>
         )}
 

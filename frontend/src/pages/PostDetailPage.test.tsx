@@ -187,3 +187,25 @@ describe('PostDetailPage edit history', () => {
     expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
   });
 });
+
+describe('PostDetailPage NSFW image', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('skip'));
+  });
+
+  it('reveals an NSFW image on tap', async () => {
+    const user = userEvent.setup();
+    vi.mocked(postsApi.getPost).mockResolvedValue({
+      ...basePost,
+      kind: 'image',
+      image: 'https://example.com/i.png',
+      is_nsfw: true,
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Show NSFW content' }));
+    expect(screen.queryByRole('button', { name: 'Show NSFW content' })).toBeNull();
+    expect(screen.getByAltText('Title').closest('[aria-hidden="true"]')).toBeNull();
+  });
+});

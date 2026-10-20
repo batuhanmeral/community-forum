@@ -136,6 +136,9 @@ export const tr: Translation = {
     pendingApproval: 'Moderatör onayı bekleniyor. Bu gönderiyi yalnızca sen ve moderatörler görebilir.',
     edited: '(düzenlendi)',
   },
+  nsfw: {
+    reveal: 'NSFW içeriği göster',
+  },
   history: {
     title: 'Düzenleme geçmişi',
     empty: 'Daha eski sürüm yok.',

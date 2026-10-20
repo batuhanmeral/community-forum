@@ -132,6 +132,9 @@ export const en = {
     pendingApproval: 'Awaiting moderator approval. Only you and the moderators can see this post.',
     edited: '(edited)',
   },
+  nsfw: {
+    reveal: 'Show NSFW content',
+  },
   history: {
     title: 'Edit history',
     empty: 'No earlier versions.',

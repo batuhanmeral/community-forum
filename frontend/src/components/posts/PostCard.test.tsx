@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { useLocation } from 'react-router-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -89,5 +91,34 @@ describe('PostCard', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link.getAttribute('rel')).toContain('noopener');
     expect(link.getAttribute('rel')).toContain('noreferrer');
+  });
+
+  it('wraps NSFW images in the reveal and leaves safe images alone', () => {
+    renderCard(makePost({ kind: 'image', image: 'https://example.com/i.png', is_nsfw: true }));
+    expect(screen.getByRole('button', { name: 'Show NSFW content' })).toBeInTheDocument();
+  });
+
+  it('does not add a reveal to a safe image', () => {
+    renderCard(makePost({ kind: 'image', image: 'https://example.com/i.png' }));
+    expect(screen.queryByRole('button', { name: 'Show NSFW content' })).toBeNull();
+  });
+
+  it('revealing on a card does not navigate', async () => {
+    const user = userEvent.setup();
+    const store = configureStore({ reducer: { auth: authReducer } });
+    function Where() {
+      return <output data-testid="where">{useLocation().pathname}</output>;
+    }
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <PostCard post={makePost({ kind: 'image', image: 'https://example.com/i.png', is_nsfw: true })} />
+          <Where />
+        </MemoryRouter>
+      </Provider>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Show NSFW content' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/');
+    expect(screen.queryByRole('button', { name: 'Show NSFW content' })).toBeNull();
   });
 });
