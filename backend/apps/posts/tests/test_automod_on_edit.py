@@ -106,4 +106,6 @@ class TestAutoModOnEdit:
         ):
             with pytest.raises(RuntimeError):
                 _edit(api, author, post, body="spammy")
-        assert Post.objects.get(pk=post.pk).is_approved is False
+        # The edit runs in one transaction, so the keyword and its hold stand or fall together.
+        stored = Post.objects.get(pk=post.pk)
+        assert (stored.body, stored.is_approved) == ("", True)

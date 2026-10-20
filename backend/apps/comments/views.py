@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
@@ -167,7 +168,23 @@ class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIVie
         return comment
 
     def perform_update(self, serializer):
+        with transaction.atomic():
+            self._locked_update(serializer)
+        notify_mentions(
+            serializer.instance.body, actor=self.request.user, target=serializer.instance
+        )
+
+    def _locked_update(self, serializer):
         instance = serializer.instance
+        # Adopt a removal that landed after get_object, so the save can't revert it.
+        fresh = (
+            Comment.objects.select_for_update()
+            .filter(pk=instance.pk)
+            .values("deleted_at", "deleted_by_id")
+            .get()
+        )
+        for field, value in fresh.items():
+            setattr(instance, field, value)
         if is_banned(self.request.user, instance.post.community):
             raise PermissionDenied("You are banned from this community.")
         if instance.deleted_at is not None:
@@ -180,7 +197,6 @@ class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIVie
             )
             comment.edited_at = timezone.now()
             comment.save(update_fields=["edited_at"])
-        notify_mentions(comment.body, actor=self.request.user, target=comment)
 
     def perform_destroy(self, instance):
         if instance.deleted_at is not None:

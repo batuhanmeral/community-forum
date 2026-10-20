@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import (
     Count,
     F,
@@ -238,7 +239,20 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
 
     def perform_update(self, serializer):
+        with transaction.atomic():
+            self._locked_update(serializer)
+
+    def _locked_update(self, serializer):
         instance = serializer.instance
+        # Adopt moderation state that landed after get_object, so the save can't revert it.
+        fresh = (
+            Post.objects.select_for_update()
+            .filter(pk=instance.pk)
+            .values("deleted_at", "deleted_by_id", "is_approved", "is_pinned")
+            .get()
+        )
+        for field, value in fresh.items():
+            setattr(instance, field, value)
         if is_banned(self.request.user, instance.community):
             raise PermissionDenied("You are banned from this community.")
         if instance.deleted_at is not None:
