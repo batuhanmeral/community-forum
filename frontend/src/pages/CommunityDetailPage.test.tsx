@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer, { setUser } from '@/features/auth/authSlice';
+import membershipsReducer from '@/features/communities/membershipsSlice';
 import type { Community } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import { CommunityDetailPage } from './CommunityDetailPage';
@@ -41,7 +42,9 @@ const baseCommunity: Community = {
 };
 
 function renderPage() {
-  const store = configureStore({ reducer: { auth: authReducer } });
+  const store = configureStore({
+    reducer: { auth: authReducer, memberships: membershipsReducer },
+  });
   store.dispatch(
     setUser({
       id: 1,

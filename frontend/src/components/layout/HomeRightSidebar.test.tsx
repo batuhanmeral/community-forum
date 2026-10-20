@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/authSlice';
+import membershipsReducer from '@/features/communities/membershipsSlice';
 import type { Community } from '@/features/communities/types';
 import { HomeRightSidebar } from './HomeRightSidebar';
 import * as trendingApi from '@/api/trending';
@@ -34,7 +35,9 @@ const community: Community = {
 };
 
 function renderSidebar() {
-  const store = configureStore({ reducer: { auth: authReducer } });
+  const store = configureStore({
+    reducer: { auth: authReducer, memberships: membershipsReducer },
+  });
   return render(
     <Provider store={store}>
       <MemoryRouter>
