@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -64,3 +65,44 @@ class TestOGPages:
         alice.is_active = False
         alice.save(update_fields=["is_active"])
         assert api.get(reverse("og:og-user", args=["alice"])).status_code == 404
+
+
+@pytest.mark.django_db
+class TestOGNsfw:
+    def test_nsfw_post_og_hides_title_and_body(self, api, alice, community):
+        gif = SimpleUploadedFile("x.gif", b"GIF89a", content_type="image/gif")
+        post = Post.objects.create(
+            author=alice,
+            community=community,
+            title="Secret title",
+            body="Secret body",
+            is_nsfw=True,
+            image=gif,
+        )
+        html = api.get(reverse("og:og-post", args=[post.pk])).content.decode()
+        assert "NSFW post in c/py" in html
+        assert "This post is marked NSFW." in html
+        assert "Secret title" not in html
+        assert "Secret body" not in html
+        assert "og:image" not in html
+
+    def test_nsfw_community_og_hides_avatar_and_description(self, api, alice):
+        gif = SimpleUploadedFile("a.gif", b"GIF89a", content_type="image/gif")
+        adult = Community.objects.create(
+            slug="adult",
+            name="Adult Name",
+            creator=alice,
+            description="Explicit description",
+            is_nsfw=True,
+            avatar=gif,
+        )
+        html = api.get(reverse("og:og-community", args=[adult.slug])).content.decode()
+        assert "og:image" not in html
+        assert "An NSFW community on Nexus" in html
+        assert "Explicit description" not in html
+        assert "Adult Name" not in html
+
+    def test_safe_post_og_unchanged(self, api, post):
+        html = api.get(reverse("og:og-post", args=[post.pk])).content.decode()
+        assert "OG &lt;Title&gt;" in html
+        assert "OG body" in html

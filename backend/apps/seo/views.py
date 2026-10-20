@@ -55,19 +55,33 @@ def post_og(request, pk: int):
         Post.objects.select_related("community"), pk=pk, is_approved=True, deleted_at__isnull=True
     )
     description = post.body or f"Posted in c/{post.community.slug} on {SITE_NAME}"
-    nsfw = post.is_nsfw or post.community.is_nsfw
+    if post.is_nsfw or post.community.is_nsfw:
+        # Crawlers are anonymous, so NSFW previews must not leak title, body or image.
+        return _render(
+            request,
+            path=f"/posts/{post.pk}",
+            title=f"NSFW post in c/{post.community.slug}",
+            description="This post is marked NSFW.",
+        )
     return _render(
         request,
         path=f"/posts/{post.pk}",
         title=post.title,
         description=description,
-        image=post.image if post.image and not nsfw else None,
+        image=post.image or None,
     )
 
 
 @cache_page(CACHE_SECONDS)
 def community_og(request, slug: str):
     community = get_object_or_404(Community, slug=slug)
+    if community.is_nsfw:
+        return _render(
+            request,
+            path=f"/c/{community.slug}",
+            title=f"c/{community.slug}",
+            description=f"An NSFW community on {SITE_NAME}",
+        )
     return _render(
         request,
         path=f"/c/{community.slug}",

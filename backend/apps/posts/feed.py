@@ -8,12 +8,17 @@ from .serializers import PostSerializer
 from .views import _annotate_score, _apply_sort, _apply_time_window, _base_post_qs
 
 
+def nsfw_allowed(request) -> bool:
+    """True when an authed user opts in via ?nsfw=show or their profile pref."""
+    if not request.user.is_authenticated:
+        return False
+    param = request.query_params.get("nsfw")
+    return param == "show" or (param is None and request.user.show_nsfw)
+
+
 def _apply_nsfw_filter(qs, request):
-    """Hide NSFW unless an authed user opts in via ?nsfw=show or their profile pref."""
-    if request.user.is_authenticated:
-        param = request.query_params.get("nsfw")
-        if param == "show" or (param is None and request.user.show_nsfw):
-            return qs
+    if nsfw_allowed(request):
+        return qs
     return qs.exclude(Q(is_nsfw=True) | Q(community__is_nsfw=True))
 
 
