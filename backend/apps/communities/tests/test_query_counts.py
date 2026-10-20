@@ -6,7 +6,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from apps.communities.models import Community, Membership
+from apps.communities.models import Community, CommunityRule, Flair, Membership
 
 User = get_user_model()
 
@@ -106,3 +106,21 @@ def test_prefetched_membership_matches_viewer_state(
         assert ("banned_keywords" in payload) is expected["keywords"]
         if not expected["is_member"]:
             assert payload["my_notify_level"] is None
+
+
+def test_ten_rules_within_three_queries(api, owner, django_assert_max_num_queries):
+    community = Community.objects.create(slug="rules", name="Rules", creator=owner)
+    for i in range(10):
+        CommunityRule.objects.create(community=community, order=i, short=f"rule {i}")
+    with django_assert_max_num_queries(3):
+        resp = api.get(reverse("api_v1:communities:community-rules", args=["rules"]))
+    assert len(resp.data["results"]) == 10
+
+
+def test_ten_flairs_within_two_queries(api, owner, django_assert_max_num_queries):
+    community = Community.objects.create(slug="flairs", name="Flairs", creator=owner)
+    for i in range(10):
+        Flair.objects.create(community=community, name=f"flair {i}")
+    with django_assert_max_num_queries(2):
+        resp = api.get(reverse("api_v1:communities:community-flairs", args=["flairs"]))
+    assert len(resp.data) == 10

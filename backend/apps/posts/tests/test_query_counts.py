@@ -6,8 +6,9 @@ from rest_framework.test import APIClient
 
 from apps.common.viewer import viewer_vote
 from apps.communities.models import Community, Membership
-from apps.posts.models import Post
+from apps.posts.models import Post, PostRevision
 from apps.saves.models import SavedItem
+from apps.social.models import Follow
 from apps.votes.models import Vote
 
 User = get_user_model()
@@ -135,3 +136,49 @@ def test_patch_response_keeps_viewer_vote(api, author, posts):
 
 def test_viewer_vote_queries_when_object_was_not_prefetched(viewer, posts):
     assert viewer_vote(Post.objects.get(pk=posts[1].pk), viewer) == -1
+
+
+@pytest.fixture
+def moderator(community):
+    mod = User.objects.create_user(username="mod", email="mod@x.com", password="x")
+    Membership.objects.create(user=mod, community=community, role="moderator")
+    return mod
+
+
+def test_ten_revisions_within_three_queries(api, author, community, django_assert_max_num_queries):
+    post = Post.objects.create(author=author, community=community, kind="text", title="t")
+    for i in range(10):
+        editor = User.objects.create_user(username=f"ed{i}", email=f"ed{i}@x.com", password="x")
+        PostRevision.objects.create(post=post, title="old", body="b", edited_by=editor)
+    api.force_authenticate(author)
+    with django_assert_max_num_queries(3):
+        resp = api.get(reverse("api_v1:posts:post-revisions", args=[post.pk]))
+    assert len(resp.data["results"]) == 10
+
+
+def test_ten_held_posts_within_seven_queries(
+    api, moderator, community, django_assert_max_num_queries
+):
+    for i in range(10):
+        writer = User.objects.create_user(username=f"w{i}", email=f"w{i}@x.com", password="x")
+        Post.objects.create(
+            author=writer, community=community, kind="text", title=f"held {i}", is_approved=False
+        )
+    api.force_authenticate(moderator)
+    url = reverse("api_v1:community-posts:community-approval-queue", args=["py"])
+    with django_assert_max_num_queries(7):
+        resp = api.get(url)
+    assert len(resp.data["results"]) == 10
+
+
+def test_following_feed_with_ten_posts_within_five_queries(
+    api, viewer, community, django_assert_max_num_queries
+):
+    for i in range(10):
+        writer = User.objects.create_user(username=f"f{i}", email=f"f{i}@x.com", password="x")
+        Follow.objects.create(follower=viewer, followed=writer)
+        Post.objects.create(author=writer, community=community, kind="text", title=f"p {i}")
+    api.force_authenticate(viewer)
+    with django_assert_max_num_queries(5):
+        resp = api.get(reverse("api_v1:feed:feed-following"))
+    assert len(resp.data["results"]) == 10

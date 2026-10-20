@@ -66,3 +66,16 @@ def test_unread_and_last_message_values(api, me):
     assert by_user["bob"]["last_message"]["body"] == "latest"
     assert by_user["carol"]["unread_count"] == 0
     assert by_user["carol"]["last_message"] is None
+
+
+@pytest.mark.django_db
+def test_ten_messages_within_three_queries(api, me, django_assert_max_num_queries):
+    other = _user("other")
+    conv = _conv(me, other)
+    for i in range(10):
+        Message.objects.create(conversation=conv, sender=other if i % 2 else me, body=f"m{i}")
+    api.force_authenticate(me)
+    url = reverse("api_v1:messaging:conversation-messages", args=[conv.pk])
+    with django_assert_max_num_queries(3):
+        resp = api.get(url)
+    assert len(resp.data["results"]) == 10
