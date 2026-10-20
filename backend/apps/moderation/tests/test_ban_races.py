@@ -108,3 +108,16 @@ def test_ban_when_member_left_mid_request(member, community, mod):
     assert banned.banned_by == mod
     assert banned.banned_at is not None
     assert ModAction.objects.filter(action=ModAction.Action.USER_BAN).count() == 1
+
+
+@pytest.mark.django_db
+def test_demoted_actor_cannot_recreate_ban_for_vanished_member(member, community, mod):
+    def demoted_and_member_left(actor, comm):
+        Membership.objects.filter(user=member, community=comm).delete()
+        return ()
+
+    with patch("apps.moderation.views.roles_below", side_effect=demoted_and_member_left):
+        resp = _client(mod).post(ban_url(community.slug, member.username))
+    assert resp.status_code == 403
+    assert not Membership.objects.filter(user=member, community=community).exists()
+    assert not ModAction.objects.filter(action=ModAction.Action.USER_BAN).exists()
