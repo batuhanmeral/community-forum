@@ -269,6 +269,9 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
   const stickToBottom = useRef(true);
   // Lets the poll callback see the loaded list without re-creating itself.
   const messagesRef = useRef<Message[]>([]);
+  // Bumped when a poll replaces the list, so an in-flight older page can tell it is stale.
+  const listGeneration = useRef(0);
+  const [lost, setLost] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -308,6 +311,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         const known = new Set(loaded.map((m) => m.id));
         // No shared id means more than a page of messages arrived; the gap can't be filled by merging.
         if (d.results.length > 0 && !d.results.some((m) => known.has(m.id))) {
+          listGeneration.current += 1;
           setMessages([...d.results].reverse());
           setOlderPage(d.next ? 2 : null);
         } else {
@@ -334,10 +338,14 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
             .catch(() => undefined);
         }
       })
-      .catch(() => undefined);
+      .catch((err: AxiosError) => {
+        // Access was revoked or the conversation is gone; retrying can't succeed.
+        const status = err.response?.status;
+        if (status === 403 || status === 404) setLost(true);
+      });
   }, [conversation.id, currentUserId, onRead]);
 
-  usePolling(pollLatest, POLL_MS, !loading);
+  usePolling(pollLatest, POLL_MS, !loading && !lost);
 
   function handleScroll() {
     const el = scrollRef.current;
@@ -349,8 +357,11 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
     if (olderPage === null || loadingOlder) return;
     setLoadingOlder(true);
     setLoadOlderError(false);
+    const generation = listGeneration.current;
     try {
       const d = await listMessages(conversation.id, olderPage);
+      // A poll replaced the list meanwhile; this page no longer lines up with it.
+      if (generation !== listGeneration.current) return;
       stickToBottom.current = false;
       setMessages((current) => {
         const known = new Set(current.map((m) => m.id));
@@ -484,6 +495,11 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         )}
       </div>
 
+      {lost ? (
+        <p className="border-t border-[var(--color-border)] px-4 py-3 text-center text-sm text-[var(--color-text-muted)]">
+          {t('messages.conversationUnavailable')}
+        </p>
+      ) : (
       <form
         onSubmit={handleSubmit}
         className="flex items-end gap-2 border-t border-[var(--color-border)] px-4 py-3"
@@ -500,6 +516,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
           Send
         </Button>
       </form>
+      )}
       {sendError && (
         <p role="alert" className="px-4 pb-3 text-xs text-[var(--color-danger)]">
           {sendError}

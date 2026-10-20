@@ -122,6 +122,7 @@ export const en = {
   messages: {
     loadOlder: 'Load older messages',
     loadOlderFailed: 'Could not load older messages.',
+    conversationUnavailable: 'This conversation is no longer available.',
     sendFailed: 'Message could not be sent.',
     back: 'Back to conversations',
     loadMoreConversations: 'Load more conversations',

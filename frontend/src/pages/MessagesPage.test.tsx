@@ -243,6 +243,72 @@ describe('MessagesPage polling', () => {
     expect(screen.getByRole('button', { name: 'Load older messages' })).toBeInTheDocument();
   });
 
+  it('stops polling and shows a notice when the conversation returns 404', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    api.listMessages
+      .mockResolvedValueOnce(page([msg(1)], null))
+      .mockRejectedValue({ response: { status: 404 } });
+    renderAt('/messages/1');
+    await screen.findByText('m1');
+
+    for (let tick = 0; tick < 3; tick += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+    }
+    // One initial load plus the single poll that failed.
+    expect(api.listMessages).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('This conversation is no longer available.')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/message u\/bob/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps polling after a network error', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    api.listMessages
+      .mockResolvedValueOnce(page([msg(1)], null))
+      .mockRejectedValue(new Error('Network Error'));
+    renderAt('/messages/1');
+    await screen.findByText('m1');
+
+    for (let tick = 0; tick < 3; tick += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+    }
+    expect(api.listMessages).toHaveBeenCalledTimes(4);
+    expect(screen.getByPlaceholderText(/message u\/bob/i)).toBeInTheDocument();
+  });
+
+  it('drops an older page that resolves after a poll replaced the list', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let resolveOlder!: (value: ReturnType<typeof page>) => void;
+    api.listMessages.mockImplementation((_id, pageNumber) => {
+      if (pageNumber === 2) {
+        return new Promise<ReturnType<typeof page>>((resolve) => {
+          resolveOlder = resolve;
+        });
+      }
+      return Promise.resolve(
+        api.listMessages.mock.calls.length === 1 ? page([msg(3)], 'p2') : page([msg(6), msg(5)], 'p2'),
+      );
+    });
+    renderAt('/messages/1');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Load older messages' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    await screen.findByText('m6');
+
+    await act(async () => resolveOlder(page([msg(2), msg(1)], null)));
+    expect(screen.queryByText('m1')).not.toBeInTheDocument();
+    expect(screen.queryByText('m2')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load older messages' }));
+    const olderCalls = api.listMessages.mock.calls.filter(([, p]) => p === 2);
+    expect(olderCalls).toHaveLength(2);
+  });
+
   it('does not duplicate a sent message when a poll resolves in the same tick', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
