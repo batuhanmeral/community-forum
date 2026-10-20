@@ -265,11 +265,21 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
 
     def _locked_update(self, serializer):
         instance = serializer.instance
-        # Adopt moderation state that landed after get_object, so the save can't revert it.
+        # Adopt the locked row (moderation and content) so the save and checks can't use a stale read.
         fresh = (
             Post.objects.select_for_update()
             .filter(pk=instance.pk)
-            .values("deleted_at", "deleted_by_id", "is_approved", "is_pinned")
+            .values(
+                "deleted_at",
+                "deleted_by_id",
+                "is_approved",
+                "is_pinned",
+                "title",
+                "body",
+                "url",
+                "image",
+                "flair_id",
+            )
             .get()
         )
         for field, value in fresh.items():

@@ -2,11 +2,13 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.communities.models import Community, Membership
+from apps.communities.models import Community, Flair, Membership
 from apps.posts.models import Post, PostRevision
 from apps.posts.views import PostDetailView
 
@@ -98,3 +100,48 @@ def test_mod_approval_during_author_edit_stands(author_api, post):
     post.refresh_from_db()
     assert resp.status_code == 200
     assert post.is_approved is True and post.title == "new title"
+
+
+def test_concurrent_same_author_edit_is_not_reverted(author_api, post):
+    resp = _patch_after_moderator(
+        author_api,
+        post,
+        lambda: Post.objects.filter(pk=post.pk).update(body="concurrent body"),
+        {"title": "new title"},
+    )
+    post.refresh_from_db()
+    assert resp.status_code == 200
+    assert post.title == "new title" and post.body == "concurrent body"
+
+
+def test_revision_base_is_the_locked_row(author_api, post):
+    resp = _patch_after_moderator(
+        author_api,
+        post,
+        lambda: Post.objects.filter(pk=post.pk).update(body="concurrent body"),
+        {"body": "final body"},
+    )
+    assert resp.status_code == 200
+    revision = PostRevision.objects.get(post=post)
+    assert revision.body == "concurrent body"
+
+
+def test_concurrent_flair_delete_does_not_break_edit(author_api, post, community):
+    flair = Flair.objects.create(community=community, name="f")
+    Post.objects.filter(pk=post.pk).update(flair=flair)
+    resp = _patch_after_moderator(author_api, post, lambda: flair.delete(), {"title": "new title"})
+    post.refresh_from_db()
+    assert resp.status_code == 200
+    assert post.flair_id is None and post.title == "new title"
+
+
+def test_edit_locks_the_post_row(author_api, post):
+    with CaptureQueriesContext(connection) as ctx:
+        resp = author_api.patch(
+            reverse("api_v1:posts:post-detail", args=[post.id]), {"title": "x"}, format="json"
+        )
+    assert resp.status_code == 200
+    assert any(
+        'FROM "posts_post"' in q["sql"] and q["sql"].endswith("FOR UPDATE")
+        for q in ctx.captured_queries
+    )
