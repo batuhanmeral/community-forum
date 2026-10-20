@@ -21,6 +21,7 @@ interface NavbarProps {
   rightOpen?: boolean;
   onToggleLeft?: () => void;
   onToggleRight?: () => void;
+  onOpenMenu?: () => void;
 }
 
 const panelLeftIcon = (
@@ -36,7 +37,19 @@ const panelRightIcon = (
   </svg>
 );
 
-export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: NavbarProps) {
+const menuIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </svg>
+);
+const searchIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+    <circle cx="11" cy="11" r="7" />
+    <path d="M20 20l-3.5-3.5" />
+  </svg>
+);
+
+export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpenMenu }: NavbarProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { getState } = useStore<RootState>();
@@ -47,6 +60,8 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
 
@@ -68,6 +83,10 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (mobileSearchOpen) mobileSearchRef.current?.focus();
+  }, [mobileSearchOpen]);
+
   function handleSearch(e: FormEvent) {
     e.preventDefault();
     const q = query.trim();
@@ -75,6 +94,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
     const type = searchParams.get('type') ?? 'post';
     navigate(`/search?q=${encodeURIComponent(q)}&type=${type}`);
     searchRef.current?.blur();
+    mobileSearchRef.current?.blur();
   }
 
   const isAuthed = status === 'authenticated';
@@ -122,7 +142,18 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[rgba(8,8,10,0.72)] backdrop-blur-xl backdrop-saturate-150">
-      <div className="mx-auto flex h-[68px] max-w-[1280px] items-center gap-4 px-20 max-[1180px]:px-10 max-[960px]:gap-3 max-[960px]:px-4">
+      <div className="mx-auto flex h-[68px] max-w-[1280px] items-center gap-4 px-20 max-[1180px]:px-10 max-[960px]:gap-3 max-[960px]:px-4 max-sm:gap-2">
+        {onOpenMenu && (
+          <button
+            type="button"
+            onClick={onOpenMenu}
+            aria-label={t('nav.openMenu')}
+            className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)] min-[960px]:hidden"
+          >
+            {menuIcon}
+          </button>
+        )}
+
         {/* Left sidebar toggle */}
         {onToggleLeft && (
           <button
@@ -130,7 +161,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
             onClick={onToggleLeft}
             title={leftOpen ? 'Hide navigation' : 'Show navigation'}
             className={cn(
-              'hidden place-items-center rounded-[8px] p-1.5 transition lg:grid',
+              'hidden place-items-center rounded-[8px] p-1.5 transition min-[960px]:grid',
               'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
               !leftOpen && 'text-[var(--color-accent)]',
             )}
@@ -139,34 +170,32 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
           </button>
         )}
 
-        <Link to="/" className="flex items-center font-semibold tracking-tight">
+        <Link to="/" className="flex shrink-0 items-center font-semibold tracking-tight">
           <span className="text-lg">Nexus</span>
         </Link>
 
-        <form
+        <SearchForm
+          inputRef={searchRef}
+          value={query}
+          onChange={setQuery}
           onSubmit={handleSearch}
-          className="mx-auto flex w-full max-w-xl items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[rgba(97,218,251,0.4)] focus-within:bg-[var(--color-bg-3)] focus-within:shadow-[0_0_0_4px_rgba(97,218,251,0.08)]"
-        >
-          <button type="submit" aria-label="Search" className="shrink-0 text-[var(--color-text-dim)] transition hover:text-[var(--color-accent)]">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M20 20l-3.5-3.5" />
-            </svg>
-          </button>
-          <input
-            ref={searchRef}
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('nav.searchPlaceholder')}
-            className="flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:outline-none"
-          />
-          <span className="font-mono inline-flex items-center gap-0.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-3)] px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)]">
-            ⌘ K
-          </span>
-        </form>
+          className="mx-auto hidden max-w-xl sm:flex"
+        />
 
-        <div className="flex items-center justify-end gap-2.5">
+        <div className="flex items-center justify-end gap-2.5 max-sm:ml-auto max-sm:gap-1">
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen((o) => !o)}
+            aria-label={t('nav.openSearch')}
+            aria-expanded={mobileSearchOpen}
+            className={cn(
+              'grid h-[38px] w-[38px] place-items-center rounded-[11px] transition sm:hidden',
+              'text-[var(--color-text-soft)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
+              mobileSearchOpen && 'bg-[var(--color-bg-elevated)] text-[var(--color-text)]',
+            )}
+          >
+            {searchIcon}
+          </button>
           {isAuthed && user ? (
             <>
               <IconButton title={t('nav.messages')} to="/messages" count={dmUnread}>
@@ -177,12 +206,12 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
               <NotificationDropdown unreadCount={notifUnread} />
               <Link
                 to="/submit"
-                className="btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold tracking-tight"
+                className="btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold tracking-tight max-[480px]:px-2.5"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
                   <path d="M12 5v14m-7-7h14" />
                 </svg>
-                {t('nav.post')}
+                <span className="max-[480px]:sr-only">{t('nav.post')}</span>
               </Link>
               <div ref={menuRef} className="relative">
                 <button
@@ -244,7 +273,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
               onClick={onToggleRight}
               title={rightOpen ? 'Hide sidebar' : 'Show sidebar'}
               className={cn(
-                'hidden place-items-center rounded-[8px] p-1.5 transition lg:grid',
+                'hidden place-items-center rounded-[8px] p-1.5 transition min-[960px]:grid',
                 'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
                 !rightOpen && 'text-[var(--color-accent)]',
               )}
@@ -254,6 +283,18 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
           )}
         </div>
       </div>
+
+      {mobileSearchOpen && (
+        <div className="px-4 pb-3 sm:hidden">
+          <SearchForm
+            inputRef={mobileSearchRef}
+            value={query}
+            onChange={setQuery}
+            onSubmit={handleSearch}
+            className="flex"
+          />
+        </div>
+      )}
 
       <style>{`
         .btn-primary {
@@ -269,6 +310,42 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
         .btn-primary:active { transform: translateY(0); }
       `}</style>
     </header>
+  );
+}
+
+interface SearchFormProps {
+  inputRef: React.Ref<HTMLInputElement>;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (e: FormEvent) => void;
+  className?: string;
+}
+
+function SearchForm({ inputRef, value, onChange, onSubmit, className }: SearchFormProps) {
+  const { t } = useTranslation();
+  return (
+    <form
+      onSubmit={onSubmit}
+      className={cn(
+        'w-full items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[rgba(97,218,251,0.4)] focus-within:bg-[var(--color-bg-3)] focus-within:shadow-[0_0_0_4px_rgba(97,218,251,0.08)]',
+        className,
+      )}
+    >
+      <button type="submit" aria-label="Search" className="shrink-0 text-[var(--color-text-dim)] transition hover:text-[var(--color-accent)]">
+        {searchIcon}
+      </button>
+      <input
+        ref={inputRef}
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={t('nav.searchPlaceholder')}
+        className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:outline-none"
+      />
+      <span className="font-mono inline-flex items-center gap-0.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-3)] px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] max-[960px]:hidden">
+        ⌘ K
+      </span>
+    </form>
   );
 }
 

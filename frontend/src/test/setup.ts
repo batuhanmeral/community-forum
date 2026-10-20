@@ -21,6 +21,20 @@ if (!globalThis.localStorage) {
   Object.defineProperty(globalThis, 'localStorage', { value: mock, configurable: true });
 }
 
+// jsdom has no modal <dialog> API; emulate the open attribute and the close event.
+if (!HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+}
+if (!HTMLDialogElement.prototype.close) {
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    if (!this.open) return;
+    this.open = false;
+    this.dispatchEvent(new Event('close'));
+  };
+}
+
 afterEach(() => {
   cleanup();
 });

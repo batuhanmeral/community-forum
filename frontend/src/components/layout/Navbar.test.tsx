@@ -1,6 +1,7 @@
+import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer, { REFRESH_KEY, logout, setUser } from '@/features/auth/authSlice';
@@ -19,7 +20,12 @@ vi.mock('@/api/auth', () => ({ logoutRequest: vi.fn() }));
 
 const users = vi.mocked(usersApi);
 
-function renderNavbar() {
+function LocationProbe() {
+  const { pathname, search } = useLocation();
+  return <output data-testid="location">{pathname + search}</output>;
+}
+
+function renderNavbar(props: ComponentProps<typeof Navbar> = {}) {
   const store = configureStore({
     reducer: { auth: authReducer, messaging: messagingReducer, notifications: notificationReducer },
   });
@@ -39,7 +45,8 @@ function renderNavbar() {
   render(
     <Provider store={store}>
       <MemoryRouter>
-        <Navbar />
+        <Navbar {...props} />
+        <LocationProbe />
       </MemoryRouter>
     </Provider>,
   );
@@ -173,5 +180,41 @@ describe('Navbar logout', () => {
     } finally {
       delete (navigator as { locks?: unknown }).locks;
     }
+  });
+});
+
+describe('Navbar mobile header', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    users.getUnreadCounts.mockResolvedValue({ notifications: 0, messages: 0 });
+  });
+
+  it('the mobile search button reveals the search box', async () => {
+    renderNavbar();
+    await act(async () => {});
+    expect(screen.getAllByRole('searchbox')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Open search' }));
+    const boxes = screen.getAllByRole('searchbox');
+    expect(boxes).toHaveLength(2);
+    expect(boxes[1]).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Open search' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('searches from the mobile search row', async () => {
+    renderNavbar();
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'Open search' }));
+    const box = screen.getAllByRole('searchbox')[1];
+    fireEvent.change(box, { target: { value: 'cats' } });
+    fireEvent.submit(box.closest('form')!);
+    expect(screen.getByTestId('location')).toHaveTextContent('/search?q=cats&type=post');
+  });
+
+  it('the menu button asks the layout to open the drawer', async () => {
+    const onOpenMenu = vi.fn();
+    renderNavbar({ onOpenMenu });
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    expect(onOpenMenu).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type { RootState } from '@/app/store';
@@ -9,6 +9,7 @@ import { jwtUserId } from '@/features/auth/jwt';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { HomeRightSidebar } from './HomeRightSidebar';
+import { MobileNav } from './MobileNav';
 import { cn } from '@/lib/cn';
 
 export function AppLayout() {
@@ -17,6 +18,13 @@ export function AppLayout() {
   const { accessToken, user } = useAppSelector((s) => s.auth);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { key: locationKey } = useLocation();
+
+  // Any navigation closes the drawer, including ones started outside it (back button, links in the page).
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [locationKey]);
 
   useEffect(() => {
     if (!accessToken || user) return;
@@ -45,7 +53,9 @@ export function AppLayout() {
         rightOpen={rightOpen}
         onToggleLeft={() => setLeftOpen((o) => !o)}
         onToggleRight={() => setRightOpen((o) => !o)}
+        onOpenMenu={() => setMenuOpen(true)}
       />
+      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="relative mx-auto flex max-w-[1280px] gap-5 px-20 pb-20 max-[1180px]:px-10 max-[960px]:px-4">
         {/* Left sidebar */}
         <div

@@ -10,6 +10,10 @@ export const en = {
     settings: 'Settings',
     logout: 'Log out',
     karma: 'karma',
+    menu: 'Menu',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    openSearch: 'Open search',
   },
   sidebar: {
     home: 'Home',

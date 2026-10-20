@@ -14,6 +14,10 @@ export const tr: Translation = {
     settings: 'Ayarlar',
     logout: 'Çıkış yap',
     karma: 'karma',
+    menu: 'Menü',
+    openMenu: 'Menüyü aç',
+    closeMenu: 'Menüyü kapat',
+    openSearch: 'Aramayı aç',
   },
   sidebar: {
     home: 'Ana sayfa',
