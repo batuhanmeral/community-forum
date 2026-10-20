@@ -77,3 +77,16 @@ describe('HomePage joined communities subtitle', () => {
     );
   });
 });
+
+describe('HomePage compose box', () => {
+  it('has no nested anchors and keeps the tool links', async () => {
+    posts.listFeed.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    communities.listCommunities.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    const { container } = renderAuthed();
+    await screen.findByText(/Your feed is empty/);
+    expect(container.querySelectorAll('a a')).toHaveLength(0);
+    for (const kind of ['image', 'link', 'poll']) {
+      expect(container.querySelector(`a[href="/submit?kind=${kind}"]`)).not.toBeNull();
+    }
+  });
+});

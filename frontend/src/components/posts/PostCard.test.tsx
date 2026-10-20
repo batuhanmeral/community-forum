@@ -55,4 +55,39 @@ describe('PostCard', () => {
     renderCard(makePost({ author_username: 'a b' }));
     expect(screen.getByRole('link', { name: 'u/a b' })).toHaveAttribute('href', '/u/a%20b');
   });
+
+  it.each(['text', 'link', 'image', 'poll'] as const)('a %s card has no nested anchors', (kind) => {
+    const post = makePost({
+      kind,
+      url: kind === 'link' ? 'https://example.com/x' : '',
+      image: kind === 'image' ? 'https://example.com/i.png' : null,
+      poll:
+        kind === 'poll'
+          ? {
+              id: 1,
+              options: [{ id: 1, text: 'A', order: 0, vote_count: 1, percent: 100 }],
+              total_votes: 1,
+              closes_at: '2026-12-01T00:00:00Z',
+              is_closed: false,
+              user_option: null,
+            }
+          : null,
+    });
+    const { container } = renderCard(post);
+    expect(container.querySelectorAll('a a')).toHaveLength(0);
+  });
+
+  it('the title links to the post', () => {
+    renderCard(makePost({ title: 'Hello' }));
+    expect(screen.getByRole('link', { name: 'Hello' })).toHaveAttribute('href', '/posts/1');
+  });
+
+  it('the external link opens in a new tab without referrer', () => {
+    renderCard(makePost({ kind: 'link', url: 'https://example.com/x' }));
+    const link = screen.getByRole('link', { name: /External link/ });
+    expect(link).toHaveAttribute('href', 'https://example.com/x');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+    expect(link.getAttribute('rel')).toContain('noreferrer');
+  });
 });

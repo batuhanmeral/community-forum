@@ -22,14 +22,13 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         isPinned && 'border-[rgba(97,218,251,0.16)] bg-[rgba(97,218,251,0.025)]',
       )}
     >
-      <Link to={`/posts/${post.id}`} className="block">
+      <div>
         {/* Meta row */}
         <div className="mb-1.5 flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]">
           {!hideCommunity && (
             <Link
               to={`/c/${post.community}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
+              className="relative z-10 inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
             >
               <span
                 className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-[var(--color-accent)]"
@@ -46,8 +45,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {post.author_username ? (
             <Link
               to={userPath(post.author_username)}
-              onClick={(e) => e.stopPropagation()}
-              className="text-[var(--color-text-soft)] hover:text-[var(--color-accent)]"
+              className="relative z-10 text-[var(--color-text-soft)] hover:text-[var(--color-accent)]"
             >
               u/{post.author_username}
             </Link>
@@ -84,7 +82,13 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
 
         {/* Title */}
         <h2 className="mb-1.5 text-[17px] font-semibold leading-snug tracking-tight text-[var(--color-text)]">
-          {post.title}
+          {/* The ::after overlay makes the whole card clickable without nesting links */}
+          <Link
+            to={`/posts/${post.id}`}
+            className="outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-accent)]"
+          >
+            {post.title}
+          </Link>
         </h2>
 
         {/* Body / content */}
@@ -99,8 +103,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
             href={post.url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="mb-2 flex gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2.5 transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-3)]"
+            className="relative z-10 mb-2 flex gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2.5 transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-3)]"
           >
             <div
               className="h-[72px] w-[96px] shrink-0 rounded-lg border border-[var(--color-border)]"
@@ -174,10 +177,10 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
             </div>
           </div>
         )}
-      </Link>
+      </div>
 
-      {/* Actions bar */}
-      <div className="mt-2 flex items-center gap-1.5">
+      {/* Actions bar; z-10 keeps it above the title's stretched link */}
+      <div className="relative z-10 mt-2 flex w-fit items-center gap-1.5">
         <VoteCluster
           target="post"
           objectId={post.id}
@@ -212,7 +215,7 @@ function ActionBtn({ href, icon, children }: { href?: string; icon: React.ReactN
   const cls = 'inline-flex items-center gap-1.5 rounded-full bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]';
   if (href) {
     return (
-      <Link to={href} onClick={(e) => e.stopPropagation()} className={cls}>
+      <Link to={href} className={cls}>
         {icon}
         {children}
       </Link>

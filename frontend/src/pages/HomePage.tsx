@@ -282,15 +282,18 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
 
       {/* Compose */}
       {isAuthed && (
-        <Link
-          to="/submit"
-          className="mb-[18px] flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-3.5 py-3 transition hover:border-[var(--color-border-strong)]"
-        >
+        <div className="relative mb-[18px] flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-3.5 py-3 transition hover:border-[var(--color-border-strong)]">
           <Avatar src={user?.avatar} alt={user?.username} size="md" />
           <div className="flex-1 cursor-text rounded-[10px] border border-transparent bg-[var(--color-bg-elevated)] px-2.5 py-2 text-[14px] text-[var(--color-text-muted)] transition hover:border-[var(--color-border)] hover:bg-[var(--color-bg-3)]">
-            What's on your mind{user ? `, ${user.username}` : ''}?
+            {/* The ::after overlay makes the whole box clickable without nesting links */}
+            <Link
+              to="/submit"
+              className="outline-none after:absolute after:inset-0 after:rounded-[14px] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-accent)]"
+            >
+              What's on your mind{user ? `, ${user.username}` : ''}?
+            </Link>
           </div>
-          <div className="flex gap-1">
+          <div className="relative z-10 flex gap-1">
             <ComposeTool title="Image" kind="image">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
                 <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -311,7 +314,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
               </svg>
             </ComposeTool>
           </div>
-        </Link>
+        </div>
       )}
 
       {/* Posts */}
