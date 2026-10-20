@@ -189,7 +189,21 @@ class CommunityBanView(_CommunityModView, APIView):
             banned_by=request.user,
             banned_at=timezone.now(),
         )
-        membership.refresh_from_db()
+        try:
+            membership.refresh_from_db()
+        except Membership.DoesNotExist:
+            # The member left mid-request: the ban still lands on a fresh row. The earlier
+            # rank check passed and the recreated role is member, so no one outranked is hit.
+            membership, banned = Membership.objects.get_or_create(
+                user=target,
+                community=community,
+                defaults={
+                    "role": Membership.Role.MEMBER,
+                    "is_banned": True,
+                    "banned_by": request.user,
+                    "banned_at": timezone.now(),
+                },
+            )
         if not banned and not membership.is_banned:
             raise PermissionDenied("You can only ban members ranked below you.")
         if banned:

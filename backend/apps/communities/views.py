@@ -78,15 +78,19 @@ class CommunityViewSet(WriteThrottleMixin, viewsets.ModelViewSet):
             )
 
         if request.method == "DELETE":
-            membership = Membership.objects.filter(user=request.user, community=community).first()
-            if not membership:
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            if membership.is_banned:
-                # Deleting the row would lift the ban on the next join.
-                raise ValidationError("You are banned from this community.")
             if community.creator_id == request.user.id:
                 raise ValidationError("Creator cannot leave their own community.")
-            membership.delete()
+            # Conditional delete: a ban landing concurrently must not be erased by the leave.
+            left, _ = Membership.objects.filter(
+                user=request.user, community=community, is_banned=False
+            ).delete()
+            if (
+                not left
+                and Membership.objects.filter(
+                    user=request.user, community=community, is_banned=True
+                ).exists()
+            ):
+                raise ValidationError("You are banned from this community.")
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # PATCH — update notify_level
