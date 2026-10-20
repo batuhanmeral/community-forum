@@ -182,4 +182,10 @@ export const en = {
     unban: 'Unban',
     unbanFailed: 'Could not lift this ban.',
   },
+  errors: {
+    title: 'Something went wrong',
+    body: 'This page could not be loaded. Try again, or go back to the home page.',
+    retry: 'Try again',
+    home: 'Go home',
+  },
 } as const;

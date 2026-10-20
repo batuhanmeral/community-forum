@@ -186,4 +186,10 @@ export const tr: Translation = {
     unban: 'Yasağı kaldır',
     unbanFailed: 'Bu yasak kaldırılamadı.',
   },
+  errors: {
+    title: 'Bir şeyler ters gitti',
+    body: 'Bu sayfa yüklenemedi. Tekrar dene ya da ana sayfaya dön.',
+    retry: 'Tekrar dene',
+    home: 'Ana sayfaya git',
+  },
 } as const;
