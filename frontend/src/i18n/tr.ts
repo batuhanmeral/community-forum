@@ -126,6 +126,7 @@ export const tr: Translation = {
   messages: {
     loadOlder: 'Daha eski mesajları yükle',
     loadOlderFailed: 'Daha eski mesajlar yüklenemedi.',
+    conversationUnavailable: 'Bu sohbete artık erişilemiyor.',
     sendFailed: 'Mesaj gönderilemedi.',
     back: 'Sohbetlere dön',
     loadMoreConversations: 'Daha fazla sohbet yükle',

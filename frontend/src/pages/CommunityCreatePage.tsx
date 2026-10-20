@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { createCommunity } from '@/api/communities';
+import { membershipsChanged } from '@/features/communities/membershipsSlice';
+import { useAppDispatch } from '@/app/hooks';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -10,6 +12,7 @@ type FieldErrors = Partial<Record<'slug' | 'name' | 'description' | 'avatar' | '
 
 export function CommunityCreatePage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [slug, setSlug] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -30,6 +33,7 @@ export function CommunityCreatePage() {
         is_nsfw: isNsfw,
         avatar,
       });
+      dispatch(membershipsChanged());
       navigate(`/c/${created.slug}`, { replace: true });
     } catch (err) {
       const ax = err as AxiosError<Record<string, string[] | string>>;

@@ -1,4 +1,4 @@
-from django.db.models import Max, Q
+from django.db.models import Count, Max, Prefetch, Q
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -26,7 +26,20 @@ class ConversationListCreateView(WriteThrottleMixin, generics.ListCreateAPIView)
         u = self.request.user
         return (
             Conversation.objects.filter(Q(participant_a=u) | Q(participant_b=u))
-            .annotate(last_activity=Coalesce(Max("messages__created_at"), "created_at"))
+            .annotate(
+                last_activity=Coalesce(Max("messages__created_at"), "created_at"),
+                unread_count=Count(
+                    "messages",
+                    filter=Q(messages__read_at__isnull=True) & ~Q(messages__sender=u),
+                ),
+            )
+            .prefetch_related(
+                Prefetch(
+                    "messages",
+                    Message.objects.select_related("sender").order_by("-created_at", "-id")[:1],
+                    to_attr="latest_messages",
+                )
+            )
             .select_related("participant_a", "participant_b")
             .order_by("-last_activity", "-id")
         )

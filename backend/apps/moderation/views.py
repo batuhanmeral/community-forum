@@ -181,15 +181,32 @@ class CommunityBanView(_CommunityModView, APIView):
         membership, _ = Membership.objects.get_or_create(user=target, community=community)
         # Conditional write: concurrent bans must not take the ban over or log twice.
         # The role filter keeps a member promoted since the rank check from being demoted.
+        allowed = roles_below(request.user, community)
         banned = Membership.objects.filter(
-            pk=membership.pk, is_banned=False, role__in=roles_below(request.user, community)
+            pk=membership.pk, is_banned=False, role__in=allowed
         ).update(
             is_banned=True,
             role=Membership.Role.MEMBER,
             banned_by=request.user,
             banned_at=timezone.now(),
         )
-        membership.refresh_from_db()
+        try:
+            membership.refresh_from_db()
+        except Membership.DoesNotExist:
+            # The member left mid-request: recreate the ban only if the actor still outranks
+            # plain members as of the rank computed just before the write.
+            if Membership.Role.MEMBER not in allowed:
+                raise PermissionDenied("You can only ban members ranked below you.") from None
+            membership, banned = Membership.objects.get_or_create(
+                user=target,
+                community=community,
+                defaults={
+                    "role": Membership.Role.MEMBER,
+                    "is_banned": True,
+                    "banned_by": request.user,
+                    "banned_at": timezone.now(),
+                },
+            )
         if not banned and not membership.is_banned:
             raise PermissionDenied("You can only ban members ranked below you.")
         if banned:

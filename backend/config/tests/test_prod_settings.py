@@ -52,3 +52,19 @@ def test_log_level_is_case_insensitive():
     code = "import django, logging; django.setup(); print(logging.getLogger().getEffectiveLevel())"
     result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50), LOG_LEVEL="error")
     assert result.stdout.strip() == "40", result.stderr
+
+
+_CONN_CODE = (
+    "import django; django.setup(); from django.conf import settings as s; "
+    "d=s.DATABASES['default']; print(d['CONN_MAX_AGE'], d['CONN_HEALTH_CHECKS'])"
+)
+
+
+def test_conn_max_age_defaults_to_60_with_health_checks():
+    result = _run_prod(_CONN_CODE, SECRET_KEY=secrets.token_urlsafe(50))
+    assert result.stdout.split() == ["60", "True"]
+
+
+def test_conn_max_age_comes_from_env():
+    result = _run_prod(_CONN_CODE, SECRET_KEY=secrets.token_urlsafe(50), DB_CONN_MAX_AGE="0")
+    assert result.stdout.split() == ["0", "True"]

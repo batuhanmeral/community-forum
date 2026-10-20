@@ -6,7 +6,8 @@ import { joinCommunity, leaveCommunity } from '@/api/communities';
 import { getLeaderboard, type UserProfile } from '@/api/users';
 import type { Community } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
-import { useAppSelector } from '@/app/hooks';
+import { membershipsChanged } from '@/features/communities/membershipsSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
@@ -162,6 +163,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
   const [joined, setJoined] = useState(community.is_member);
   const [busy, setBusy] = useState(false);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
+  const dispatch = useAppDispatch();
 
   async function toggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -171,9 +173,11 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
       if (joined) {
         await leaveCommunity(community.slug);
         setJoined(false);
+        dispatch(membershipsChanged());
       } else {
         await joinCommunity(community.slug);
         setJoined(true);
+        dispatch(membershipsChanged());
       }
     } finally {
       setBusy(false);

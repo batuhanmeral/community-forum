@@ -56,3 +56,8 @@ def notify(
         kwargs["target_ct"] = ContentType.objects.get_for_model(target.__class__)
         kwargs["target_id"] = target.pk
     return Notification.objects.create(**kwargs)
+
+
+def unread_notification_count(user) -> int:
+    """Same rows as the inbox's `?unread=true` list."""
+    return Notification.objects.filter(recipient=user, read_at__isnull=True).count()

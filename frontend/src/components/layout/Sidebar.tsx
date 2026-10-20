@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { listCommunities } from '@/api/communities';
 import type { Community } from '@/features/communities/types';
 import { useAppSelector } from '@/app/hooks';
@@ -59,14 +59,14 @@ export function Sidebar() {
   const { t } = useTranslation();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
-  const location = useLocation();
+  const membershipsVersion = useAppSelector((s) => s.memberships.version);
 
   useEffect(() => {
     if (!isAuthed) return;
     listCommunities({ joined: true, ordering: '-member_count', page_size: 8 })
       .then((d) => setMyCommunities(d.results))
       .catch(() => undefined);
-  }, [isAuthed, location.pathname]);
+  }, [isAuthed, membershipsVersion]);
 
   return (
     <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col overflow-y-auto pb-10 pr-1 pt-5 max-[960px]:hidden lg:flex">

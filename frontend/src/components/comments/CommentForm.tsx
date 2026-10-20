@@ -47,6 +47,15 @@ export function CommentForm({
   const [mention, setMention] = useState<MentionState>(emptyMention);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<number | null>(null);
+  const blurTimerRef = useRef<number | null>(null);
+
+  // A pending blur timeout would fire after unmount (and after test teardown).
+  useEffect(
+    () => () => {
+      if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!mention.active || mention.query.length < 1) {
@@ -168,7 +177,10 @@ export function CommentForm({
           const target = e.target as HTMLTextAreaElement;
           detectMention(target.value, target.selectionStart);
         }}
-        onBlur={() => setTimeout(() => setMention(emptyMention), 150)}
+        onBlur={() => {
+          if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+          blurTimerRef.current = window.setTimeout(() => setMention(emptyMention), 150);
+        }}
         className="resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
       />
 

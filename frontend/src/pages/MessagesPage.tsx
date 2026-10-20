@@ -12,7 +12,7 @@ import {
 import type { Conversation, Message } from '@/features/messaging/types';
 import { appendPage, mergeFirstPage } from '@/features/messaging/conversations';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { setDMUnreadCount } from '@/features/messaging/messagingSlice';
+import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -39,19 +39,11 @@ export function MessagesPage() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [convsLoading, setConvsLoading] = useState(true);
-  const [convsLoaded, setConvsLoaded] = useState(false);
   const [nextConvPage, setNextConvPage] = useState<number | null>(null);
   const [loadingMoreConvs, setLoadingMoreConvs] = useState(false);
   const [loadMoreConvsFailed, setLoadMoreConvsFailed] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const refetchedForId = useRef<string | null>(null);
-
-  // Counted from everything loaded, so conversations fetched with "load more" count too.
-  useEffect(() => {
-    // A failed first load must not reset the badge to zero.
-    if (!convsLoaded) return;
-    dispatch(setDMUnreadCount(conversations.reduce((acc, c) => acc + c.unread_count, 0)));
-  }, [conversations, convsLoaded, dispatch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,7 +52,6 @@ export function MessagesPage() {
         if (cancelled) return;
         setConversations(d.results);
         setNextConvPage(d.next ? 2 : null);
-        setConvsLoaded(true);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -187,6 +178,7 @@ export function MessagesPage() {
               setConversations((prev) =>
                 prev.map((c) => (c.id === selected.id ? { ...c, unread_count: 0 } : c)),
               );
+              void syncUnreadCounts(dispatch);
             }}
           />
         ) : (
@@ -277,6 +269,9 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
   const stickToBottom = useRef(true);
   // Lets the poll callback see the loaded list without re-creating itself.
   const messagesRef = useRef<Message[]>([]);
+  // Bumped when a poll replaces the list, so an in-flight older page can tell it is stale.
+  const listGeneration = useRef(0);
+  const [lost, setLost] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -316,6 +311,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         const known = new Set(loaded.map((m) => m.id));
         // No shared id means more than a page of messages arrived; the gap can't be filled by merging.
         if (d.results.length > 0 && !d.results.some((m) => known.has(m.id))) {
+          listGeneration.current += 1;
           setMessages([...d.results].reverse());
           setOlderPage(d.next ? 2 : null);
         } else {
@@ -342,10 +338,14 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
             .catch(() => undefined);
         }
       })
-      .catch(() => undefined);
+      .catch((err: AxiosError) => {
+        // Access was revoked or the conversation is gone; retrying can't succeed.
+        const status = err.response?.status;
+        if (status === 403 || status === 404) setLost(true);
+      });
   }, [conversation.id, currentUserId, onRead]);
 
-  usePolling(pollLatest, POLL_MS, !loading);
+  usePolling(pollLatest, POLL_MS, !loading && !lost);
 
   function handleScroll() {
     const el = scrollRef.current;
@@ -357,8 +357,11 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
     if (olderPage === null || loadingOlder) return;
     setLoadingOlder(true);
     setLoadOlderError(false);
+    const generation = listGeneration.current;
     try {
       const d = await listMessages(conversation.id, olderPage);
+      // A poll replaced the list meanwhile; this page no longer lines up with it.
+      if (generation !== listGeneration.current) return;
       stickToBottom.current = false;
       setMessages((current) => {
         const known = new Set(current.map((m) => m.id));
@@ -492,22 +495,28 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         )}
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-end gap-2 border-t border-[var(--color-border)] px-4 py-3"
-      >
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={1}
-          placeholder={`Message u/${other?.username}…`}
-          className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-        />
-        <Button type="submit" size="md" loading={sending} disabled={!body.trim()}>
-          Send
-        </Button>
-      </form>
+      {lost ? (
+        <p className="border-t border-[var(--color-border)] px-4 py-3 text-center text-sm text-[var(--color-text-muted)]">
+          {t('messages.conversationUnavailable')}
+        </p>
+      ) : (
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-end gap-2 border-t border-[var(--color-border)] px-4 py-3"
+        >
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={1}
+            placeholder={`Message u/${other?.username}…`}
+            className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+          />
+          <Button type="submit" size="md" loading={sending} disabled={!body.trim()}>
+            Send
+          </Button>
+        </form>
+      )}
       {sendError && (
         <p role="alert" className="px-4 pb-3 text-xs text-[var(--color-danger)]">
           {sendError}

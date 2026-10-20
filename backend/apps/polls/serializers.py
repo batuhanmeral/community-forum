@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -34,8 +35,9 @@ class PollSerializer(serializers.ModelSerializer):
     def _options_with_counts(self, obj: Poll):
         if not hasattr(self, "_cached_options"):
             opts = list(obj.options.all())
-            for o in opts:
-                o.vote_count = o.votes.count()
+            # Objects outside the prefetched querysets lack the annotation.
+            if opts and not hasattr(opts[0], "vote_count"):
+                opts = list(obj.options.annotate(vote_count=Count("votes")))
             self._cached_options = opts
             self._total = sum(o.vote_count for o in opts)
         return self._cached_options
@@ -56,7 +58,10 @@ class PollSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None
-        vote = obj.votes.filter(user=request.user).first()
+        votes = getattr(obj, "my_votes", None)
+        if votes is None:
+            votes = obj.votes.filter(user=request.user)
+        vote = next(iter(votes), None)
         return vote.option_id if vote else None
 
 

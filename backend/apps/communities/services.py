@@ -1,5 +1,7 @@
 """Community role checks shared by every app that gates on membership."""
 
+from django.db.models import Prefetch
+
 from .models import Community, Membership
 
 MOD_ROLES = (Membership.Role.ADMIN, Membership.Role.MODERATOR)
@@ -20,6 +22,15 @@ def active_membership(user, community: Community) -> Membership | None:
 def joined_community_ids(user):
     """Community ids of the user's unbanned memberships."""
     return Membership.objects.filter(user=user, is_banned=False).values("community_id")
+
+
+def prefetch_viewer_membership(qs, user):
+    """Attach the viewer's own membership row (banned or not) to each community; none for anonymous."""
+    if not user or not user.is_authenticated:
+        return qs
+    return qs.prefetch_related(
+        Prefetch("memberships", Membership.objects.filter(user=user), to_attr="my_memberships")
+    )
 
 
 def has_role(user, community: Community, *roles: str) -> bool:

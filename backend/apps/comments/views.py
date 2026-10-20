@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
@@ -9,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
 
 from apps.common.throttling import WriteThrottleMixin
+from apps.common.viewer import viewer_prefetches
 from apps.communities.services import is_banned, is_moderator
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
@@ -36,6 +38,10 @@ def _annotate_score(qs):
         ups=Count("votes", filter=Q(votes__value=1)),
         downs=Count("votes", filter=Q(votes__value=-1)),
     )
+
+
+def _base_comment_qs(qs, user):
+    return qs.select_related("author").prefetch_related(*viewer_prefetches(user))
 
 
 def _apply_comment_sort(qs, sort: str):
@@ -90,10 +96,8 @@ class PostCommentListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
         return self._post
 
     def get_queryset(self):
-        qs = (
-            _annotate_score(Comment.objects.filter(post=self.get_post()))
-            .select_related("author")
-            .prefetch_related("votes", "saves")
+        qs = _base_comment_qs(
+            _annotate_score(Comment.objects.filter(post=self.get_post())), self.request.user
         )
         sort = self.request.query_params.get("sort", "best")
         return _apply_comment_sort(qs, sort)
@@ -132,7 +136,7 @@ class UserCommentListView(generics.ListAPIView):
 
     def get_queryset(self):
         author = get_object_or_404(User, username__iexact=self.kwargs["username"])
-        return (
+        return _base_comment_qs(
             _annotate_score(
                 Comment.objects.filter(
                     author=author,
@@ -140,20 +144,18 @@ class UserCommentListView(generics.ListAPIView):
                     post__is_approved=True,
                     post__deleted_at__isnull=True,
                 )
-            )
-            .select_related("author")
-            .prefetch_related("votes", "saves")
-            .order_by("-created_at")
-        )
+            ),
+            self.request.user,
+        ).order_by("-created_at")
 
 
 class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
     throttle_scope = "write"
-    queryset = _annotate_score(
-        Comment.objects.select_related("author").prefetch_related("votes", "saves")
-    )
+
+    def get_queryset(self):
+        return _base_comment_qs(_annotate_score(Comment.objects.all()), self.request.user)
 
     def get_object(self):
         comment = get_object_or_404(self.filter_queryset(self.get_queryset()), pk=self.kwargs["pk"])
@@ -166,7 +168,23 @@ class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIVie
         return comment
 
     def perform_update(self, serializer):
+        with transaction.atomic():
+            self._locked_update(serializer)
+        notify_mentions(
+            serializer.instance.body, actor=self.request.user, target=serializer.instance
+        )
+
+    def _locked_update(self, serializer):
         instance = serializer.instance
+        # Adopt a removal that landed after get_object, so the save can't revert it.
+        fresh = (
+            Comment.objects.select_for_update()
+            .filter(pk=instance.pk)
+            .values("deleted_at", "deleted_by_id")
+            .get()
+        )
+        for field, value in fresh.items():
+            setattr(instance, field, value)
         if is_banned(self.request.user, instance.post.community):
             raise PermissionDenied("You are banned from this community.")
         if instance.deleted_at is not None:
@@ -179,7 +197,6 @@ class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIVie
             )
             comment.edited_at = timezone.now()
             comment.save(update_fields=["edited_at"])
-        notify_mentions(comment.body, actor=self.request.user, target=comment)
 
     def perform_destroy(self, instance):
         if instance.deleted_at is not None:

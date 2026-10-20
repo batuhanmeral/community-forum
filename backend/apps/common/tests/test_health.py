@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from django.db import OperationalError
+from django.db import OperationalError, connection
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -47,3 +47,10 @@ def test_health_is_exempt_from_ssl_redirect():
     with override_settings(SECURE_SSL_REDIRECT=True):
         assert APIClient().get(HEALTH).status_code == 200
         assert APIClient().get(reverse("api_v1:communities:community-list")).status_code == 301
+
+
+def test_health_pings_an_already_open_connection(client):
+    connection.ensure_connection()
+    with patch("apps.common.views.connection.cursor", side_effect=OperationalError("gone")):
+        resp = client.get(HEALTH)
+    assert resp.status_code == 503 and resp.json() == {"status": "unavailable"}

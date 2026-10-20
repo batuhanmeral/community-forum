@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommentForm } from './CommentForm';
 
@@ -22,5 +22,21 @@ describe('CommentForm', () => {
     await userEvent.type(screen.getByRole('textbox'), 'hello');
     await userEvent.click(screen.getByRole('button', { name: 'Comment' }));
     expect(await screen.findByText('Could not post your comment.')).toBeInTheDocument();
+  });
+
+  describe('with fake timers', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('leaves no pending timer after unmounting a blurred form', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const { unmount } = render(<CommentForm onSubmit={vi.fn()} />);
+      const textarea = screen.getByRole('textbox');
+      act(() => textarea.focus());
+      act(() => textarea.blur());
+      // jsdom schedules 0ms selection timers on focus/blur; only the 150ms blur timer is ours.
+      vi.advanceTimersByTime(0);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    });
   });
 });

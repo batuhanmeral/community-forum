@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import connection, transaction
 from rest_framework import permissions, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -10,6 +10,15 @@ from apps.posts.services import can_see_unapproved
 from .models import Vote
 from .serializers import VoteRequestSerializer, VoteSerializer
 
+# Namespace for the per-voter advisory lock (first key of pg_advisory_xact_lock).
+VOTER_LOCK_NAMESPACE = 7001
+
+
+def _lock_voter(user):
+    # Advisory, not a row lock: a lock on the voter row would deadlock with the karma UPDATE.
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(%s, %s)", [VOTER_LOCK_NAMESPACE, user.pk])
+
 
 class VoteView(APIView):
     """Upsert/toggle a vote. Same value → delete; different → update."""
@@ -19,6 +28,7 @@ class VoteView(APIView):
 
     @transaction.atomic
     def post(self, request):
+        _lock_voter(request.user)
         req = VoteRequestSerializer(data=request.data)
         req.is_valid(raise_exception=True)
         ct = req.validated_data["_content_type"]

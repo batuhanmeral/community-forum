@@ -16,7 +16,7 @@ from .serializers import (
     FlairSerializer,
     MembershipSerializer,
 )
-from .services import is_banned, is_moderator, joined_community_ids
+from .services import is_banned, is_moderator, joined_community_ids, prefetch_viewer_membership
 
 
 def _require_mod(user, community):
@@ -39,7 +39,7 @@ class CommunityViewSet(WriteThrottleMixin, viewsets.ModelViewSet):
     parser_classes = (JSONParser, FormParser, MultiPartParser)
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = prefetch_viewer_membership(super().get_queryset(), self.request.user)
         if self.action == "list" and self.request.query_params.get("joined") == "true":
             if not self.request.user.is_authenticated:
                 return qs.none()
@@ -78,15 +78,19 @@ class CommunityViewSet(WriteThrottleMixin, viewsets.ModelViewSet):
             )
 
         if request.method == "DELETE":
-            membership = Membership.objects.filter(user=request.user, community=community).first()
-            if not membership:
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            if membership.is_banned:
-                # Deleting the row would lift the ban on the next join.
-                raise ValidationError("You are banned from this community.")
             if community.creator_id == request.user.id:
                 raise ValidationError("Creator cannot leave their own community.")
-            membership.delete()
+            # Conditional delete: a ban landing concurrently must not be erased by the leave.
+            left, _ = Membership.objects.filter(
+                user=request.user, community=community, is_banned=False
+            ).delete()
+            if (
+                not left
+                and Membership.objects.filter(
+                    user=request.user, community=community, is_banned=True
+                ).exists()
+            ):
+                raise ValidationError("You are banned from this community.")
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # PATCH — update notify_level

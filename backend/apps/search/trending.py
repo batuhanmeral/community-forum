@@ -11,6 +11,7 @@ from rest_framework.generics import ListAPIView
 
 from apps.communities.models import Community
 from apps.communities.serializers import CommunitySerializer
+from apps.communities.services import prefetch_viewer_membership
 from apps.posts.models import Post
 from apps.posts.serializers import PostSerializer
 
@@ -47,7 +48,7 @@ class TrendingCommunitiesView(ListAPIView):
             .annotate(c=Count("*"))
             .values("c")
         )
-        return (
+        communities = (
             Community.objects.filter(is_nsfw=False)
             .annotate(
                 member_count=Count(
@@ -56,8 +57,9 @@ class TrendingCommunitiesView(ListAPIView):
                 recent_posts=Coalesce(Subquery(recent_posts), 0),
                 recent_comments=Coalesce(Subquery(recent_comments), 0),
             )
-            .order_by("-recent_posts", "-recent_comments", "-id")[:20]
+            .order_by("-recent_posts", "-recent_comments", "-id")
         )
+        return prefetch_viewer_membership(communities, self.request.user)[:20]
 
 
 @method_decorator(cache_page(CACHE_SECONDS), name="dispatch")
@@ -78,6 +80,7 @@ class TrendingPostsView(ListAPIView):
                     community__is_nsfw=False,
                     is_approved=True,
                     deleted_at__isnull=True,
-                )
+                ),
+                user=self.request.user,
             )
         ).order_by("-score", "-created_at")[:20]

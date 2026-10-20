@@ -37,7 +37,9 @@ class HealthView(APIView):
 
     def get(self, request):
         try:
-            connection.ensure_connection()
+            # A real query: ensure_connection() is a no-op on an already open connection.
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
         except DatabaseError as exc:
             logger.warning("Health check failed: %s", type(exc).__name__)
             return Response({"status": "unavailable"}, status=503)

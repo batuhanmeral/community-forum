@@ -15,7 +15,8 @@ import type {
   NotifyLevel,
 } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
-import { useAppSelector } from '@/app/hooks';
+import { membershipsChanged } from '@/features/communities/membershipsSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -34,6 +35,7 @@ export function CommunityDetailPage() {
   const { t } = useTranslation();
   const { slug = '' } = useParams<{ slug: string }>();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
+  const dispatch = useAppDispatch();
 
   const [community, setCommunity] = useState<Community | null>(null);
   const [rules, setRules] = useState<CommunityRule[]>([]);
@@ -131,6 +133,7 @@ export function CommunityDetailPage() {
           my_role: null,
           member_count: Math.max(0, community.member_count - 1),
         });
+        dispatch(membershipsChanged());
       } else {
         await joinCommunity(community.slug);
         setCommunity({
@@ -140,6 +143,7 @@ export function CommunityDetailPage() {
           member_count: community.member_count + 1,
         });
         setNotifyLevel('all');
+        dispatch(membershipsChanged());
       }
     } finally {
       setActionLoading(false);

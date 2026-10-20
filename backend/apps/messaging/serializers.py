@@ -65,13 +65,20 @@ class ConversationSerializer(serializers.ModelSerializer):
         return {"id": user.id, "username": user.username}
 
     def get_last_message(self, obj: Conversation):
-        msg = obj.messages.order_by("-created_at").first()
+        latest = getattr(obj, "latest_messages", None)
+        # Conversations from the create response lack the list prefetch.
+        if latest is None:
+            latest = obj.messages.select_related("sender").order_by("-created_at", "-id")[:1]
+        msg = next(iter(latest), None)
         return MessageSerializer(msg).data if msg else None
 
     def get_unread_count(self, obj: Conversation) -> int:
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return 0
+        annotated = getattr(obj, "unread_count", None)
+        if annotated is not None:
+            return annotated
         return obj.messages.filter(read_at__isnull=True).exclude(sender=request.user).count()
 
 

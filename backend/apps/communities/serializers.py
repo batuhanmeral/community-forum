@@ -57,6 +57,9 @@ class CommunitySerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None
+        prefetched = getattr(obj, "my_memberships", None)
+        if prefetched is not None:
+            return prefetched[0] if prefetched else None
         # Every membership field reads this, so look it up once per community, not per field.
         cache = self.__dict__.setdefault("_membership_cache", {})
         if obj.pk not in cache:

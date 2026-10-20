@@ -1,17 +1,17 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import (
     Count,
-    ExpressionWrapper,
+    F,
     FloatField,
     IntegerField,
     OuterRef,
     Subquery,
     Sum,
 )
-from django.db.models.expressions import RawSQL
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Abs, Cast, Coalesce, Extract, Greatest, Log, Sign
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -21,11 +21,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.throttling import WriteThrottleMixin
+from apps.common.viewer import viewer_prefetches
 from apps.communities.models import Community
 from apps.communities.services import is_banned, is_moderator
 from apps.moderation.models import ModAction
 from apps.moderation.services import log_mod_action
 from apps.notifications.services import notify
+from apps.polls.services import poll_prefetches
 
 from .models import Post, PostRevision
 from .permissions import IsAuthorOrModeratorForDelete, IsCommunityMember
@@ -63,12 +65,12 @@ def _annotate_score(qs):
     )
 
 
-def _base_post_qs(qs=None):
+def _base_post_qs(qs=None, user=None):
     """Common relations every PostSerializer render needs (avoids N+1)."""
     if qs is None:
         qs = Post.objects.all()
     return qs.select_related("author", "community", "flair", "poll").prefetch_related(
-        "votes", "saves", "poll__options"
+        *viewer_prefetches(user), *poll_prefetches(user, "poll__")
     )
 
 
@@ -86,25 +88,12 @@ def _apply_time_window(qs, t: str | None):
 def _annotate_hot(qs):
     """Reddit's hot: sign(score) * log10(max(|score|,1)) + epoch/45000.
 
-    Postgres can compute this in SQL via GREATEST/LOG/SIGN.
+    Needs the `score` annotation (never NULL: Coalesce'd in _annotate_score).
     """
-    return qs.annotate(
-        hot=ExpressionWrapper(
-            RawSQL(
-                "SIGN(COALESCE((SELECT SUM(value) FROM votes_vote v "
-                "WHERE v.content_type_id = ("
-                "  SELECT id FROM django_content_type WHERE app_label='posts' AND model='post'"
-                ") AND v.object_id = posts_post.id), 0)) "
-                "* LOG(10, GREATEST(ABS(COALESCE((SELECT SUM(value) FROM votes_vote v "
-                "WHERE v.content_type_id = ("
-                "  SELECT id FROM django_content_type WHERE app_label='posts' AND model='post'"
-                ") AND v.object_id = posts_post.id), 0)), 1)) "
-                "+ EXTRACT(EPOCH FROM posts_post.created_at) / 45000.0",
-                [],
-            ),
-            output_field=FloatField(),
-        )
-    )
+    score = F("score")
+    # Cast: Postgres LOG(10, int) and EXTRACT return numeric; the API wants a float.
+    hot = Sign(score) * Log(10, Greatest(Abs(score), 1)) + Extract("created_at", "epoch") / 45000
+    return qs.annotate(hot=Cast(hot, FloatField()))
 
 
 def _apply_sort(qs, sort: str):
@@ -124,11 +113,32 @@ def _visible_post(user, pk) -> Post:
     return post
 
 
-def _keyword_added_by_edit(post: Post, new_title: str, new_body: str) -> str | None:
-    # Only newly added keywords count: a post a mod approved with a keyword must survive typo fixes.
+# Content fields whose change sends an approved post back to the queue.
+REAPPROVAL_FIELDS = ("title", "body", "url")
+
+
+def _edit_hold_reason(post: Post, validated_data: dict) -> str | None:
+    # Banned moderators are not moderators (active_membership), but banned users can't edit anyway.
     if not post.is_approved or is_moderator(post.author, post.community):
         return None
-    return post.community.banned_keyword_added((post.title, post.body), (new_title, new_body))
+    # Only newly added keywords count: a post a mod approved with a keyword must survive typo fixes.
+    keyword = post.community.banned_keyword_added(
+        (post.title, post.body),
+        (validated_data.get("title", post.title), validated_data.get("body", post.body)),
+    )
+    if keyword:
+        return f"matched keyword on edit: {keyword}"
+    if not post.community.requires_approval:
+        return None
+    changed = any(
+        field in validated_data and validated_data[field] != getattr(post, field)
+        for field in REAPPROVAL_FIELDS
+    )
+    # An upload, or clearing an existing image, is a change; an absent key is not.
+    image_changed = "image" in validated_data and bool(validated_data["image"] or post.image)
+    if changed or image_changed:
+        return "edited after approval"
+    return None
 
 
 class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
@@ -149,7 +159,8 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
                     community=self.get_community(),
                     is_approved=True,
                     deleted_at__isnull=True,
-                )
+                ),
+                user=self.request.user,
             )
         )
         sort = self.request.query_params.get("sort", "new")
@@ -207,7 +218,8 @@ class UserPostListView(generics.ListAPIView):
         author = get_object_or_404(User, username__iexact=self.kwargs["username"])
         qs = _annotate_score(
             _base_post_qs(
-                Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True)
+                Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True),
+                user=self.request.user,
             )
         )
         return _apply_sort(qs, self.request.query_params.get("sort", "new"))
@@ -218,7 +230,9 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrModeratorForDelete)
     parser_classes = (JSONParser, FormParser, MultiPartParser)
     throttle_scope = "write"
-    queryset = _annotate_score(_base_post_qs())
+
+    def get_queryset(self):
+        return _annotate_score(_base_post_qs(user=self.request.user))
 
     def get_object(self):
         post = get_object_or_404(self.filter_queryset(self.get_queryset()), pk=self.kwargs["pk"])
@@ -246,19 +260,38 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
             notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
 
     def perform_update(self, serializer):
+        with transaction.atomic():
+            self._locked_update(serializer)
+
+    def _locked_update(self, serializer):
         instance = serializer.instance
+        # Adopt the locked row (moderation and content) so the save and checks can't use a stale read.
+        fresh = (
+            Post.objects.select_for_update()
+            .filter(pk=instance.pk)
+            .values(
+                "deleted_at",
+                "deleted_by_id",
+                "is_approved",
+                "is_pinned",
+                "title",
+                "body",
+                "url",
+                "image",
+                "flair_id",
+            )
+            .get()
+        )
+        for field, value in fresh.items():
+            setattr(instance, field, value)
         if is_banned(self.request.user, instance.community):
             raise PermissionDenied("You are banned from this community.")
         if instance.deleted_at is not None:
             raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
-        keyword = _keyword_added_by_edit(
-            instance,
-            serializer.validated_data.get("title", old_title),
-            serializer.validated_data.get("body", old_body),
-        )
-        # One write carries the hold, so no reader or racing edit ever sees the keyword approved.
-        hold = {"is_approved": False, "is_pinned": False} if keyword else {}
+        reason = _edit_hold_reason(instance, serializer.validated_data)
+        # One write carries the hold, so no reader or racing edit ever sees the held edit approved.
+        hold = {"is_approved": False, "is_pinned": False} if reason else {}
         post = serializer.save(
             # An NSFW community's posts can't be un-flagged by their author.
             is_nsfw=serializer.validated_data.get("is_nsfw", instance.is_nsfw)
@@ -271,17 +304,17 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
             )
             post.edited_at = timezone.now()
             post.save(update_fields=["edited_at"])
-            if keyword:
-                log_mod_action(
-                    post.community,
-                    action=ModAction.Action.AUTOMOD_HOLD,
-                    target=post,
-                    detail=f"matched keyword on edit: {keyword}",
-                )
             if post.is_approved:
                 from apps.comments.views import notify_mentions
 
                 notify_mentions(post.body, actor=self.request.user, target=post)
+        if reason:
+            log_mod_action(
+                post.community,
+                action=ModAction.Action.AUTOMOD_HOLD,
+                target=post,
+                detail=reason,
+            )
 
 
 class PostRevisionListView(generics.ListAPIView):
@@ -364,7 +397,10 @@ class ApprovalQueueView(generics.ListAPIView):
             raise PermissionDenied("Moderator role required.")
         return _annotate_score(
             _base_post_qs(
-                Post.objects.filter(community=community, is_approved=False, deleted_at__isnull=True)
+                Post.objects.filter(
+                    community=community, is_approved=False, deleted_at__isnull=True
+                ),
+                user=self.request.user,
             )
         ).order_by("created_at")
 

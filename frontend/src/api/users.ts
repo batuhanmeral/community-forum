@@ -82,3 +82,13 @@ export async function changePassword(
 export async function deactivateAccount(): Promise<void> {
   await api.delete('/users/me/');
 }
+
+export interface UnreadCounts {
+  notifications: number;
+  messages: number;
+}
+
+export async function getUnreadCounts(): Promise<UnreadCounts> {
+  const res = await api.get<UnreadCounts>('/users/me/unread-counts/');
+  return res.data;
+}

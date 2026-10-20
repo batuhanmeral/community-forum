@@ -9,6 +9,7 @@ from apps.notifications.services import notify
 
 from .models import Block, Follow, is_blocked_between
 from .serializers import FollowUserSerializer
+from .services import with_social_annotations
 
 User = get_user_model()
 
@@ -70,9 +71,8 @@ class BlockedListView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        return User.objects.filter(blocked_by__blocker=self.request.user).order_by(
-            "-blocked_by__created_at"
-        )
+        users = User.objects.filter(blocked_by__blocker=self.request.user)
+        return with_social_annotations(users, self.request.user).order_by("-blocked_by__created_at")
 
 
 class FollowersListView(generics.ListAPIView):
@@ -81,7 +81,8 @@ class FollowersListView(generics.ListAPIView):
 
     def get_queryset(self):
         target = _get_target(self.kwargs["username"])
-        return User.objects.filter(following__followed=target).order_by("-following__created_at")
+        users = User.objects.filter(following__followed=target)
+        return with_social_annotations(users, self.request.user).order_by("-following__created_at")
 
 
 class FollowingListView(generics.ListAPIView):
@@ -90,4 +91,5 @@ class FollowingListView(generics.ListAPIView):
 
     def get_queryset(self):
         target = _get_target(self.kwargs["username"])
-        return User.objects.filter(followers__follower=target).order_by("-followers__created_at")
+        users = User.objects.filter(followers__follower=target)
+        return with_social_annotations(users, self.request.user).order_by("-followers__created_at")

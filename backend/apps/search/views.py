@@ -7,10 +7,12 @@ from rest_framework.generics import ListAPIView
 
 from apps.communities.models import Community
 from apps.communities.serializers import CommunitySerializer
+from apps.communities.services import prefetch_viewer_membership
 from apps.posts.feed import _apply_nsfw_filter
 from apps.posts.models import Post
 from apps.posts.serializers import PostSerializer
 from apps.posts.views import _annotate_score, _base_post_qs
+from apps.social.services import with_social_annotations
 from apps.users.serializers import PublicUserSerializer
 
 User = get_user_model()
@@ -45,11 +47,14 @@ class SearchView(ListAPIView):
         if type_param == "post":
             qs = qs.filter(is_approved=True, deleted_at__isnull=True)
             qs = _apply_nsfw_filter(qs, self.request)
-            qs = _annotate_score(_base_post_qs(qs))
+            qs = _annotate_score(_base_post_qs(qs, user=self.request.user))
         elif type_param == "community":
-            qs = qs.annotate(
-                member_count=Count("memberships", filter=Q(memberships__is_banned=False))
+            qs = prefetch_viewer_membership(
+                qs.annotate(
+                    member_count=Count("memberships", filter=Q(memberships__is_banned=False))
+                ),
+                self.request.user,
             )
         elif type_param == "user":
-            qs = qs.filter(is_active=True)
+            qs = with_social_annotations(qs.filter(is_active=True), self.request.user)
         return qs.annotate(rank=SearchRank("search_vector", sq)).order_by("-rank")
