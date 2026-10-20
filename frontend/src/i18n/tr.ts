@@ -149,6 +149,13 @@ export const tr: Translation = {
     loadFailed: 'Düzenleme geçmişi yüklenemedi.',
     editedBy: 'Düzenleyen: u/{{username}}',
     loadMore: 'Daha fazla yükle',
+    loadMoreFailed: 'Daha eski sürümler yüklenemedi.',
+  },
+  follow: {
+    loadMoreFailed: 'Daha fazla kişi yüklenemedi.',
+  },
+  profile: {
+    saveFailed: 'Profilin kaydedilemedi. Lütfen tekrar dene.',
   },
   mod: {
     rulesTitle: 'Kurallar',
@@ -162,6 +169,9 @@ export const tr: Translation = {
     cancel: 'Vazgeç',
     edit: 'Düzenle',
     delete: 'Sil',
+    editRuleLabel: 'Kuralı düzenle: {{rule}}',
+    deleteRuleLabel: 'Kuralı sil: {{rule}}',
+    deleteRuleConfirm: 'Bu kural silinsin mi? Bu işlem geri alınamaz.',
     ruleSaveFailed: 'Kural kaydedilemedi.',
     loading: 'Yükleniyor…',
     loadMore: 'Daha fazla yükle',

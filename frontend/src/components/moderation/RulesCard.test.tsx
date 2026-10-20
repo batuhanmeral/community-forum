@@ -43,7 +43,7 @@ describe('RulesCard', () => {
     api.updateRule.mockResolvedValue(rule(1, 'Be very kind', 0));
     render(<RulesCard slug="py" />);
     const row = (await screen.findByText('Be kind')).closest('li')!;
-    await userEvent.click(within(row).getByRole('button', { name: 'Edit' }));
+    await userEvent.click(within(row).getByRole('button', { name: 'Edit rule: Be kind' }));
     const field = screen.getByLabelText('Rule');
     await userEvent.clear(field);
     await userEvent.type(field, 'Be very kind');
@@ -60,7 +60,8 @@ describe('RulesCard', () => {
     api.deleteRule.mockResolvedValue();
     render(<RulesCard slug="py" />);
     const row = (await screen.findByText('Be kind')).closest('li')!;
-    await userEvent.click(within(row).getByRole('button', { name: 'Delete' }));
+    await userEvent.click(within(row).getByRole('button', { name: 'Delete rule: Be kind' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(screen.queryByText('Be kind')).not.toBeInTheDocument());
     expect(api.deleteRule).toHaveBeenCalledWith('py', 1);
     expect(await screen.findByText('No rules yet.')).toBeInTheDocument();
@@ -81,5 +82,42 @@ describe('RulesCard', () => {
     render(<RulesCard slug="py" />);
     expect(await screen.findByText(/Could not load this list/)).toBeInTheDocument();
     expect(screen.queryByText('No rules yet.')).not.toBeInTheDocument();
+  });
+
+  it('names each rule on its buttons', async () => {
+    render(<RulesCard slug="py" />);
+    await screen.findByText('Be kind');
+    expect(screen.getByRole('button', { name: 'Edit rule: Be kind' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete rule: Be kind' })).toBeInTheDocument();
+  });
+
+  it('asks before deleting a rule', async () => {
+    api.deleteRule.mockResolvedValue();
+    render(<RulesCard slug="py" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete rule: Be kind' }));
+    expect(api.deleteRule).not.toHaveBeenCalled();
+    const dialog = screen.getByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(api.deleteRule).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete rule: Be kind' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(api.deleteRule).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows backend errors under the rule fields', async () => {
+    api.createRule.mockRejectedValue({
+      response: {
+        status: 400,
+        data: { short: ['Short is bad.'], description: ['Description is bad.'], order: ['Order is bad.'] },
+      },
+    });
+    render(<RulesCard slug="py" />);
+    await screen.findByText('Be kind');
+    await userEvent.type(screen.getByLabelText('Rule'), 'Oops');
+    await userEvent.click(screen.getByRole('button', { name: 'Add rule' }));
+    expect(await screen.findByText('Short is bad.')).toBeInTheDocument();
+    expect(screen.getByText('Description is bad.')).toBeInTheDocument();
+    expect(screen.getByText('Order is bad.')).toBeInTheDocument();
+    expect(screen.queryByText('Could not save the rule.')).not.toBeInTheDocument();
   });
 });

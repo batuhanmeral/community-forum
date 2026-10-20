@@ -145,6 +145,13 @@ export const en = {
     loadFailed: 'Could not load the edit history.',
     editedBy: 'Edited by u/{{username}}',
     loadMore: 'Load more',
+    loadMoreFailed: 'Could not load more versions.',
+  },
+  follow: {
+    loadMoreFailed: 'Could not load more people.',
+  },
+  profile: {
+    saveFailed: 'Could not save your profile. Please try again.',
   },
   mod: {
     rulesTitle: 'Rules',
@@ -158,6 +165,9 @@ export const en = {
     cancel: 'Cancel',
     edit: 'Edit',
     delete: 'Delete',
+    editRuleLabel: 'Edit rule: {{rule}}',
+    deleteRuleLabel: 'Delete rule: {{rule}}',
+    deleteRuleConfirm: 'Delete this rule? This cannot be undone.',
     ruleSaveFailed: 'Could not save the rule.',
     loading: 'Loading…',
     loadMore: 'Load more',

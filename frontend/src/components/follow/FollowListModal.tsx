@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listFollowers, listFollowing, type FollowUser } from '@/api/follow';
 import { Avatar } from '@/components/ui/Avatar';
 import { Modal } from '@/components/ui/Modal';
@@ -16,6 +17,8 @@ interface FollowListModalProps {
 }
 
 export function FollowListModal({ open, onClose, username, mode }: FollowListModalProps) {
+  const { t } = useTranslation();
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -24,6 +27,7 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
   useEffect(() => {
     if (!open) return;
     setLoading(true);
+    setLoadMoreFailed(false);
     setPage(1);
     const fetcher = mode === 'followers' ? listFollowers : listFollowing;
     fetcher(username, 1)
@@ -39,11 +43,14 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
     const next = page + 1;
     const fetcher = mode === 'followers' ? listFollowers : listFollowing;
     setLoading(true);
+    setLoadMoreFailed(false);
     try {
       const d = await fetcher(username, next);
       setUsers((u) => [...u, ...d.results]);
       setHasMore(Boolean(d.next));
       setPage(next);
+    } catch {
+      setLoadMoreFailed(true);
     } finally {
       setLoading(false);
     }
@@ -89,6 +96,11 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
               {loading ? 'Loading…' : 'Load more'}
             </button>
           </div>
+        )}
+        {loadMoreFailed && (
+          <p className="pb-3 text-center text-sm text-[var(--color-danger)]">
+            {t('follow.loadMoreFailed')}
+          </p>
         )}
       </div>
     </Modal>

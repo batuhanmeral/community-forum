@@ -51,7 +51,10 @@ export function ReportQueueCard({ slug }: { slug: string }) {
               key={s}
               type="button"
               aria-pressed={status === s}
-              onClick={() => setStatus(s)}
+              onClick={() => {
+                setStatus(s);
+                setError(null);
+              }}
               className={cn(
                 'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                 status === s

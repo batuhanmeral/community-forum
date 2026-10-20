@@ -106,4 +106,13 @@ describe('ReportQueueCard', () => {
     expect(link.contains(marker)).toBe(false);
     expect(marker.closest('.truncate')).toBeNull();
   });
+
+  it('switching report tabs clears the previous error', async () => {
+    api.resolveReport.mockRejectedValue(new Error('500'));
+    renderCard();
+    await userEvent.click(await screen.findByRole('button', { name: 'Resolve' }));
+    expect(await screen.findByText('Action failed. Try again.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Resolved' }));
+    expect(screen.queryByText('Action failed. Try again.')).not.toBeInTheDocument();
+  });
 });

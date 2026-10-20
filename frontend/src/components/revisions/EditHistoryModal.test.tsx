@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { EditHistoryModal } from './EditHistoryModal';
 
 const revision = {
@@ -32,5 +33,16 @@ describe('EditHistoryModal', () => {
     const load = vi.fn();
     render(<EditHistoryModal open={false} onClose={() => {}} load={load} />);
     expect(load).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed load-more', async () => {
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({ count: 2, next: 'p2', previous: null, results: [revision] })
+      .mockRejectedValueOnce(new Error('down'));
+    render(<EditHistoryModal open onClose={() => {}} load={load} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Load more' }));
+    expect(await screen.findByText('Could not load more versions.')).toBeInTheDocument();
+    expect(screen.getByText('Old title')).toBeInTheDocument();
   });
 });

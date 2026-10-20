@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import {
   getUserComments,
@@ -20,6 +21,7 @@ import { blockUser, unblockUser } from '@/api/follow';
 import { FollowButton } from '@/components/follow/FollowButton';
 import { FollowListModal } from '@/components/follow/FollowListModal';
 import { ReportModal } from '@/components/moderation/ReportModal';
+import { fieldErrors } from '@/lib/apiErrors';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -338,12 +340,14 @@ interface ProfileEditModalProps {
 }
 
 function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditModalProps) {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [bio, setBio] = useState(initialBio);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open) {
@@ -351,6 +355,7 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
       setAvatar(null);
       setPreview(null);
       setError(null);
+      setErrors({});
       setSaving(false);
     }
   }, [open, initialBio]);
@@ -366,12 +371,15 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
     if (saving) return;
     setSaving(true);
     setError(null);
+    setErrors({});
     try {
       const updated = await updateProfile({ bio, avatar });
       dispatch(setUser(updated));
       onSaved({ bio: updated.bio, avatar: updated.avatar });
-    } catch {
-      setError('Could not save your profile. Please try again.');
+    } catch (err) {
+      const fields = fieldErrors(err);
+      setErrors(fields);
+      if (!fields.bio && !fields.avatar) setError(t('profile.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -401,11 +409,16 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
             <input type="file" accept="image/*" onChange={onFile} className="hidden" />
           </label>
         </div>
+        {errors.avatar && <p className="text-xs text-[var(--color-danger)]">{errors.avatar}</p>}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+          <label
+            htmlFor="profile-bio"
+            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
             Bio
           </label>
           <textarea
+            id="profile-bio"
+            aria-describedby={errors.bio ? 'profile-bio-error' : undefined}
             rows={4}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
@@ -416,6 +429,11 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
           <span className="font-mono self-end text-[11px] text-[var(--color-text-dim)]">
             {bio.length}/500
           </span>
+          {errors.bio && (
+            <p id="profile-bio-error" className="text-xs text-[var(--color-danger)]">
+              {errors.bio}
+            </p>
+          )}
         </div>
         {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
       </form>
