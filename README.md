@@ -26,6 +26,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Follow system with followers/following lists
 - Direct messages: conversations, read receipts (✓ / ✓✓), unread counters
 - Notifications (comment, reply, mention, follow, DM, mod action) with bell dropdown, inbox page, and 30s polling
+- Navbar badges for unread notifications and messages come from one call, `GET /api/v1/users/me/unread-counts/` (`{notifications, messages}`), polled every 30s and paused in hidden tabs
 - User blocking — cuts DMs and follows both ways, suppresses notifications
 - Public user profiles with karma badges, post/comment tabs, and profile editing
 
@@ -120,7 +121,8 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 
 - **`SECRET_KEY`** must be at least 50 characters; the backend refuses to start otherwise. Generate one with `python -c "import secrets; print(secrets.token_urlsafe(50))"`.
 - **Logging:** the backend logs to stdout at `LOG_LEVEL` (default `INFO`).
-- **Health:** `GET /api/v1/health/` returns `200 {"status":"ok"}` or `503 {"status":"unavailable"}` (no auth, exempt from the HTTPS redirect). The compose backend healthcheck uses it with `Host: backend`, so keep `backend` in `ALLOWED_HOSTS`; the frontend container waits for a healthy backend. Redis is capped at 128 MB with LRU eviction.
+- **Health:** `GET /api/v1/health/` returns `200 {"status":"ok"}` or `503 {"status":"unavailable"}` (no auth, exempt from the HTTPS redirect). The compose backend healthcheck uses it with `Host: backend`, so keep `backend` in `ALLOWED_HOSTS`; the frontend container waits for a healthy backend. Redis is capped at 128 MB with LRU eviction. The check runs `SELECT 1` against the database, so a 503 also means the DB is unreachable.
+- **DB connections:** `DB_CONN_MAX_AGE` (default `60` seconds; `0` disables persistent connections) sets Django's `CONN_MAX_AGE`, with `CONN_HEALTH_CHECKS` on. Each gunicorn worker keeps one idle connection, so size Postgres `max_connections` accordingly.
 - **Security headers:** nginx sends a CSP (Google Fonts allowed), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy` and `Permissions-Policy` (`frontend/nginx/security-headers.conf`). A split deploy with a different API origin must extend `connect-src`.
 - **TLS and proxies:** TLS is expected to be terminated by an edge proxy in front of nginx (`SECURE_SSL_REDIRECT` env). The edge proxy must overwrite (not append to) `X-Forwarded-Proto`, and `NUM_PROXIES` must equal the number of proxies in front of Django: nginx (1) plus every proxy before it.
 
