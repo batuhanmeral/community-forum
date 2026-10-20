@@ -113,11 +113,32 @@ def _visible_post(user, pk) -> Post:
     return post
 
 
-def _keyword_added_by_edit(post: Post, new_title: str, new_body: str) -> str | None:
-    # Only newly added keywords count: a post a mod approved with a keyword must survive typo fixes.
+# Content fields whose change sends an approved post back to the queue.
+REAPPROVAL_FIELDS = ("title", "body", "url")
+
+
+def _edit_hold_reason(post: Post, validated_data: dict) -> str | None:
+    # Banned moderators are not moderators (active_membership), but banned users can't edit anyway.
     if not post.is_approved or is_moderator(post.author, post.community):
         return None
-    return post.community.banned_keyword_added((post.title, post.body), (new_title, new_body))
+    # Only newly added keywords count: a post a mod approved with a keyword must survive typo fixes.
+    keyword = post.community.banned_keyword_added(
+        (post.title, post.body),
+        (validated_data.get("title", post.title), validated_data.get("body", post.body)),
+    )
+    if keyword:
+        return f"matched keyword on edit: {keyword}"
+    if not post.community.requires_approval:
+        return None
+    changed = any(
+        field in validated_data and validated_data[field] != getattr(post, field)
+        for field in REAPPROVAL_FIELDS
+    )
+    # An upload, or clearing an existing image, is a change; an absent key is not.
+    image_changed = "image" in validated_data and bool(validated_data["image"] or post.image)
+    if changed or image_changed:
+        return "edited after approval"
+    return None
 
 
 class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
@@ -258,13 +279,9 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
         if instance.deleted_at is not None:
             raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
-        keyword = _keyword_added_by_edit(
-            instance,
-            serializer.validated_data.get("title", old_title),
-            serializer.validated_data.get("body", old_body),
-        )
-        # One write carries the hold, so no reader or racing edit ever sees the keyword approved.
-        hold = {"is_approved": False, "is_pinned": False} if keyword else {}
+        reason = _edit_hold_reason(instance, serializer.validated_data)
+        # One write carries the hold, so no reader or racing edit ever sees the held edit approved.
+        hold = {"is_approved": False, "is_pinned": False} if reason else {}
         post = serializer.save(
             # An NSFW community's posts can't be un-flagged by their author.
             is_nsfw=serializer.validated_data.get("is_nsfw", instance.is_nsfw)
@@ -277,17 +294,17 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
             )
             post.edited_at = timezone.now()
             post.save(update_fields=["edited_at"])
-            if keyword:
-                log_mod_action(
-                    post.community,
-                    action=ModAction.Action.AUTOMOD_HOLD,
-                    target=post,
-                    detail=f"matched keyword on edit: {keyword}",
-                )
             if post.is_approved:
                 from apps.comments.views import notify_mentions
 
                 notify_mentions(post.body, actor=self.request.user, target=post)
+        if reason:
+            log_mod_action(
+                post.community,
+                action=ModAction.Action.AUTOMOD_HOLD,
+                target=post,
+                detail=reason,
+            )
 
 
 class PostRevisionListView(generics.ListAPIView):
