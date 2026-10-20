@@ -9,6 +9,13 @@ export const SVG_MESSAGE = 'Use a lucide-react icon instead of an inline <svg>.'
 export const GLYPH_MESSAGE =
   'Use a lucide-react icon instead of an emoji or arrow glyph.';
 
+export const COLOUR_MESSAGE =
+  'Use a design token (var(--color-*)) instead of a hard-coded colour, gradient or blur.';
+
+// Hex colours need a colour-like context so href anchors such as "#add" stay allowed.
+const COLOUR_PATTERN =
+  '(?:^|(?<=[\\[\\s(,:]))#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6})\\b|(?<=[\\[\\s(,:])#[0-9a-fA-F]{3,4}\\b|rgba?\\(|hsla?\\(|gradient\\(|backdrop-blur|accent-glow|(?<![\\w-])shadow-(?:lg|xl|2xl|\\[)';
+
 // Emoji, arrows, dingbats and symbol blocks; keeps ⌘ (U+2318) and · allowed.
 const GLYPH_RANGE = '[←-⇿☀-➿⬀-⯿\\u{1F300}-\\u{1FAFF}]';
 
@@ -20,7 +27,12 @@ export const ICON_SELECTORS = [
   { selector: `TemplateElement[value.raw=/${GLYPH_RANGE}/u]`, message: GLYPH_MESSAGE },
 ];
 
-export const RESTRICTED_SYNTAX = [...ICON_SELECTORS];
+export const COLOUR_SELECTORS = [
+  { selector: `Literal[value=/${COLOUR_PATTERN}/]`, message: COLOUR_MESSAGE },
+  { selector: `TemplateElement[value.raw=/${COLOUR_PATTERN}/]`, message: COLOUR_MESSAGE },
+];
+
+export const RESTRICTED_SYNTAX = [...ICON_SELECTORS, ...COLOUR_SELECTORS];
 
 export default defineConfig([
   globalIgnores(['dist']),

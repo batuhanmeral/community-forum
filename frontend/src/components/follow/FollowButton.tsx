@@ -57,7 +57,7 @@ export function FollowButton({ username, initialFollowing, size = 'md', onChange
         heightCls,
         following
           ? 'border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]'
-          : 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[#061218] hover:opacity-90',
+          : 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:opacity-90',
       )}
     >
       {following ? 'Following' : 'Follow'}

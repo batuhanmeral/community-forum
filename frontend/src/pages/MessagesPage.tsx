@@ -127,7 +127,7 @@ export function MessagesPage() {
           <button
             type="button"
             onClick={() => setNewOpen(true)}
-            className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[#061218] transition hover:opacity-90"
+            className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[var(--color-on-accent)] transition hover:opacity-90"
           >
             + New
           </button>
@@ -195,7 +195,7 @@ export function MessagesPage() {
               <button
                 type="button"
                 onClick={() => setNewOpen(true)}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[#061218]"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[var(--color-on-accent)]"
               >
                 + Start a new conversation
               </button>
@@ -242,7 +242,7 @@ function ConversationRow({ conversation, active, currentUserId }: ConversationRo
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-[12.5px] text-[var(--color-text-muted)]">{preview}</p>
           {conversation.unread_count > 0 && (
-            <span className="font-mono shrink-0 rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-bold text-[#061218]">
+            <span className="font-mono shrink-0 rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-accent)]">
               {conversation.unread_count}
             </span>
           )}
@@ -472,7 +472,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                     className={cn(
                       'max-w-[70%] rounded-2xl px-3.5 py-2 text-[14px] leading-snug whitespace-pre-wrap',
                       own
-                        ? 'bg-[var(--color-accent)] text-[#061218] rounded-br-md'
+                        ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)] rounded-br-md'
                         : 'bg-[var(--color-bg-elevated)] text-[var(--color-text)] rounded-bl-md',
                     )}
                   >
@@ -480,7 +480,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                     <div
                       className={cn(
                         'font-mono mt-1 flex items-center gap-1 text-[10px]',
-                        own ? 'justify-end text-[#061218]/60' : 'text-[var(--color-text-dim)]',
+                        own ? 'justify-end text-[var(--color-on-accent)]/60' : 'text-[var(--color-text-dim)]',
                       )}
                     >
                       {timeAgo(m.created_at)}

@@ -116,7 +116,7 @@ export function SearchPage() {
             className={cn(
               'rounded-full px-4 py-1.5 text-[13px] font-medium transition',
               type === tab.type
-                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
             )}
           >
@@ -183,12 +183,12 @@ function CommunityResult({ community }: { community: Community }) {
             c/{community.slug}
           </h3>
           {community.is_nsfw && (
-            <span className="rounded-full border border-[rgba(255,106,138,0.2)] bg-[rgba(255,106,138,0.08)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-danger)]">
+            <span className="rounded-full border border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-danger)]">
               NSFW
             </span>
           )}
           {community.is_member && (
-            <span className="rounded-full border border-[rgba(97,218,251,0.2)] bg-[rgba(97,218,251,0.08)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-accent)]">
+            <span className="rounded-full border border-[var(--color-accent-border)] bg-[var(--color-accent)]/8 px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-accent)]">
               Joined
             </span>
           )}

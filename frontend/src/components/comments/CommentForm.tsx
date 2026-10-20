@@ -185,7 +185,7 @@ export function CommentForm({
       />
 
       {mention.active && mention.results.length > 0 && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-2xl">
+        <div className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-md">
           {mention.results.map((u, i) => (
             <button
               key={u.id}

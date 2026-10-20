@@ -12,6 +12,7 @@ import { userPath } from '@/lib/paths';
 import { usePolling } from '@/lib/usePolling';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Avatar } from '@/components/ui/Avatar';
+import { buttonClasses } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { ArrowBigUp, Menu, MessageSquare, PanelLeft, PanelRight, Plus, Search } from 'lucide-react';
 
@@ -131,7 +132,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[rgba(8,8,10,0.72)] backdrop-blur-xl backdrop-saturate-150">
+    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
       <div className="mx-auto flex h-[68px] max-w-[1280px] items-center gap-4 px-20 max-[1180px]:px-10 max-[960px]:gap-3 max-[960px]:px-4 max-sm:gap-2">
         {onOpenMenu && (
           <button
@@ -194,7 +195,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
               <NotificationDropdown unreadCount={notifUnread} />
               <Link
                 to="/submit"
-                className="btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold tracking-tight max-[480px]:px-2.5"
+                className={cn(buttonClasses({ size: 'md' }), 'tracking-tight max-[480px]:px-2.5')}
               >
                 <Plus strokeWidth={2.2} className="h-[15px] w-[15px]" />
                 <span className="max-[480px]:sr-only">{t('nav.post')}</span>
@@ -209,7 +210,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
                   <Avatar src={user.avatar} alt={user.username} size="md" />
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] shadow-2xl">
+                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] shadow-md">
                     <div className="px-4 py-2.5 text-xs text-[var(--color-text-muted)]">
                       {t('nav.signedInAs')} <span className="font-semibold text-[var(--color-text)]">{user.username}</span>
                       <div className="font-mono mt-1 flex gap-3 text-[11px] text-[var(--color-text-dim)]">
@@ -245,7 +246,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
               </Link>
               <Link
                 to="/register"
-                className="btn-primary hidden items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold tracking-tight sm:inline-flex"
+                className={cn(buttonClasses({ size: 'md' }), 'tracking-tight max-sm:hidden')}
               >
                 {t('nav.signup')}
               </Link>
@@ -281,20 +282,6 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
           />
         </div>
       )}
-
-      <style>{`
-        .btn-primary {
-          background: var(--color-accent);
-          color: #061218;
-          box-shadow: 0 4px 16px rgba(97, 218, 251, 0.28), inset 0 1px 0 rgba(255,255,255,0.4);
-          transition: transform 0.1s ease, box-shadow 0.15s ease;
-        }
-        .btn-primary:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 22px rgba(97, 218, 251, 0.4), inset 0 1px 0 rgba(255,255,255,0.4);
-        }
-        .btn-primary:active { transform: translateY(0); }
-      `}</style>
     </header>
   );
 }
@@ -313,7 +300,7 @@ function SearchForm({ inputRef, value, onChange, onSubmit, className }: SearchFo
     <form
       onSubmit={onSubmit}
       className={cn(
-        'w-full items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[rgba(97,218,251,0.4)] focus-within:bg-[var(--color-bg-3)] focus-within:shadow-[0_0_0_4px_rgba(97,218,251,0.08)]',
+        'w-full items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[var(--color-accent)]/40 focus-within:bg-[var(--color-bg-3)]',
         className,
       )}
     >
@@ -352,7 +339,7 @@ function IconButton({ title, count, to, children }: IconButtonProps) {
       {children}
       {count !== undefined && count > 0 ? (
         <span
-          className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[#061218]"
+          className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[var(--color-on-accent)]"
           style={{ boxShadow: '0 0 0 2px var(--color-bg)' }}
         >
           {count > 99 ? '99+' : count}

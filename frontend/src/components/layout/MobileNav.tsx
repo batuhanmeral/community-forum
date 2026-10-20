@@ -36,7 +36,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={handleClick}
-      className="m-0 h-dvh max-h-none w-[280px] max-w-[85vw] border-r border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] p-0 text-[var(--color-text)] backdrop:bg-black/60"
+      className="m-0 h-dvh max-h-none w-[280px] max-w-[85vw] border-r border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] p-0 text-[var(--color-text)] backdrop:bg-[var(--color-overlay)]"
     >
       <div className="flex h-full flex-col overflow-y-auto overscroll-contain px-2 pb-10 pt-3">
         <div className="mb-3 flex items-center justify-between pl-3">

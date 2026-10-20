@@ -78,7 +78,7 @@ export function SavedPage() {
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
                 filter === f
-                  ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                  ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
               )}
             >

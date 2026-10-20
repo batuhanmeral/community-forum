@@ -243,7 +243,7 @@ export function PostCreatePage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
           {draftNotice && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(97,218,251,0.25)] bg-[var(--color-accent-dim)] px-3 py-2 text-[13px] text-[var(--color-accent)]">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-accent-border)] bg-[var(--color-accent-dim)] px-3 py-2 text-[13px] text-[var(--color-accent)]">
               <span>{draftNotice}</span>
               <button
                 type="button"

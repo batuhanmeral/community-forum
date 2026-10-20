@@ -5,6 +5,7 @@ import { listCommunities } from '@/api/communities';
 import type { Community } from '@/features/communities/types';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
+import { buttonClasses } from '@/components/ui/Button';
 import { Bookmark, Globe, Home, Plus, Settings, TrendingUp } from 'lucide-react';
 
 interface NavItem {
@@ -117,8 +118,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         <NavLink
           to="/register"
           onClick={onNavigate}
-          className="mx-2.5 mt-1.5 inline-flex h-8 w-fit items-center justify-center gap-1.5 self-start rounded-full bg-[var(--color-accent)] px-3.5 text-[12.5px] font-semibold text-[#061218]"
-          style={{ boxShadow: '0 4px 16px rgba(97, 218, 251, 0.28), inset 0 1px 0 rgba(255,255,255,0.4)' }}
+          className={cn(buttonClasses({ size: 'sm' }), 'mx-2.5 mt-1.5 w-fit self-start')}
         >
           <span className="h-[13px] w-[13px]">{plusIcon}</span>
           {t('sidebar.createAccount')}
@@ -158,8 +158,8 @@ function SidebarItem({
         cn(
           'group relative flex w-[170px] items-center gap-2.5 rounded-[8px] px-3 py-[7px] text-[13.5px] font-normal transition-all',
           isActive
-            ? 'text-white'
-            : 'text-[rgba(255,255,255,0.7)] hover:text-white',
+            ? 'text-[var(--color-text)]'
+            : 'text-[var(--color-text-soft)] hover:text-[var(--color-text)]',
         )
       }
     >
@@ -168,7 +168,6 @@ function SidebarItem({
           {isActive && (
             <span
               className="absolute -left-1.5 top-1/2 h-[16px] w-[2.5px] -translate-y-1/2 rounded-full bg-[var(--color-accent)]"
-              style={{ boxShadow: '0 0 12px var(--color-accent-glow)' }}
             />
           )}
           <span className="grid h-[22px] w-[22px] place-items-center">
@@ -191,14 +190,13 @@ function CommunityItem({ community, onNavigate }: { community: Community; onNavi
         cn(
           'flex w-[170px] items-center gap-2.5 rounded-[8px] px-3 py-[7px] text-[13.5px] transition-all',
           isActive
-            ? 'text-white'
-            : 'text-[rgba(255,255,255,0.7)] hover:text-white',
+            ? 'text-[var(--color-text)]'
+            : 'text-[var(--color-text-soft)] hover:text-[var(--color-text)]',
         )
       }
     >
       <span
-        className="grid h-[22px] w-[22px] place-items-center rounded-full border border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-accent)]"
-        style={{ background: 'linear-gradient(135deg, #2a3540, #1a2128)' }}
+        className="grid h-[22px] w-[22px] place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-accent)]"
       >
         {community.slug[0]?.toUpperCase()}
       </span>

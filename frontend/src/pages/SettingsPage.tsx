@@ -78,7 +78,7 @@ function PreferencesCard() {
         >
           <span
             className={cn(
-              'absolute top-1 h-3 w-3 rounded-full bg-white transition-all',
+              'absolute top-1 h-3 w-3 rounded-full bg-[var(--color-text)] transition-all',
               showNsfw ? 'left-5' : 'left-1',
             )}
           />
@@ -131,8 +131,8 @@ function EmailVerificationRow({ verified, email }: { verified: boolean; email: s
           className={cn(
             'ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium',
             verified
-              ? 'border-[rgba(97,218,251,0.2)] bg-[rgba(97,218,251,0.08)] text-[var(--color-accent)]'
-              : 'border-[rgba(255,106,138,0.2)] bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)]',
+              ? 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
+              : 'border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] text-[var(--color-danger)]',
           )}
         >
           {verified ? t('settings.emailVerified') : t('settings.emailUnverified')}

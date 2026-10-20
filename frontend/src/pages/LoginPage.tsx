@@ -92,12 +92,12 @@ export function AuthShell({ title, subtitle, children }: ShellProps) {
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-12">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--color-accent)] text-[#0b1418] font-black">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--color-accent)] text-[var(--color-on-accent)] font-black">
             N
           </span>
           <span className="text-xl font-bold tracking-tight">nexus</span>
         </Link>
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xl">
+        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7">
           <h1 className="text-2xl font-bold">{title}</h1>
           {subtitle && (
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">{subtitle}</p>

@@ -63,16 +63,15 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
           >
             {revealed && (
               <div
-                className="absolute inset-y-0 left-0 z-0 transition-all"
-                style={{
-                  width: `${opt.percent}%`,
-                  background: voted
-                    ? 'rgba(97, 218, 251, 0.22)'
+                className={cn(
+                  'absolute inset-y-0 left-0 z-0 border-r transition-all',
+                  voted
+                    ? 'border-[var(--color-accent)]/50 bg-[var(--color-accent)]/20'
                     : leading
-                      ? 'rgba(97, 218, 251, 0.14)'
-                      : 'rgba(97, 218, 251, 0.07)',
-                  borderRight: `1px solid ${voted ? 'rgba(97,218,251,0.55)' : leading ? 'rgba(97,218,251,0.4)' : 'rgba(97,218,251,0.18)'}`,
-                }}
+                      ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)]'
+                      : 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/8',
+                )}
+                style={{ width: `${opt.percent}%` }}
               />
             )}
             <span className="relative z-10 flex items-center gap-2">

@@ -24,7 +24,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
     <article
       className={cn(
         'group relative mb-2 rounded-2xl border border-transparent px-3 py-2.5 transition-colors duration-150 hover:border-[var(--color-border)] hover:bg-[var(--color-bg-1)]',
-        isPinned && 'border-[rgba(97,218,251,0.16)] bg-[rgba(97,218,251,0.025)]',
+        isPinned && 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/[0.03]',
       )}
     >
       <div>
@@ -36,11 +36,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               className="relative z-10 inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
             >
               <span
-                className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-[var(--color-accent)]"
-                style={{
-                  background: 'linear-gradient(135deg, #1d2a35, #0d1418)',
-                  border: '1px solid rgba(97, 218, 251, 0.2)',
-                }}
+                className="grid h-5 w-5 place-items-center rounded-full border border-[var(--color-accent-border)] bg-[var(--color-bg-3)] text-[10px] font-bold text-[var(--color-accent)]"
               >
                 {post.community[0]?.toUpperCase()}
               </span>
@@ -109,17 +105,12 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
             className="relative z-10 mb-2 flex gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2.5 transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-3)]"
           >
             <div
-              className="h-[72px] w-[96px] shrink-0 rounded-lg border border-[var(--color-border)]"
-              style={{
-                background: `repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 8px, transparent 8px 16px),
-                             linear-gradient(135deg, #1a2530, #0e1518)`,
-              }}
+              className="h-[72px] w-[96px] shrink-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-3)]"
             />
             <div className="min-w-0 flex-1">
               <div className="font-mono mb-1.5 flex items-center gap-2 text-[11px] text-[var(--color-text-dim)]">
                 <span
-                  className="block h-[12px] w-[12px] rounded-sm"
-                  style={{ background: 'linear-gradient(135deg, var(--color-accent), #2faed0)' }}
+                  className="block h-[12px] w-[12px] rounded-sm bg-[var(--color-accent)]"
                 />
                 <span>{tryHostname(post.url)}</span>
                 <span>·</span>
@@ -138,9 +129,6 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         {post.kind === 'image' && post.image && (
           <div
             className="mb-2 grid max-h-[420px] place-items-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)]"
-            style={{
-              background: `repeating-linear-gradient(135deg, rgba(255,255,255,0.018) 0 12px, transparent 12px 24px), var(--color-bg-elevated)`,
-            }}
           >
             {post.is_nsfw ? <NsfwReveal>{image}</NsfwReveal> : image}
           </div>
@@ -156,12 +144,13 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
                   className="relative flex items-center justify-between overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-3 text-[13.5px]"
                 >
                   <div
-                    className="absolute inset-y-0 left-0 z-0"
-                    style={{
-                      width: `${opt.percent}%`,
-                      background: leading ? 'rgba(97, 218, 251, 0.14)' : 'rgba(97, 218, 251, 0.08)',
-                      borderRight: `1px solid ${leading ? 'rgba(97, 218, 251, 0.4)' : 'rgba(97, 218, 251, 0.18)'}`,
-                    }}
+                    className={cn(
+                      'absolute inset-y-0 left-0 z-0 border-r',
+                      leading
+                        ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)]'
+                        : 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/8',
+                    )}
+                    style={{ width: `${opt.percent}%` }}
                   />
                   <span className="relative z-10">{opt.text}</span>
                   <span className={cn('font-mono relative z-10 text-[12px]', leading ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]')}>
@@ -225,10 +214,10 @@ function ActionBtn({ href, icon, children }: { href?: string; icon: React.ReactN
 
 function Flair({ kind, children }: { kind: 'discussion' | 'showcase' | 'question' | 'news'; children: React.ReactNode }) {
   const palette: Record<typeof kind, string> = {
-    discussion: 'bg-[rgba(97,218,251,0.08)] text-[var(--color-accent)] border-[rgba(97,218,251,0.2)]',
-    showcase: 'bg-[rgba(106,255,193,0.08)] text-[var(--color-success)] border-[rgba(106,255,193,0.2)]',
-    question: 'bg-[rgba(255,155,106,0.08)] text-[var(--color-warn)] border-[rgba(255,155,106,0.2)]',
-    news: 'bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)] border-[rgba(255,106,138,0.2)]',
+    discussion: 'bg-[var(--color-accent)]/8 text-[var(--color-accent)] border-[var(--color-accent-border)]',
+    showcase: 'bg-[var(--color-success-dim)] text-[var(--color-success)] border-[var(--color-success)]/20',
+    question: 'bg-[var(--color-warn-dim)] text-[var(--color-warn)] border-[var(--color-warn)]/20',
+    news: 'bg-[var(--color-danger-dim)] text-[var(--color-danger)] border-[var(--color-danger)]/20',
   };
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium', palette[kind])}>

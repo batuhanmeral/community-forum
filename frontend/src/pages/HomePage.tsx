@@ -191,7 +191,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
                   className={cn(
                     'rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
                     feedKind === k
-                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                   )}
                 >
@@ -210,7 +210,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                   sort === t.id
-                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                 )}
               >
@@ -232,7 +232,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             className={cn(
               'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-[7px] text-[12.5px] font-normal transition',
               kind === f.id
-                ? 'border-[rgba(97,218,251,0.3)] bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+                ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
             )}
           >
@@ -251,7 +251,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             className={cn(
               'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-[7px] text-[12px] font-medium transition',
               nsfwShown
-                ? 'border-[rgba(255,106,138,0.3)] bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)]'
+                ? 'border-[var(--color-danger)]/30 bg-[var(--color-danger-dim)] text-[var(--color-danger)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
             )}
           >
@@ -263,7 +263,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             >
               <span
                 className={cn(
-                  'absolute top-0.5 h-2 w-2 rounded-full bg-white transition-all',
+                  'absolute top-0.5 h-2 w-2 rounded-full bg-[var(--color-text)] transition-all',
                   nsfwShown ? 'left-2.5' : 'left-0.5',
                 )}
               />

@@ -405,7 +405,9 @@ function CommunitySettingsCard({
 function FlairCard({ slug }: { slug: string }) {
   const [flairs, setFlairs] = useState<Flair[]>([]);
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#61dafb');
+  // Flair colours are user data, not theme colours; the picker needs a hex default.
+  // eslint-disable-next-line no-restricted-syntax
+  const [color, setColor] = useState('#818cf8');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

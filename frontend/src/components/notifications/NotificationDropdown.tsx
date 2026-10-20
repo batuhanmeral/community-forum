@@ -82,7 +82,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
         <Bell className="h-[18px] w-[18px]" />
         {unreadCount > 0 && (
           <span
-            className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[#061218]"
+            className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[var(--color-on-accent)]"
             style={{ boxShadow: '0 0 0 2px var(--color-bg)' }}
           >
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -92,7 +92,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
 
       {open && (
         // Below 640 px the bell is not at the screen edge, so pin the panel under the 68 px header with an 8 px gutter.
-        <div className="absolute right-0 z-50 mt-2 overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] shadow-2xl sm:w-[360px] max-sm:fixed max-sm:inset-x-2 max-sm:top-[76px] max-sm:mt-0 max-sm:flex max-sm:max-h-[calc(100dvh-84px)] max-sm:flex-col">
+        <div className="absolute right-0 z-50 mt-2 overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] shadow-md sm:w-[360px] max-sm:fixed max-sm:inset-x-2 max-sm:top-[76px] max-sm:mt-0 max-sm:flex max-sm:max-h-[calc(100dvh-84px)] max-sm:flex-col">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
             <span className="text-[13px] font-semibold tracking-tight">Notifications</span>
             {unreadCount > 0 && (
@@ -131,7 +131,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
                       className={cn(
                         'grid h-7 w-7 shrink-0 place-items-center rounded-full text-[14px]',
                         unread
-                          ? 'bg-[var(--color-accent)] text-[#061218]'
+                          ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
                           : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',
                       )}
                     >

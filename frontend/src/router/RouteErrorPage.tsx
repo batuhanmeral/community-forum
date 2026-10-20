@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useRouteError } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClasses } from '@/components/ui/Button';
 
 export const CHUNK_RELOAD_KEY = 'nexus.chunkReloadAt';
 export const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
@@ -50,7 +50,7 @@ export function RouteErrorPage() {
         <Button onClick={() => window.location.reload()}>{t('errors.retry')}</Button>
         <Link
           to="/"
-          className="inline-flex h-10 items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-sm transition-colors hover:bg-[var(--color-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+          className={buttonClasses({ variant: 'secondary' })}
         >
           {t('errors.home')}
         </Link>

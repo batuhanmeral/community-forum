@@ -183,7 +183,7 @@ export function CommunityDetailPage() {
   return (
     <div className="flex flex-col gap-5">
       <Card padded={false} className="overflow-hidden">
-        <div className="h-24 w-full bg-gradient-to-r from-[var(--color-accent)]/30 via-[var(--color-surface-hover)] to-[var(--color-surface)]" />
+        <div className="h-24 w-full bg-[var(--color-bg-3)]" />
         <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
             <div className="-mt-12">
@@ -333,7 +333,7 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
         <ChevronDown className="h-4 w-4 text-[var(--color-text-muted)]" />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-2xl">
+        <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-md">
           {(['all', 'posts_only', 'off'] as NotifyLevel[]).map((level) => (
             <button
               key={level}

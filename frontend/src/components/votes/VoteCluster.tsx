@@ -161,7 +161,7 @@ function ArrowBtn({ direction, active, size, btnSize, onClick }: ArrowBtnProps) 
         btnSize,
         'hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
         active && direction === 'up' && 'bg-[var(--color-accent-dim)] text-[var(--color-accent)] hover:bg-[var(--color-accent-dim)] hover:text-[var(--color-accent)]',
-        active && direction === 'down' && 'bg-[rgba(255,106,138,0.12)] text-[var(--color-danger)] hover:bg-[rgba(255,106,138,0.12)] hover:text-[var(--color-danger)]',
+        active && direction === 'down' && 'bg-[var(--color-danger)]/12 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/12 hover:text-[var(--color-danger)]',
       )}
     >
       {direction === 'up' ? <ArrowBigUp size={size} /> : <ArrowBigDown size={size} />}

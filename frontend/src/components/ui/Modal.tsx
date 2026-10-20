@@ -29,7 +29,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay)] px-4"
       onClick={onClose}
       role="presentation"
     >
@@ -37,7 +37,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
         role="dialog"
         aria-modal="true"
         className={cn(
-          'w-full max-w-md rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-2xl',
+          'w-full max-w-md rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-md',
           className,
         )}
         onClick={(e) => e.stopPropagation()}
