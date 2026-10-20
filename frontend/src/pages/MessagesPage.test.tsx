@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -9,6 +9,7 @@ import messagingReducer, { setDMUnreadCount } from '@/features/messaging/messagi
 import type { Conversation, Message } from '@/features/messaging/types';
 import { MessagesPage } from './MessagesPage';
 import * as messagingApi from '@/api/messaging';
+import * as usersApi from '@/api/users';
 
 vi.mock('@/api/messaging', () => ({
   listConversations: vi.fn(),
@@ -18,7 +19,12 @@ vi.mock('@/api/messaging', () => ({
   startConversation: vi.fn(),
 }));
 
+vi.mock('@/api/users', () => ({
+  getUnreadCounts: vi.fn().mockResolvedValue({ notifications: 0, messages: 0 }),
+}));
+
 const api = vi.mocked(messagingApi);
+const users = vi.mocked(usersApi);
 
 const conversation: Conversation = {
   id: 1,
@@ -393,11 +399,30 @@ describe('MessagesPage conversation list', () => {
     }
   });
 
-  it('keeps the unread badge when the first conversation load fails', async () => {
-    api.listConversations.mockRejectedValueOnce(new Error('down'));
-    const { store } = renderAt('/messages', 5);
-    expect(await screen.findByText('No conversations yet.')).toBeInTheDocument();
-    expect(store.getState().messaging.dmUnreadCount).toBe(5);
+  it('does not derive the DM badge from loaded conversations', async () => {
+    api.listConversations.mockResolvedValue(convs([{ ...conversation, unread_count: 4 }]));
+    const { store } = renderAt('/messages', 7);
+    await screen.findByText('u/bob');
+    expect(store.getState().messaging.dmUnreadCount).toBe(7);
+  });
+
+  it('syncs both badges from the server after marking a conversation read', async () => {
+    api.listConversations.mockResolvedValue(convs([{ ...conversation, unread_count: 2 }]));
+    api.listMessages.mockResolvedValue(page([msg(1)], null));
+    let finishRead: () => void = () => undefined;
+    api.markConversationRead.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishRead = resolve;
+      }) as ReturnType<typeof messagingApi.markConversationRead>,
+    );
+    users.getUnreadCounts.mockResolvedValue({ notifications: 1, messages: 0 });
+    const { store } = renderAt('/messages/1', 2);
+    await waitFor(() => expect(api.markConversationRead).toHaveBeenCalledTimes(1));
+    expect(users.getUnreadCounts).not.toHaveBeenCalled();
+
+    await act(async () => finishRead());
+    expect(users.getUnreadCounts).toHaveBeenCalledTimes(1);
+    expect(store.getState().messaging.dmUnreadCount).toBe(0);
   });
 
   it('loads the next page of conversations on demand', async () => {

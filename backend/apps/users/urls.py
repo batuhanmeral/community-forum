@@ -12,6 +12,7 @@ from .views import (
     RefreshView,
     RegisterView,
     ResendVerificationView,
+    UnreadCountsView,
     UserProfileView,
 )
 
@@ -37,6 +38,7 @@ auth_urlpatterns = [
 users_urlpatterns = [
     path("me/", MeView.as_view(), name="users-me"),
     path("me/password/", ChangePasswordView.as_view(), name="users-change-password"),
+    path("me/unread-counts/", UnreadCountsView.as_view(), name="users-unread-counts"),
     path("leaderboard/", LeaderboardView.as_view(), name="users-leaderboard"),
     path("<str:username>/", UserProfileView.as_view(), name="users-profile"),
 ]

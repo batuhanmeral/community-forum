@@ -12,7 +12,7 @@ import {
 import type { Conversation, Message } from '@/features/messaging/types';
 import { appendPage, mergeFirstPage } from '@/features/messaging/conversations';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { setDMUnreadCount } from '@/features/messaging/messagingSlice';
+import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -39,19 +39,11 @@ export function MessagesPage() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [convsLoading, setConvsLoading] = useState(true);
-  const [convsLoaded, setConvsLoaded] = useState(false);
   const [nextConvPage, setNextConvPage] = useState<number | null>(null);
   const [loadingMoreConvs, setLoadingMoreConvs] = useState(false);
   const [loadMoreConvsFailed, setLoadMoreConvsFailed] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const refetchedForId = useRef<string | null>(null);
-
-  // Counted from everything loaded, so conversations fetched with "load more" count too.
-  useEffect(() => {
-    // A failed first load must not reset the badge to zero.
-    if (!convsLoaded) return;
-    dispatch(setDMUnreadCount(conversations.reduce((acc, c) => acc + c.unread_count, 0)));
-  }, [conversations, convsLoaded, dispatch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,7 +52,6 @@ export function MessagesPage() {
         if (cancelled) return;
         setConversations(d.results);
         setNextConvPage(d.next ? 2 : null);
-        setConvsLoaded(true);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -187,6 +178,7 @@ export function MessagesPage() {
               setConversations((prev) =>
                 prev.map((c) => (c.id === selected.id ? { ...c, unread_count: 0 } : c)),
               );
+              void syncUnreadCounts(dispatch);
             }}
           />
         ) : (

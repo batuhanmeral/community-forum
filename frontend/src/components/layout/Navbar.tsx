@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { logout } from '@/features/auth/authSlice';
 import { logoutRequest } from '@/api/auth';
-import { listConversations } from '@/api/messaging';
-import { setDMUnreadCount } from '@/features/messaging/messagingSlice';
-import { listNotifications } from '@/api/notifications';
-import { setUnreadCount } from '@/features/notifications/notificationSlice';
+import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
+import { usePolling } from '@/lib/usePolling';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
+
+const UNREAD_POLL_MS = 30_000;
 
 interface NavbarProps {
   leftOpen?: boolean;
@@ -72,20 +72,26 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
     searchRef.current?.blur();
   }
 
+  const isAuthed = status === 'authenticated';
+  const syncCounts = useCallback(() => {
+    void syncUnreadCounts(dispatch);
+  }, [dispatch]);
+
+  // Sync right away on login, then every 30 s while the tab is visible.
   useEffect(() => {
-    if (status !== 'authenticated') return;
-    const fetchCounts = () => {
-      listConversations()
-        .then((d) => dispatch(setDMUnreadCount(d.results.reduce((acc, c) => acc + c.unread_count, 0))))
-        .catch(() => undefined);
-      listNotifications({ unread: true })
-        .then((d) => dispatch(setUnreadCount(d.count)))
-        .catch(() => undefined);
+    if (isAuthed) syncCounts();
+  }, [isAuthed, syncCounts]);
+  usePolling(syncCounts, UNREAD_POLL_MS, isAuthed);
+
+  // Catch up at once when the user returns to the tab.
+  useEffect(() => {
+    if (!isAuthed) return;
+    const onVisible = () => {
+      if (!document.hidden) syncCounts();
     };
-    fetchCounts();
-    const interval = window.setInterval(fetchCounts, 30000);
-    return () => window.clearInterval(interval);
-  }, [status, dispatch]);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isAuthed, syncCounts]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -104,8 +110,6 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight }: Nav
     setMenuOpen(false);
     navigate('/');
   }
-
-  const isAuthed = status === 'authenticated';
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[rgba(8,8,10,0.72)] backdrop-blur-xl backdrop-saturate-150">

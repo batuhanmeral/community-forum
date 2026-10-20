@@ -11,6 +11,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.messaging.services import unread_message_count
+from apps.notifications.services import unread_notification_count
 from apps.social.services import with_social_annotations
 
 from .emails import send_password_reset_email, send_verification_email
@@ -79,6 +81,18 @@ class MeView(generics.RetrieveUpdateDestroyAPIView):
         # Deactivate instead of hard-deleting so authored content survives.
         instance.is_active = False
         instance.save(update_fields=["is_active"])
+
+
+class UnreadCountsView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        return Response(
+            {
+                "notifications": unread_notification_count(request.user),
+                "messages": unread_message_count(request.user),
+            }
+        )
 
 
 class ChangePasswordView(APIView):
