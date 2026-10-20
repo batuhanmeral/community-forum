@@ -2,7 +2,7 @@ from decouple import Csv, config
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F401,F403
-from .base import MIDDLEWARE
+from .base import DATABASES, MIDDLEWARE
 
 DEBUG = False
 
@@ -24,6 +24,10 @@ LOGGING = {
     },
     "root": {"handlers": ["console"], "level": config("LOG_LEVEL", default="INFO").upper()},
 }
+
+# Reuse connections across requests; health checks drop ones the server closed.
+DATABASES["default"]["CONN_MAX_AGE"] = config("DB_CONN_MAX_AGE", default=60, cast=int)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 # Serve collected static files straight from gunicorn via WhiteNoise.
 MIDDLEWARE = [
