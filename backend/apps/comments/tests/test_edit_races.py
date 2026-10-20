@@ -2,6 +2,8 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -57,3 +59,19 @@ def test_mod_removal_during_comment_edit_stands(comment, author, owner):
     assert comment.deleted_at is not None and comment.deleted_by_id == owner.id
     assert comment.body == "old body"
     assert not CommentRevision.objects.filter(comment=comment).exists()
+
+
+def test_comment_edit_locks_the_row(comment, author):
+    api = APIClient()
+    api.force_authenticate(author)
+    with CaptureQueriesContext(connection) as ctx:
+        resp = api.patch(
+            reverse("api_v1:comments:comment-detail", args=[comment.id]),
+            {"body": "edited"},
+            format="json",
+        )
+    assert resp.status_code == 200
+    assert any(
+        'FROM "comments_comment"' in q["sql"] and q["sql"].endswith("FOR UPDATE")
+        for q in ctx.captured_queries
+    )
