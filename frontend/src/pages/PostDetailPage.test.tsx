@@ -272,3 +272,20 @@ describe('PostDetailPage title', () => {
     await waitFor(() => expect(document.title).toBe('Hello world · Nexus'));
   });
 });
+
+describe('PostDetailPage action row', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'moderator' } as never);
+  });
+
+  // jsdom cannot measure layout; the 360 px overflow check lives in the smoke run.
+  it('lets the vote, save and moderator buttons wrap on narrow screens', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, author: 1 });
+    renderPage();
+    const actions = (await screen.findByRole('button', { name: 'Edit' })).parentElement!;
+    expect(actions).toHaveClass('flex-wrap');
+    expect(actions.parentElement).toHaveClass('flex-wrap');
+  });
+});

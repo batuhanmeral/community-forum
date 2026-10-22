@@ -118,7 +118,7 @@ export function CommentNode({
             )}
 
             {!editing && !node.is_deleted && (
-              <div className="mt-1.5 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--color-text-muted)]">
                 <VoteCluster
                   target="comment"
                   objectId={node.id}

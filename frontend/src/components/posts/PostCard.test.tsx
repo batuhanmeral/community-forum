@@ -81,6 +81,13 @@ describe('PostCard', () => {
     expect(container.querySelectorAll('a a')).toHaveLength(0);
   });
 
+  // jsdom cannot measure layout; the 360 px overflow check lives in the smoke run.
+  it('lets the meta row wrap so long Turkish badges stay inside a 360 px card', () => {
+    renderCard(makePost({ kind: 'link', url: 'https://example.com/x', is_pinned: true }));
+    const metaRow = screen.getByRole('link', { name: 'u/alice' }).parentElement!;
+    expect(metaRow).toHaveClass('flex-wrap');
+  });
+
   it('the title links to the post', () => {
     renderCard(makePost({ title: 'Hello' }));
     expect(screen.getByRole('link', { name: 'Hello' })).toHaveAttribute('href', '/posts/1');

@@ -225,7 +225,8 @@ export function PostCreatePage() {
               type="button"
               onClick={() => setKind(tab.value)}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors',
+                // Below 480 px the icon stacks over the label so all four tabs fit a 360 px screen.
+                'flex min-w-0 flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors max-[480px]:flex-col max-[480px]:gap-1 max-[480px]:px-1 max-[480px]:py-2.5',
                 kind === tab.value
                   ? 'border-b-2 border-[var(--color-accent)] text-[var(--color-text)]'
                   : 'border-b-2 border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]',

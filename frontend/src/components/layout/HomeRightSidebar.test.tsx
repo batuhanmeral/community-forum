@@ -109,3 +109,29 @@ describe('HomeRightSidebar in Turkish', () => {
     expect(screen.getByText('1.5k members')).toBeInTheDocument();
   });
 });
+describe('HomeRightSidebar layout', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(trendingApi.trendingPosts).mockResolvedValue([]);
+    vi.mocked(trendingApi.trendingCommunities).mockResolvedValue([]);
+    vi.mocked(usersApi.getLeaderboard).mockResolvedValue([]);
+  });
+
+  // AppLayout's column owns visibility (shown from 960 px); an own breakpoint left it empty at 960–1023 px.
+  it('leaves visibility to the layout column', async () => {
+    renderSidebar();
+    await screen.findByText('No trending posts yet.');
+    const aside = screen.getByRole('complementary');
+    expect(aside).toHaveClass('flex');
+    expect(aside).not.toHaveClass('hidden');
+    expect(aside.className).not.toMatch(/\blg:/);
+  });
+
+  it('keeps cards at full height so the sidebar scrolls instead of clipping them', async () => {
+    renderSidebar();
+    await screen.findByText('No trending posts yet.');
+    const cards = [...screen.getByRole('complementary').children].filter((el) => el.classList.contains('overflow-hidden'));
+    expect(cards.length).toBeGreaterThan(0);
+    for (const card of cards) expect(card).toHaveClass('shrink-0');
+  });
+});

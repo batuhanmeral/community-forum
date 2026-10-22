@@ -210,7 +210,7 @@ export function PostDetailPage() {
               </div>
             )}
 
-            <div className="mt-4 flex items-center gap-3 border-t border-[var(--color-border)] pt-3 text-sm text-[var(--color-text-muted)]">
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--color-border)] pt-3 text-sm text-[var(--color-text-muted)]">
               <VoteCluster
                 target="post"
                 objectId={post.id}
@@ -224,7 +224,7 @@ export function PostDetailPage() {
                 initialSaved={post.is_saved}
                 onChange={(saved) => setPost({ ...post, is_saved: saved })}
               />
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex flex-wrap items-center gap-2">
                 {isMod && (
                   <Button
                     variant="secondary"

@@ -163,6 +163,18 @@ describe('CommentSection', () => {
   });
 });
 
+describe('CommentSection layout', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // jsdom cannot measure layout; nested replies at 360 px are checked in the smoke run.
+  it('lets a comment action row wrap on narrow screens', async () => {
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [comment(1)] });
+    renderSection();
+    const actions = (await screen.findByRole('button', { name: 'Reply' })).parentElement!;
+    expect(actions).toHaveClass('flex-wrap');
+  });
+});
+
 describe('CommentSection in Turkish', () => {
   const ENGLISH_PROBE =
     /\b(Best|Top|New|Old|Controversial|Log in|Add a comment|Reply|Report|Edit|Delete|Save|Saved|Cancel|Comment|Loading|No comments|more repl(?:y|ies)|Collapse|Expand|Upvote|Downvote)\b/;

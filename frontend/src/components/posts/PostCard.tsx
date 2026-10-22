@@ -32,7 +32,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
     >
       <div>
         {/* Meta row */}
-        <div className="mb-1.5 flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]">
+        <div className="mb-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] text-[var(--color-text-muted)]">
           {!hideCommunity && (
             <Link
               to={`/c/${post.community}`}

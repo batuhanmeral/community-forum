@@ -130,3 +130,21 @@ describe('PostCreatePage title', () => {
     await waitFor(() => expect(document.title).toBe('Create a post · Nexus'));
   });
 });
+
+describe('PostCreatePage kind tabs', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    api.listFlairs.mockResolvedValue([]);
+    api.listCommunities.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+
+  // jsdom cannot measure layout: below 480 px the icon stacks over the label so all four tabs fit 360 px.
+  it('stacks each tab below 480 px and lets it shrink', async () => {
+    renderPage();
+    await waitFor(() => expect(api.listCommunities).toHaveBeenCalled());
+    for (const name of ['Text', 'Image', 'Link', 'Poll']) {
+      const tab = screen.getByRole('button', { name });
+      expect(tab).toHaveClass('min-w-0', 'max-[480px]:flex-col');
+    }
+  });
+});

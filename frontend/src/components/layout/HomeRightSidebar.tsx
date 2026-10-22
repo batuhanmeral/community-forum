@@ -37,7 +37,7 @@ export function HomeRightSidebar() {
   }, []);
 
   return (
-    <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col gap-3.5 overflow-y-auto pb-10 pl-1 pt-5 lg:flex">
+    <aside className="sticky top-[88px] flex h-[calc(100vh-110px)] flex-col gap-3.5 overflow-y-auto pb-10 pl-1 pt-5">
       {/* Trending */}
       <Card>
         <CardHead title={<><span className="live-dot" /> {t('rightbar.trendingNow')}</>} more="/popular" />
@@ -137,7 +137,7 @@ export function HomeRightSidebar() {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-1)]">
+    <div className="shrink-0 overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-1)]">
       {children}
     </div>
   );
