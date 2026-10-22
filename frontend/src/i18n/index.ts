@@ -23,6 +23,9 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+// Inline resources make init synchronous, so the startup language never reaches the listener below.
+document.documentElement.lang = i18n.language;
+
 i18n.on('languageChanged', (lng) => {
   localStorage.setItem(LANG_KEY, lng);
   document.documentElement.lang = lng;

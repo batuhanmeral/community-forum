@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notifications';
 import type { Notification } from '@/features/notifications/types';
 import { formatNotification } from '@/features/notifications/format';
@@ -15,6 +16,7 @@ interface NotificationDropdownProps {
 }
 
 export function NotificationDropdown({ unreadCount }: NotificationDropdownProps) {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -41,7 +43,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
   }, [open]);
 
   async function handleClickItem(n: Notification) {
-    const fmt = formatNotification(n);
+    const fmt = formatNotification(n, t);
     if (n.read_at === null) {
       try {
         await markNotificationRead(n.id);
@@ -115,7 +117,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
               </p>
             ) : (
               items.map((n) => {
-                const fmt = formatNotification(n);
+                const fmt = formatNotification(n, t);
                 const unread = n.read_at === null;
                 return (
                   <button

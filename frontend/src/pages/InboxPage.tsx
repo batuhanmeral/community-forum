@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notifications';
 import type { Notification } from '@/features/notifications/types';
 import { formatNotification } from '@/features/notifications/format';
@@ -15,6 +16,7 @@ import { ArrowRight } from 'lucide-react';
 type Filter = 'all' | 'unread';
 
 export function InboxPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const unreadCount = useAppSelector((s) => s.notifications.unreadCount);
@@ -70,7 +72,7 @@ export function InboxPage() {
   }
 
   async function handleClick(n: Notification) {
-    const fmt = formatNotification(n);
+    const fmt = formatNotification(n, t);
     if (n.read_at === null) {
       try {
         await markNotificationRead(n.id);
@@ -135,7 +137,7 @@ export function InboxPage() {
       ) : (
         <Card padded={false}>
           {items.map((n, i) => {
-            const fmt = formatNotification(n);
+            const fmt = formatNotification(n, t);
             const unread = n.read_at === null;
             return (
               <button

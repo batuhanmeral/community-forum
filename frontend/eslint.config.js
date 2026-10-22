@@ -32,7 +32,68 @@ export const COLOUR_SELECTORS = [
   { selector: `TemplateElement[value.raw=/${COLOUR_PATTERN}/]`, message: COLOUR_MESSAGE },
 ];
 
-export const RESTRICTED_SYNTAX = [...ICON_SELECTORS, ...COLOUR_SELECTORS];
+export const I18N_MESSAGE = 'Use t() with an i18n key instead of hard-coded UI text.';
+
+// UI text has at least two letters; i18n keys such as 'mod.status_open' stay allowed.
+const TWO_LETTERS = '/\\p{L}[\\s\\S]*\\p{L}/u';
+const I18N_KEY = '/^[a-z][A-Za-z]*(\\.[A-Za-z0-9_]+)+$/';
+const UI_TEXT = `[value=${TWO_LETTERS}]:not([value=${I18N_KEY}])`;
+const UI_TEMPLATE_TEXT = `[value.raw=${TWO_LETTERS}]`;
+const TEXT_ATTRIBUTE = 'JSXAttribute[name.name=/^(?:placeholder|title|aria-label|alt|label)$/]';
+const BRANCH = ':matches(ConditionalExpression, LogicalExpression)';
+const MAX_BRANCH_DEPTH = 3;
+
+// A rendered string sits in the container itself or in nested conditional/logical branches; call arguments are not reached.
+function renderedStrings(container) {
+  return Array.from({ length: MAX_BRANCH_DEPTH + 1 }, (_, depth) => {
+    const position = [container, ...Array(depth).fill(BRANCH)].join(' > ');
+    return [`${position} > Literal${UI_TEXT}`, `${position} > TemplateLiteral > TemplateElement${UI_TEMPLATE_TEXT}`];
+  }).flat();
+}
+
+export const I18N_SELECTORS = [
+  `JSXText${UI_TEXT}`,
+  `${TEXT_ATTRIBUTE} > Literal${UI_TEXT}`,
+  // CSS inside <style> is not UI text.
+  ...renderedStrings(":matches(JSXElement:not([openingElement.name.name='style']), JSXFragment) > JSXExpressionContainer"),
+  ...renderedStrings(`${TEXT_ATTRIBUTE} > JSXExpressionContainer`),
+].map((selector) => ({ selector, message: I18N_MESSAGE }));
+
+// Files that still render English; Tasks 12-14 translate them and shrink this list.
+export const I18N_PENDING = [
+  'src/components/comments/CommentForm.tsx',
+  'src/components/comments/CommentNode.tsx',
+  'src/components/comments/CommentSection.tsx',
+  'src/components/follow/FollowButton.tsx',
+  'src/components/follow/FollowListModal.tsx',
+  'src/components/layout/HomeRightSidebar.tsx',
+  'src/components/layout/Navbar.tsx',
+  'src/components/moderation/ApprovalQueueCard.tsx',
+  'src/components/moderation/ReportModal.tsx',
+  'src/components/notifications/NotificationDropdown.tsx',
+  'src/components/posts/MarkdownEditor.tsx',
+  'src/components/posts/PollCard.tsx',
+  'src/components/posts/PostCard.tsx',
+  'src/components/saves/SaveButton.tsx',
+  'src/components/votes/VoteCluster.tsx',
+  'src/pages/CommunityCreatePage.tsx',
+  'src/pages/CommunityDetailPage.tsx',
+  'src/pages/CommunityListPage.tsx',
+  'src/pages/HomePage.tsx',
+  'src/pages/InboxPage.tsx',
+  'src/pages/LoginPage.tsx',
+  'src/pages/MessagesPage.tsx',
+  'src/pages/ModPage.tsx',
+  'src/pages/PostCreatePage.tsx',
+  'src/pages/PostDetailPage.tsx',
+  'src/pages/SavedPage.tsx',
+  'src/pages/SearchPage.tsx',
+  'src/pages/SettingsPage.tsx',
+  'src/pages/UserProfilePage.tsx',
+  'src/pages/VerifyEmailPage.tsx',
+];
+
+export const RESTRICTED_SYNTAX = [...ICON_SELECTORS, ...COLOUR_SELECTORS, ...I18N_SELECTORS];
 
 export default defineConfig([
   globalIgnores(['dist']),
@@ -58,6 +119,13 @@ export default defineConfig([
     ignores: ['src/**/*.test.tsx', 'src/test/**'],
     rules: {
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX],
+    },
+  },
+  {
+    // One rule value cannot be partly disabled, so pending files repeat every list except i18n.
+    files: I18N_PENDING,
+    rules: {
+      'no-restricted-syntax': ['error', ...ICON_SELECTORS, ...COLOUR_SELECTORS],
     },
   },
 ])

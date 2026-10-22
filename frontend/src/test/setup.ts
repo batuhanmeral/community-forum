@@ -42,4 +42,5 @@ afterEach(() => {
 });
 
 // Initialize the i18n singleton (English default) for components using useTranslation.
-await import('@/i18n');
+// It sets <html lang> on import, so the DOM-less lint-rule tests skip it.
+if (hasDom) await import('@/i18n');

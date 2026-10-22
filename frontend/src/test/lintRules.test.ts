@@ -2,12 +2,16 @@
 import { describe, it, expect } from 'vitest';
 import { ESLint } from 'eslint';
 import { fileURLToPath } from 'node:url';
+// @ts-expect-error -- the ESLint config is plain JS without type declarations
+import { I18N_PENDING } from '../../eslint.config.js';
 
 const SVG_MESSAGE = 'Use a lucide-react icon instead of an inline <svg>.';
 const GLYPH_MESSAGE = 'Use a lucide-react icon instead of an emoji or arrow glyph.';
 
 const COLOUR_MESSAGE =
   'Use a design token (var(--color-*)) instead of a hard-coded colour, gradient or blur.';
+
+const I18N_MESSAGE = 'Use t() with an i18n key instead of hard-coded UI text.';
 
 const eslint = new ESLint({ cwd: fileURLToPath(new URL('../..', import.meta.url)) });
 
@@ -28,7 +32,7 @@ describe('icon lint rules', () => {
   });
 
   it('keyboard hint and middle dot stay allowed', async () => {
-    expect(await lint('export const X = () => <span>⌘ K · go</span>;')).toEqual([]);
+    expect(await lint('export const X = () => <span>⌘ K · go</span>;')).not.toContain(GLYPH_MESSAGE);
   });
 
   it('test files are exempt', async () => {
@@ -68,5 +72,44 @@ describe('colour lint rules', () => {
 
   it('test files are exempt', async () => {
     expect(await lint('export const X = () => <div className="bg-[#123456]" />;', 'src/pages/Foo.test.tsx')).toEqual([]);
+  });
+});
+
+describe('i18n lint rules', () => {
+  it.each([
+    'export const X = () => <p>Hello world</p>;',
+    'export const X = () => <input placeholder="Search" />;',
+    "export const X = ({ a }) => <p>{a ? 'Loading…' : null}</p>;",
+    "export const X = ({ a, b }) => <p>{a ? null : b ? 'Closed' : 'Open'}</p>;",
+    "export const X = ({ a }) => <p>{a && 'Edited'}</p>;",
+    "export const X = () => <button aria-label={'Close menu'} />;",
+    'export const X = ({ a }) => <p>{`closes ${a}`}</p>;',
+  ])('English UI text is rejected: %s', async (code) => {
+    expect(await lint(code)).toContain(I18N_MESSAGE);
+  });
+
+  it.each([
+    "export const X = () => <p>{t('home.empty')}</p>;",
+    'export const X = () => <p>{count} · c/{slug}</p>;',
+    "export const X = ({ a }) => <p>{t(a ? 'mod.status_open' : 'mod.status_closed')}</p>;",
+    "export const X = ({ a }) => <p>{format(a ? 'Hello world' : 'Bye now')}</p>;",
+    "export const X = ({ a }) => <Field label={a ? 'auth.username' : 'auth.email'} />;",
+    "export const X = () => <input placeholder={t('nav.searchPlaceholder')} className=\"flex gap-2\" />;",
+    "export const X = ({ a }) => <p className={a ? 'flex' : 'hidden'}>{a ? 'x' : null}</p>;",
+    'export const X = () => <style>{`.live-dot { animation: pulse 2s infinite; }`}</style>;',
+  ])('keys and data are allowed: %s', async (code) => {
+    expect(await lint(code)).toEqual([]);
+  });
+
+  it('pending files skip only the i18n rule', async () => {
+    const code = 'export const X = () => <p className="bg-[#123456]">Hello world<svg /></p>;';
+    const messages = await lint(code, I18N_PENDING[0]);
+    expect(messages).not.toContain(I18N_MESSAGE);
+    expect(messages).toContain(SVG_MESSAGE);
+    expect(messages).toContain(COLOUR_MESSAGE);
+  });
+
+  it('test files are exempt', async () => {
+    expect(await lint('export const X = () => <p>Hello world</p>;', 'src/pages/Foo.test.tsx')).toEqual([]);
   });
 });

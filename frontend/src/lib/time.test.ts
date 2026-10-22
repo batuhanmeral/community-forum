@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import i18n from '@/i18n';
 import { timeAgo } from './time';
 
 const NOW = new Date('2026-06-24T12:00:00Z').getTime();
 
-afterEach(() => {
+afterEach(async () => {
   vi.useRealTimers();
+  await i18n.changeLanguage('en');
 });
 
 function at(offsetSeconds: number): string {
@@ -32,5 +34,12 @@ describe('timeAgo', () => {
   it('uses seconds for very recent timestamps', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     expect(timeAgo(at(-10))).toMatch(/10\s*s/);
+  });
+
+  it('timeAgo follows the UI language', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    await i18n.changeLanguage('tr');
+    const expected = new Intl.RelativeTimeFormat('tr', { numeric: 'auto', style: 'narrow' }).format(-2, 'hour');
+    expect(timeAgo(at(-2 * 60 * 60))).toBe(expected);
   });
 });
