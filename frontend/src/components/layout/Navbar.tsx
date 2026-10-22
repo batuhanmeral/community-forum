@@ -13,6 +13,7 @@ import { usePolling } from '@/lib/usePolling';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Avatar } from '@/components/ui/Avatar';
 import { buttonClasses } from '@/components/ui/Button';
+import { APP_NAME } from '@/components/ui/PageTitle';
 import { cn } from '@/lib/cn';
 import { ArrowBigUp, Menu, MessageSquare, PanelLeft, PanelRight, Plus, Search } from 'lucide-react';
 
@@ -150,7 +151,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
           <button
             type="button"
             onClick={onToggleLeft}
-            title={leftOpen ? 'Hide navigation' : 'Show navigation'}
+            title={leftOpen ? t('nav.hideNavigation') : t('nav.showNavigation')}
             className={cn(
               'hidden place-items-center rounded-[8px] p-1.5 transition min-[960px]:grid',
               'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
@@ -162,7 +163,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
         )}
 
         <Link to="/" className="flex shrink-0 items-center font-semibold tracking-tight">
-          <span className="text-lg">Nexus</span>
+          <span className="text-lg">{APP_NAME}</span>
         </Link>
 
         <SearchForm
@@ -205,7 +206,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
                   type="button"
                   onClick={() => setMenuOpen((o) => !o)}
                   className="block"
-                  aria-label="Profile menu"
+                  aria-label={t('nav.profileMenu')}
                 >
                   <Avatar src={user.avatar} alt={user.username} size="md" />
                 </button>
@@ -258,7 +259,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
             <button
               type="button"
               onClick={onToggleRight}
-              title={rightOpen ? 'Hide sidebar' : 'Show sidebar'}
+              title={rightOpen ? t('nav.hideSidebar') : t('nav.showSidebar')}
               className={cn(
                 'hidden place-items-center rounded-[8px] p-1.5 transition min-[960px]:grid',
                 'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
@@ -304,7 +305,7 @@ function SearchForm({ inputRef, value, onChange, onSubmit, className }: SearchFo
         className,
       )}
     >
-      <button type="submit" aria-label="Search" className="shrink-0 text-[var(--color-text-dim)] transition hover:text-[var(--color-accent)]">
+      <button type="submit" aria-label={t('nav.search')} className="shrink-0 text-[var(--color-text-dim)] transition hover:text-[var(--color-accent)]">
         {searchIcon}
       </button>
       <input

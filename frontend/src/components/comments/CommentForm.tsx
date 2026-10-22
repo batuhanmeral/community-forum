@@ -34,11 +34,11 @@ const emptyMention: MentionState = {
 
 export function CommentForm({
   initialValue = '',
-  placeholder = 'Write a comment...',
+  placeholder,
   autoFocus,
   onSubmit,
   onCancel,
-  submitLabel = 'Comment',
+  submitLabel,
 }: CommentFormProps) {
   const { t } = useTranslation();
   const [body, setBody] = useState(initialValue);
@@ -167,7 +167,7 @@ export function CommentForm({
         rows={3}
         value={body}
         autoFocus={autoFocus}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('comments.placeholder')}
         onChange={(e) => {
           setBody(e.target.value);
           detectMention(e.target.value, e.target.selectionStart ?? e.target.value.length);
@@ -213,11 +213,11 @@ export function CommentForm({
       <div className="flex justify-end gap-2">
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         )}
         <Button type="button" size="sm" loading={submitting} onClick={handleSubmit}>
-          {submitLabel}
+          {submitLabel ?? t('comments.submit')}
         </Button>
       </div>
     </div>

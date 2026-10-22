@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Post } from '@/features/posts/types';
 import { ApprovalQueueCard } from './ApprovalQueueCard';
 import * as postsApi from '@/api/posts';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/posts', () => ({
   listApprovalQueue: vi.fn(),
@@ -82,5 +84,32 @@ describe('ApprovalQueueCard', () => {
     renderCard();
     expect(await screen.findByText(/Could not load this list/)).toBeInTheDocument();
     expect(screen.queryByText('No posts awaiting approval.')).not.toBeInTheDocument();
+  });
+});
+
+describe('ApprovalQueueCard in Turkish', () => {
+  const ENGLISH_PROBE = /\[deleted\]|\bago\b|\bApprove\b|\bReject\b/;
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish for a deleted author', async () => {
+    await i18n.changeLanguage('tr');
+    api.listApprovalQueue.mockResolvedValue(page([{ ...held(1), author_username: null } as unknown as Post]));
+    renderCard();
+    await screen.findByRole('link', { name: 'held 1' });
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('re-renders the age in the new language when the language changes', async () => {
+    const recent = { ...held(1), created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString() } as unknown as Post;
+    api.listApprovalQueue.mockResolvedValue(page([recent]));
+    renderCard();
+    await screen.findByRole('link', { name: 'held 1' });
+    expect(document.body.textContent).toMatch(/ago/);
+    await act(async () => {
+      await i18n.changeLanguage('tr');
+    });
+    expect(document.body.textContent).not.toMatch(/ago/);
   });
 });

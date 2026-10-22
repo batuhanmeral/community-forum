@@ -61,21 +61,6 @@ export const I18N_SELECTORS = [
 
 // Files that still render English; Tasks 12-14 translate them and shrink this list.
 export const I18N_PENDING = [
-  'src/components/comments/CommentForm.tsx',
-  'src/components/comments/CommentNode.tsx',
-  'src/components/comments/CommentSection.tsx',
-  'src/components/follow/FollowButton.tsx',
-  'src/components/follow/FollowListModal.tsx',
-  'src/components/layout/HomeRightSidebar.tsx',
-  'src/components/layout/Navbar.tsx',
-  'src/components/moderation/ApprovalQueueCard.tsx',
-  'src/components/moderation/ReportModal.tsx',
-  'src/components/notifications/NotificationDropdown.tsx',
-  'src/components/posts/MarkdownEditor.tsx',
-  'src/components/posts/PollCard.tsx',
-  'src/components/posts/PostCard.tsx',
-  'src/components/saves/SaveButton.tsx',
-  'src/components/votes/VoteCluster.tsx',
   'src/pages/CommunityCreatePage.tsx',
   'src/pages/CommunityDetailPage.tsx',
   'src/pages/CommunityListPage.tsx',

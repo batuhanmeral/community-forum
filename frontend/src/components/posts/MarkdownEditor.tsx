@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { previewMarkdown } from '@/api/markdown';
 import { cn } from '@/lib/cn';
 
@@ -10,6 +11,7 @@ interface MarkdownEditorProps {
 }
 
 export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEditorProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'write' | 'preview'>('write');
   const [html, setHtml] = useState('');
   const [previewedFor, setPreviewedFor] = useState<string | null>(null);
@@ -43,14 +45,14 @@ export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEdi
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-          Body (Markdown supported)
+          {t('editor.bodyLabel')}
         </label>
         <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-0.5">
           <button type="button" onClick={() => setTab('write')} className={tabCls(tab === 'write')}>
-            Write
+            {t('editor.write')}
           </button>
           <button type="button" onClick={showPreview} className={tabCls(tab === 'preview')}>
-            Preview
+            {t('editor.preview')}
           </button>
         </div>
       </div>
@@ -65,9 +67,9 @@ export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEdi
       ) : (
         <div className="min-h-[10rem] rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2">
           {loading ? (
-            <p className="text-sm text-[var(--color-text-muted)]">Rendering preview…</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t('editor.rendering')}</p>
           ) : !value.trim() ? (
-            <p className="text-sm text-[var(--color-text-dim)]">Nothing to preview.</p>
+            <p className="text-sm text-[var(--color-text-dim)]">{t('editor.empty')}</p>
           ) : (
             <div
               className="prose-nexus text-sm text-[var(--color-text)]"

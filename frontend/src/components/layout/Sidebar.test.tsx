@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -9,6 +9,8 @@ import membershipsReducer, { membershipsChanged } from '@/features/communities/m
 import { Sidebar } from './Sidebar';
 import * as communitiesApi from '@/api/communities';
 import type { Community } from '@/features/communities/types';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/communities', () => ({ listCommunities: vi.fn() }));
 
@@ -99,5 +101,19 @@ describe('Sidebar joined communities', () => {
       store.dispatch(logout());
     });
     expect(document.querySelector('a[href="/c/cats"]')).toBeNull();
+  });
+});
+
+describe('Sidebar in Turkish', () => {
+  const ENGLISH_PROBE = /\b(Home|Popular|All|Saved|Your feed|Communities|Browse all|Resources|Settings|Create account|New)\b/;
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish', async () => {
+    vi.mocked(communitiesApi.listCommunities).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    await i18n.changeLanguage('tr');
+    renderSidebar();
+    await waitFor(() => expect(communitiesApi.listCommunities).toHaveBeenCalled());
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 });

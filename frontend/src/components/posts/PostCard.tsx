@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { Post } from '@/features/posts/types';
 import type { VoteValue } from '@/api/votes';
 import { NsfwReveal } from '@/components/posts/NsfwReveal';
@@ -15,6 +16,8 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, hideCommunity }: PostCardProps) {
+  // Subscribes to language changes so timeAgo() re-renders in the new language.
+  const { t } = useTranslation();
   const isPinned = post.is_pinned;
   const image = post.image && (
     <img src={post.image} alt={post.title} className="max-h-[420px] w-full object-contain" loading="lazy" />
@@ -51,7 +54,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               u/{post.author_username}
             </Link>
           ) : (
-            <span className="text-[var(--color-text-soft)]">u/[deleted]</span>
+            <span className="text-[var(--color-text-soft)]">u/{t('common.deleted')}</span>
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span className="font-mono text-[11.5px] text-[var(--color-text-dim)]">{timeAgo(post.created_at)}</span>
@@ -67,14 +70,14 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               {post.flair_detail.name}
             </span>
           )}
-          {post.kind === 'poll' && <Flair kind="discussion">Poll</Flair>}
-          {post.kind === 'image' && <Flair kind="showcase">Image</Flair>}
-          {post.kind === 'link' && <Flair kind="news">Link</Flair>}
-          {post.is_nsfw && <Flair kind="news">NSFW</Flair>}
+          {post.kind === 'poll' && <Flair kind="discussion">{t('post.kind_poll')}</Flair>}
+          {post.kind === 'image' && <Flair kind="showcase">{t('post.kind_image')}</Flair>}
+          {post.kind === 'link' && <Flair kind="news">{t('post.kind_link')}</Flair>}
+          {post.is_nsfw && <Flair kind="news">{t('post.nsfw')}</Flair>}
           {isPinned && (
             <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-accent)]">
               <Pin className="h-3 w-3" />
-              Pinned
+              {t('post.pinned')}
             </span>
           )}
         </div>
@@ -114,7 +117,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
                 />
                 <span>{tryHostname(post.url)}</span>
                 <span>·</span>
-                <span>External link</span>
+                <span>{t('post.externalLink')}</span>
               </div>
               <div className="mb-1 line-clamp-1 text-[14px] font-medium leading-snug text-[var(--color-text)]">
                 {post.title}
@@ -160,7 +163,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               );
             })}
             <div className="font-mono text-[12px] text-[var(--color-text-dim)]">
-              {post.poll.total_votes} votes · {post.poll.is_closed ? 'closed' : `closes ${timeAgo(post.poll.closes_at)}`}
+              {t('poll.votes', { count: post.poll.total_votes })} · {post.poll.is_closed ? t('poll.closedInline') : t('poll.closes', { time: timeAgo(post.poll.closes_at) })}
             </div>
           </div>
         )}
@@ -185,7 +188,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         <ActionBtn icon={
           <Share className="h-[15px] w-[15px]" />
         }>
-          <span className="max-[480px]:hidden">Share</span>
+          <span className="max-[480px]:hidden">{t('post.share')}</span>
         </ActionBtn>
 
         <SaveButton target="post" objectId={post.id} initialSaved={post.is_saved} />

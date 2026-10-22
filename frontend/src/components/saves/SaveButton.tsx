@@ -1,5 +1,6 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { toggleSave, type SaveTarget } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
@@ -26,6 +27,7 @@ export function SaveButton({
   variant = 'inline',
   onChange,
 }: SaveButtonProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [saved, setSaved] = useState(initialSaved);
@@ -72,7 +74,7 @@ export function SaveButton({
         )}
       >
         {bookmarkIcon(saved)}
-        <span className="max-[480px]:hidden">{saved ? 'Saved' : 'Save'}</span>
+        <span className="max-[480px]:hidden">{saved ? t('common.saved') : t('common.save')}</span>
       </button>
     );
   }
@@ -92,7 +94,7 @@ export function SaveButton({
       )}
     >
       {bookmarkIcon(saved)}
-      {saved ? 'Saved' : 'Save'}
+      {saved ? t('common.saved') : t('common.save')}
     </button>
   );
 }

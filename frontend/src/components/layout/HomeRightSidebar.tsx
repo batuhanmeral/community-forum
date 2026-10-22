@@ -12,7 +12,10 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
+import { APP_NAME } from '@/components/ui/PageTitle';
 import { ArrowBigUp, ArrowRight, Plus } from 'lucide-react';
+
+const FOOTER_TEXT = `© 2026 ${APP_NAME} Forum · v0.1.0`;
 
 export function HomeRightSidebar() {
   const { t } = useTranslation();
@@ -117,7 +120,7 @@ export function HomeRightSidebar() {
 
       {/* Footer */}
       <div className="px-3 pt-1 text-[10.5px] leading-[1.6] text-[var(--color-text-dim)]">
-        <div className="font-mono mt-1.5 text-[10px]">© 2026 Nexus Forum · v0.1.0</div>
+        <div className="font-mono mt-1.5 text-[10px]">{FOOTER_TEXT}</div>
       </div>
 
       <style>{`
@@ -197,7 +200,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium text-[var(--color-text)]">c/{community.slug}</div>
         <div className="font-mono text-[10.5px] text-[var(--color-text-dim)]">
-          {formatCount(community.member_count)} {t('rightbar.members')}
+          {t('rightbar.members', { count: community.member_count, formatted: formatCount(community.member_count) })}
         </div>
       </div>
       {community.is_banned ? (

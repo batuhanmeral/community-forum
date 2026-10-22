@@ -1,5 +1,6 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { castVote, type VoteTarget, type VoteValue } from '@/api/votes';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
@@ -151,11 +152,12 @@ interface ArrowBtnProps {
 }
 
 function ArrowBtn({ direction, active, size, btnSize, onClick }: ArrowBtnProps) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={direction === 'up' ? 'Upvote' : 'Downvote'}
+      aria-label={direction === 'up' ? t('votes.upvote') : t('votes.downvote')}
       className={cn(
         'grid place-items-center rounded-full text-[var(--color-text-muted)] transition',
         btnSize,

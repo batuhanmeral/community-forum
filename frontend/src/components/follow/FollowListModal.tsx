@@ -60,14 +60,14 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === 'followers' ? `u/${username}'s followers` : `u/${username} is following`}
+      title={t(mode === 'followers' ? 'follow.followersTitle' : 'follow.followingTitle', { username })}
     >
       <div className="-mx-1 max-h-[60vh] overflow-y-auto">
         {loading && users.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">Loading…</p>
+          <p className="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
         ) : users.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">
-            {mode === 'followers' ? 'No followers yet.' : 'Not following anyone.'}
+            {mode === 'followers' ? t('follow.noFollowers') : t('follow.noFollowing')}
           </p>
         ) : (
           <ul className="flex flex-col">
@@ -93,7 +93,7 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
               disabled={loading}
               className="text-[12px] font-medium text-[var(--color-accent)] hover:underline disabled:opacity-60"
             >
-              {loading ? 'Loading…' : 'Load more'}
+              {loading ? t('common.loading') : t('common.loadMore')}
             </button>
           </div>
         )}

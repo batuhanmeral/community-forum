@@ -1,5 +1,6 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { votePoll } from '@/api/polls';
 import type { Poll } from '@/features/posts/types';
 import { useAppSelector } from '@/app/hooks';
@@ -13,6 +14,7 @@ interface PollCardProps {
 }
 
 export function PollCard({ poll, onUpdate }: PollCardProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [local, setLocal] = useState<Poll>(poll);
@@ -99,10 +101,10 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
       })}
 
       <div className="font-mono mt-1 flex items-center gap-2 text-[12px] text-[var(--color-text-dim)]">
-        <span>{local.total_votes.toLocaleString()} {local.total_votes === 1 ? 'vote' : 'votes'}</span>
+        <span>{t('poll.votes', { count: local.total_votes })}</span>
         <span>·</span>
         <span>
-          {local.is_closed ? 'Closed' : `closes ${timeAgo(local.closes_at)}`}
+          {local.is_closed ? t('poll.closed') : t('poll.closes', { time: timeAgo(local.closes_at) })}
         </span>
         {!isAuthed && !local.is_closed && (
           <>
@@ -115,7 +117,7 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
               }}
               className="text-[var(--color-accent)] hover:underline"
             >
-              Log in to vote
+              {t('poll.loginToVote')}
             </button>
           </>
         )}

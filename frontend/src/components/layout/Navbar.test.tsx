@@ -12,6 +12,8 @@ import * as usersApi from '@/api/users';
 import * as messagingApi from '@/api/messaging';
 import * as notificationsApi from '@/api/notifications';
 import * as authApi from '@/api/auth';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/users', () => ({ getUnreadCounts: vi.fn() }));
 vi.mock('@/api/messaging', () => ({ listConversations: vi.fn() }));
@@ -216,5 +218,19 @@ describe('Navbar mobile header', () => {
     await act(async () => {});
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
     expect(onOpenMenu).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Navbar in Turkish', () => {
+  const ENGLISH_PROBE = /\b(Hide|Show|Search|Profile menu|Notifications|Menu|Messages|Post)\b/;
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish', async () => {
+    users.getUnreadCounts.mockResolvedValue({ notifications: 0, messages: 0 });
+    await i18n.changeLanguage('tr');
+    renderNavbar({ onToggleLeft: vi.fn(), onToggleRight: vi.fn(), onOpenMenu: vi.fn(), leftOpen: true, rightOpen: false });
+    await act(async () => {});
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 });

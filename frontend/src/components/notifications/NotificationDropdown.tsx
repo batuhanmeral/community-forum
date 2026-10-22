@@ -73,8 +73,8 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        title="Notifications"
-        aria-label="Notifications"
+        title={t('notifications.title')}
+        aria-label={t('notifications.title')}
         className={cn(
           'relative grid h-[38px] w-[38px] place-items-center rounded-[11px]',
           'text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
@@ -96,24 +96,24 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
         // Below 640 px the bell is not at the screen edge, so pin the panel under the 68 px header with an 8 px gutter.
         <div className="absolute right-0 z-50 mt-2 overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] shadow-md sm:w-[360px] max-sm:fixed max-sm:inset-x-2 max-sm:top-[76px] max-sm:mt-0 max-sm:flex max-sm:max-h-[calc(100dvh-84px)] max-sm:flex-col">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-            <span className="text-[13px] font-semibold tracking-tight">Notifications</span>
+            <span className="text-[13px] font-semibold tracking-tight">{t('notifications.title')}</span>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAll}
                 className="text-[11.5px] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
               >
-                Mark all read
+                {t('notifications.markAllRead')}
               </button>
             )}
           </div>
 
           <div className="max-h-[420px] overflow-y-auto">
             {loading ? (
-              <p className="px-4 py-6 text-center text-[13px] text-[var(--color-text-muted)]">Loading…</p>
+              <p className="px-4 py-6 text-center text-[13px] text-[var(--color-text-muted)]">{t('common.loading')}</p>
             ) : items.length === 0 ? (
               <p className="px-4 py-8 text-center text-[13px] text-[var(--color-text-muted)]">
-                No notifications yet.
+                {t('notifications.empty')}
               </p>
             ) : (
               items.map((n) => {
@@ -160,7 +160,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
               onClick={() => setOpen(false)}
               className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-accent)] hover:underline"
             >
-              See all notifications
+              {t('notifications.seeAll')}
               <ArrowRight className="h-3 w-3" />
             </Link>
           </div>

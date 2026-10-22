@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation } from 'react-router-dom';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +8,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/authSlice';
 import type { Post } from '@/features/posts/types';
 import { PostCard } from './PostCard';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/votes', () => ({ castVote: vi.fn() }));
 vi.mock('@/api/saves', () => ({ toggleSave: vi.fn() }));
@@ -120,5 +122,50 @@ describe('PostCard', () => {
     await user.click(screen.getByRole('button', { name: 'Show NSFW content' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/');
     expect(screen.queryByRole('button', { name: 'Show NSFW content' })).toBeNull();
+  });
+});
+
+describe('PostCard in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Share|Pinned|Poll|Image|Link|External link|votes?|closes|closed|Save|Saved|Upvote|Downvote|ago)\b/;
+
+  afterEach(resetLanguage);
+
+  const poll = {
+    id: 1,
+    options: [{ id: 1, text: 'A', order: 0, vote_count: 1, percent: 100 }],
+    total_votes: 1,
+    closes_at: '2099-12-01T00:00:00Z',
+    is_closed: false,
+    user_option: null,
+  };
+
+  it.each(['text', 'link', 'image', 'poll'] as const)('renders no English in Turkish for a %s post', async (kind) => {
+    await i18n.changeLanguage('tr');
+    renderCard(
+      makePost({
+        kind,
+        is_pinned: true,
+        url: kind === 'link' ? 'https://example.com/x' : '',
+        image: kind === 'image' ? 'https://example.com/i.png' : null,
+        poll: kind === 'poll' ? poll : null,
+      }),
+    );
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders a closed poll without English in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    renderCard(makePost({ kind: 'poll', poll: { ...poll, is_closed: true } }));
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('re-renders the age in the new language when the language changes', async () => {
+    renderCard(makePost({ created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString() }));
+    expect(document.body.textContent).toMatch(/ago/);
+    await act(async () => {
+      await i18n.changeLanguage('tr');
+    });
+    expect(document.body.textContent).not.toMatch(/ago/);
   });
 });

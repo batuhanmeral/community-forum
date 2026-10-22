@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -6,9 +6,13 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/authSlice';
 import membershipsReducer from '@/features/communities/membershipsSlice';
 import type { Community } from '@/features/communities/types';
+import type { Post } from '@/features/posts/types';
+import type { UserProfile } from '@/api/users';
 import { HomeRightSidebar } from './HomeRightSidebar';
 import * as trendingApi from '@/api/trending';
 import * as usersApi from '@/api/users';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/trending', () => ({
   trendingCommunities: vi.fn(),
@@ -65,5 +69,43 @@ describe('HomeRightSidebar community rows', () => {
     vi.mocked(trendingApi.trendingCommunities).mockResolvedValue([community]);
     renderSidebar();
     expect(await screen.findByRole('button', { name: 'Join' })).toBeInTheDocument();
+  });
+});
+
+describe('HomeRightSidebar in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Trending now|Hot|pts|See all|Top communities|Karma leaders|Create a community|Join|Joined|members?|Banned|No trending|No active)\b/;
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish with data', async () => {
+    await i18n.changeLanguage('tr');
+    vi.mocked(trendingApi.trendingPosts).mockResolvedValue([
+      { id: 1, title: 'Hello', community: 'py', score: 3, created_at: '2026-10-01T00:00:00Z' } as Post,
+    ]);
+    vi.mocked(trendingApi.trendingCommunities).mockResolvedValue([community, { ...community, id: 2, slug: 'go', is_banned: true }]);
+    vi.mocked(usersApi.getLeaderboard).mockResolvedValue([{ id: 3, username: 'alice', total_karma: 5 } as UserProfile]);
+    renderSidebar();
+    await screen.findByText('Hello');
+    await screen.findByText('c/go');
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders no English in Turkish when empty', async () => {
+    await i18n.changeLanguage('tr');
+    vi.mocked(trendingApi.trendingPosts).mockResolvedValue([]);
+    vi.mocked(trendingApi.trendingCommunities).mockResolvedValue([]);
+    renderSidebar();
+    await screen.findByText(i18n.t('rightbar.noTrending'));
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('pluralises the member count', async () => {
+    vi.mocked(trendingApi.trendingPosts).mockResolvedValue([]);
+    vi.mocked(trendingApi.trendingCommunities).mockResolvedValue([community, { ...community, id: 2, slug: 'go', member_count: 1500 }]);
+    renderSidebar();
+    expect(await screen.findByText('1 member')).toBeInTheDocument();
+    expect(screen.getByText('1.5k members')).toBeInTheDocument();
   });
 });

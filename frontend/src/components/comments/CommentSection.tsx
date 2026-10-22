@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { createComment, listComments } from '@/api/comments';
 import type { Comment, CommentSort } from '@/features/comments/types';
 import { useAppSelector } from '@/app/hooks';
@@ -17,13 +17,7 @@ interface CommentSectionProps {
   isModerator?: boolean;
 }
 
-const SORTS: Array<{ value: CommentSort; label: string }> = [
-  { value: 'best', label: 'Best' },
-  { value: 'top', label: 'Top' },
-  { value: 'new', label: 'New' },
-  { value: 'old', label: 'Old' },
-  { value: 'controversial', label: 'Controversial' },
-];
+const SORTS = ['best', 'top', 'new', 'old', 'controversial'] as const satisfies readonly CommentSort[];
 
 export function CommentSection({ postId, canComment = true, isModerator = false }: CommentSectionProps) {
   const { t } = useTranslation();
@@ -143,8 +137,8 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
           className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1 text-xs focus:border-[var(--color-accent)] focus:outline-none"
         >
           {SORTS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
+            <option key={s} value={s}>
+              {t(`comments.sort_${s}`)}
             </option>
           ))}
         </select>
@@ -153,13 +147,13 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
       {canComment && (
         <div className="mt-4">
           {isAuthed ? (
-            <CommentForm placeholder="Add a comment..." onSubmit={handleNewRoot} />
+            <CommentForm placeholder={t('comments.addPlaceholder')} onSubmit={handleNewRoot} />
           ) : (
             <p className="text-sm text-[var(--color-text-muted)]">
-              <Link to="/login" className="text-[var(--color-accent)] hover:underline">
-                Log in
-              </Link>{' '}
-              to leave a comment.
+              <Trans
+                i18nKey="comments.loginPrompt"
+                components={{ login: <Link to="/login" className="text-[var(--color-accent)] hover:underline" /> }}
+              />
             </p>
           )}
         </div>
@@ -198,11 +192,11 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
       )}
 
       {loading && (
-        <p className="mt-4 text-sm text-[var(--color-text-muted)]">Loading comments…</p>
+        <p className="mt-4 text-sm text-[var(--color-text-muted)]">{t('comments.loading')}</p>
       )}
       {!loading && comments.length === 0 && (
         <p className="mt-4 text-sm text-[var(--color-text-muted)]">
-          No comments yet. Be the first to weigh in.
+          {t('comments.empty')}
         </p>
       )}
     </Card>
