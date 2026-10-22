@@ -59,16 +59,6 @@ export const I18N_SELECTORS = [
   ...renderedStrings(`${TEXT_ATTRIBUTE} > JSXExpressionContainer`),
 ].map((selector) => ({ selector, message: I18N_MESSAGE }));
 
-// Files that still render English; Tasks 12-14 translate them and shrink this list.
-export const I18N_PENDING = [
-  'src/pages/LoginPage.tsx',
-  'src/pages/MessagesPage.tsx',
-  'src/pages/ModPage.tsx',
-  'src/pages/SettingsPage.tsx',
-  'src/pages/UserProfilePage.tsx',
-  'src/pages/VerifyEmailPage.tsx',
-];
-
 export const RESTRICTED_SYNTAX = [...ICON_SELECTORS, ...COLOUR_SELECTORS, ...I18N_SELECTORS];
 
 export default defineConfig([
@@ -95,13 +85,6 @@ export default defineConfig([
     ignores: ['src/**/*.test.tsx', 'src/test/**'],
     rules: {
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX],
-    },
-  },
-  {
-    // One rule value cannot be partly disabled, so pending files repeat every list except i18n.
-    files: I18N_PENDING,
-    rules: {
-      'no-restricted-syntax': ['error', ...ICON_SELECTORS, ...COLOUR_SELECTORS],
     },
   },
 ])

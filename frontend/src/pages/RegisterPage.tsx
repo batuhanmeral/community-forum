@@ -31,7 +31,7 @@ export function RegisterPage() {
     setFieldErrors({});
 
     if (password !== confirm) {
-      setFieldErrors({ password: 'Passwords do not match.' });
+      setFieldErrors({ password: t('auth.passwordsMismatch') });
       return;
     }
 
@@ -53,7 +53,7 @@ export function RegisterPage() {
         else fe.non_field = msg;
       }
       setFieldErrors(fe);
-      dispatch(authFailure(fe.non_field ?? 'Registration failed.'));
+      dispatch(authFailure(fe.non_field ?? t('auth.registerFailed')));
     }
   }
 

@@ -2,8 +2,6 @@
 import { describe, it, expect } from 'vitest';
 import { ESLint } from 'eslint';
 import { fileURLToPath } from 'node:url';
-// @ts-expect-error -- the ESLint config is plain JS without type declarations
-import { I18N_PENDING } from '../../eslint.config.js';
 
 const SVG_MESSAGE = 'Use a lucide-react icon instead of an inline <svg>.';
 const GLYPH_MESSAGE = 'Use a lucide-react icon instead of an emoji or arrow glyph.';
@@ -32,7 +30,7 @@ describe('icon lint rules', () => {
   });
 
   it('keyboard hint and middle dot stay allowed', async () => {
-    expect(await lint('export const X = () => <span>⌘ K · go</span>;')).not.toContain(GLYPH_MESSAGE);
+    expect(await lint('export const X = () => <span>⌘ K · {x}</span>;')).toEqual([]);
   });
 
   it('test files are exempt', async () => {
@@ -99,14 +97,6 @@ describe('i18n lint rules', () => {
     'export const X = () => <style>{`.live-dot { animation: pulse 2s infinite; }`}</style>;',
   ])('keys and data are allowed: %s', async (code) => {
     expect(await lint(code)).toEqual([]);
-  });
-
-  it('pending files skip only the i18n rule', async () => {
-    const code = 'export const X = () => <p className="bg-[#123456]">Hello world<svg /></p>;';
-    const messages = await lint(code, I18N_PENDING[0]);
-    expect(messages).not.toContain(I18N_MESSAGE);
-    expect(messages).toContain(SVG_MESSAGE);
-    expect(messages).toContain(COLOUR_MESSAGE);
   });
 
   it('test files are exempt', async () => {

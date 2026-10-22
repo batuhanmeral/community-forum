@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import { verifyEmail } from '@/api/auth';
 import { AuthShell } from './LoginPage';
+import { APP_NAME } from '@/components/ui/PageTitle';
 import { ArrowRight } from 'lucide-react';
 
 type State = 'pending' | 'success' | 'failed' | 'missing';
@@ -44,7 +45,7 @@ export function VerifyEmailPage() {
       {message}
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
         <Link to="/" className="inline-flex items-center gap-1 font-medium text-[var(--color-accent)] hover:underline">
-          Nexus
+          {APP_NAME}
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </p>

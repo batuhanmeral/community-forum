@@ -19,6 +19,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
@@ -114,30 +115,31 @@ export function MessagesPage() {
       return null;
     } catch (err) {
       const ax = err as AxiosError<{ username?: string[]; detail?: string }>;
-      return ax.response?.data?.username?.[0] ?? ax.response?.data?.detail ?? 'Could not start conversation.';
+      return ax.response?.data?.username?.[0] ?? ax.response?.data?.detail ?? t('messages.startFailed');
     }
   }
 
   return (
     <div className="grid h-[calc(100vh-128px)] grid-cols-[280px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
+      <PageTitle title={t('titles.messages')} />
       {/* Inbox */}
       <aside className={cn('flex min-h-0 flex-col border-r border-[var(--color-border)]', selected && 'max-[720px]:hidden')}>
         <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3.5">
-          <h2 className="text-[15px] font-semibold tracking-tight">Inbox</h2>
+          <h2 className="text-[15px] font-semibold tracking-tight">{t('messages.inbox')}</h2>
           <button
             type="button"
             onClick={() => setNewOpen(true)}
             className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[var(--color-on-accent)] transition hover:opacity-90"
           >
-            + New
+            {t('messages.newButton')}
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {convsLoading ? (
-            <p className="px-4 py-4 text-[13px] text-[var(--color-text-muted)]">Loading…</p>
+            <p className="px-4 py-4 text-[13px] text-[var(--color-text-muted)]">{t('common.loading')}</p>
           ) : conversations.length === 0 ? (
             <p className="px-4 py-4 text-[13px] text-[var(--color-text-muted)]">
-              No conversations yet.
+              {t('messages.empty')}
             </p>
           ) : (
             conversations.map((c) => (
@@ -190,14 +192,14 @@ export function MessagesPage() {
           <div className="grid flex-1 place-items-center px-6 text-center">
             <div>
               <p className="text-sm text-[var(--color-text-muted)]">
-                Select a conversation to start chatting.
+                {t('messages.selectPrompt')}
               </p>
               <button
                 type="button"
                 onClick={() => setNewOpen(true)}
                 className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[var(--color-on-accent)]"
               >
-                + Start a new conversation
+                {t('messages.startNew')}
               </button>
             </div>
           </div>
@@ -216,10 +218,15 @@ interface ConversationRowProps {
 }
 
 function ConversationRow({ conversation, active, currentUserId }: ConversationRowProps) {
+  const { t } = useTranslation();
   const other = conversation.other;
   const last = conversation.last_message;
   const isOwn = last?.sender === currentUserId;
-  const preview = last ? (isOwn ? `You: ${last.body}` : last.body) : 'No messages yet.';
+  const preview = last
+    ? isOwn
+      ? t('messages.ownPreview', { body: last.body })
+      : last.body
+    : t('messages.noMessagesPreview');
 
   return (
     <Link
@@ -435,10 +442,10 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
 
       <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {loading ? (
-          <p className="text-sm text-[var(--color-text-muted)]">Loading messages…</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('messages.loadingMessages')}</p>
         ) : messages.length === 0 ? (
           <p className="text-center text-sm text-[var(--color-text-muted)]">
-            No messages yet. Say hi.
+            {t('messages.emptyChat')}
           </p>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -485,7 +492,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                     >
                       {timeAgo(m.created_at)}
                       {own && (
-                        <span title={m.read_at ? 'Read' : 'Sent'}>
+                        <span title={m.read_at ? t('messages.read') : t('messages.sent')}>
                           {m.read_at ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
                         </span>
                       )}
@@ -512,11 +519,11 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
-            placeholder={`Message u/${other?.username}…`}
+            placeholder={t('messages.placeholder', { username: other?.username })}
             className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
           />
           <Button type="submit" size="md" loading={sending} disabled={!body.trim()}>
-            Send
+            {t('messages.send')}
           </Button>
         </form>
       )}
@@ -536,6 +543,7 @@ interface NewConvModalProps {
 }
 
 function NewConversationModal({ open, onClose, onSubmit }: NewConvModalProps) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -561,14 +569,14 @@ function NewConversationModal({ open, onClose, onSubmit }: NewConvModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="New conversation"
+      title={t('messages.newConversation')}
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="button" loading={busy} disabled={!username.trim()} onClick={handle}>
-            Start
+            {t('messages.start')}
           </Button>
         </>
       }
@@ -576,8 +584,8 @@ function NewConversationModal({ open, onClose, onSubmit }: NewConvModalProps) {
       <form onSubmit={handle} className="flex flex-col gap-3">
         <Input
           name="username"
-          label="Username"
-          placeholder="someone"
+          label={t('auth.username')}
+          placeholder={t('messages.usernamePlaceholder')}
           value={username}
           onChange={(e) => setUsername(e.target.value.replace(/^@/, ''))}
           error={error}

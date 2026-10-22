@@ -10,6 +10,8 @@ import type { Conversation, Message } from '@/features/messaging/types';
 import { MessagesPage } from './MessagesPage';
 import * as messagingApi from '@/api/messaging';
 import * as usersApi from '@/api/users';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/messaging', () => ({
   listConversations: vi.fn(),
@@ -522,5 +524,49 @@ describe('MessagesPage conversation list', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('MessagesPage in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Inbox|New|Start a new|Select a conversation|No conversations|No messages|Say hi|Loading|Send|You|Read|Sent|Cancel|Username|Could not start)\b/;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.markConversationRead.mockResolvedValue();
+  });
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    api.listConversations.mockResolvedValue(
+      convs([{ ...conversation, last_message: msg(1, 1) }]),
+    );
+    api.listMessages.mockResolvedValue(page([msg(1, 1)], null));
+    api.startConversation.mockRejectedValue(new Error('network'));
+    renderAt('/messages/1');
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+    await screen.findByText('m1', { selector: 'div' });
+    expect(screen.getByText(/^Sen: m1$/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '+ Yeni' }));
+    await userEvent.type(screen.getByLabelText('Kullanıcı adı'), 'bob');
+    await userEvent.click(screen.getByRole('button', { name: 'Başlat' }));
+    expect(await screen.findByText('Sohbet başlatılamadı.')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders the empty states in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    api.listConversations.mockResolvedValue(convs([]));
+    renderAt('/messages');
+    expect(await screen.findByText('Henüz sohbet yok.')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('sets the page title', async () => {
+    api.listConversations.mockResolvedValue(convs([]));
+    renderAt('/messages');
+    await waitFor(() => expect(document.title).toBe('Messages · Nexus'));
   });
 });
