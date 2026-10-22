@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listSaved, type SavedItem } from '@/api/saves';
 import type { Post } from '@/features/posts/types';
 import type { Comment } from '@/features/comments/types';
 import { Card } from '@/components/ui/Card';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
@@ -12,6 +14,7 @@ import { ArrowRight } from 'lucide-react';
 type Filter = 'all' | 'post' | 'comment';
 
 export function SavedPage() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<SavedItem[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
   const [page, setPage] = useState(1);
@@ -62,11 +65,12 @@ export function SavedPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <PageTitle title={t('titles.saved')} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Saved</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">{t('titles.saved')}</h1>
           <p className="font-mono text-[12px] text-[var(--color-text-dim)]">
-            Posts and comments you bookmarked
+            {t('savedPage.subtitle')}
           </p>
         </div>
         <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
@@ -76,13 +80,13 @@ export function SavedPage() {
               type="button"
               onClick={() => setFilter(f)}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
+                'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                 filter === f
                   ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
               )}
             >
-              {f === 'post' ? 'Posts' : f === 'comment' ? 'Comments' : 'All'}
+              {t(`savedPage.filter_${f}`)}
               <span className="font-mono text-[11px] opacity-70">{counts[f]}</span>
             </button>
           ))}
@@ -91,14 +95,14 @@ export function SavedPage() {
 
       {loading ? (
         <Card>
-          <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
         </Card>
       ) : items.length === 0 ? (
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
-            You haven't saved anything yet.{' '}
+            {t('savedPage.empty')}{' '}
             <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
-              Browse the feed
+              {t('savedPage.browseFeed')}
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </p>
@@ -123,7 +127,7 @@ export function SavedPage() {
             disabled={loadingMore}
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
-            {loadingMore ? 'Loading…' : 'Load more'}
+            {loadingMore ? t('common.loading') : t('common.loadMore')}
           </button>
         </div>
       )}
@@ -132,18 +136,20 @@ export function SavedPage() {
 }
 
 function SavedCommentRow({ comment }: { comment: Comment }) {
+  // Subscribes to language changes so timeAgo() re-renders in the new language.
+  const { t } = useTranslation();
   return (
     <Link
       to={`/posts/${comment.post}`}
       className="block rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-4 py-3 transition hover:border-[var(--color-border-strong)]"
     >
       <div className="font-mono mb-1 flex items-center gap-2 text-[11.5px] text-[var(--color-text-dim)]">
-        <span>Comment</span>
+        <span>{t('savedPage.comment')}</span>
         <span>·</span>
         {comment.author_username ? (
           <span className="text-[var(--color-text-soft)]">u/{comment.author_username}</span>
         ) : (
-          <span className="italic">[deleted]</span>
+          <span className="italic">{t('common.deleted')}</span>
         )}
         <span>·</span>
         <span>{timeAgo(comment.created_at)}</span>

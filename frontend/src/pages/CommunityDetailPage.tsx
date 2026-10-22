@@ -21,16 +21,11 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { PostSortTabs } from '@/components/posts/PostSortTabs';
 import { cn } from '@/lib/cn';
 import { ArrowLeft, Bell, ChevronDown, ShieldCheck } from 'lucide-react';
-
-const notifyLabels: Record<NotifyLevel, string> = {
-  all: 'All updates',
-  posts_only: 'Posts only',
-  off: 'Muted',
-};
 
 export function CommunityDetailPage() {
   const { t } = useTranslation();
@@ -163,18 +158,19 @@ export function CommunityDetailPage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--color-text-muted)]">Loading…</div>;
+    return <div className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</div>;
   }
   if (notFound || !community) {
     return (
       <Card>
-        <h2 className="text-lg font-semibold">Community not found</h2>
+        <PageTitle title={t('communityPage.notFound')} />
+        <h2 className="text-lg font-semibold">{t('communityPage.notFound')}</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          The community c/{slug} doesn't exist.
+          {t('communityPage.notFoundBody', { slug })}
         </p>
         <Link to="/c" className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-accent)] hover:underline">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Browse communities
+          {t('composer.browseCommunities')}
         </Link>
       </Card>
     );
@@ -182,6 +178,7 @@ export function CommunityDetailPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <PageTitle title={`c/${community.slug}`} />
       <Card padded={false} className="overflow-hidden">
         <div className="h-24 w-full bg-[var(--color-bg-3)]" />
         <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
@@ -197,12 +194,14 @@ export function CommunityDetailPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-bold tracking-tight">{community.name}</h1>
-                {community.is_nsfw && <Badge tone="danger">NSFW</Badge>}
+                {community.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
               </div>
               <p className="text-sm text-[var(--color-text-muted)]">c/{community.slug}</p>
               <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
-                {community.member_count.toLocaleString()} member
-                {community.member_count === 1 ? '' : 's'}
+                {t('rightbar.members', {
+                  count: community.member_count,
+                  formatted: community.member_count.toLocaleString(),
+                })}
               </p>
             </div>
           </div>
@@ -213,7 +212,7 @@ export function CommunityDetailPage() {
                 <Link to={`/c/${community.slug}/mod`}>
                   <Button variant="secondary" size="md">
                     <ShieldCheck className="h-4 w-4" />
-                    Mod tools
+                    {t('communityPage.modTools')}
                   </Button>
                 </Link>
               )}
@@ -228,7 +227,7 @@ export function CommunityDetailPage() {
                   onClick={handleJoinLeave}
                   loading={actionLoading}
                 >
-                  {community.is_member ? 'Joined' : 'Join'}
+                  {community.is_member ? t('rightbar.joined') : t('rightbar.join')}
                 </Button>
               )}
             </div>
@@ -248,7 +247,7 @@ export function CommunityDetailPage() {
         {rules.length > 0 && (
           <Card>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Community rules
+              {t('communityPage.rules')}
             </h2>
             <ol className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
               {rules.map((r, i) => (
@@ -266,7 +265,7 @@ export function CommunityDetailPage() {
           {isAuthed && (
             <Link to={`/c/${community.slug}/submit`}>
               <Button variant="primary" size="sm">
-                Create post
+                {t('communityPage.createPost')}
               </Button>
             </Link>
           )}
@@ -281,7 +280,7 @@ export function CommunityDetailPage() {
         ) : posts.length === 0 ? (
           <Card>
             <p className="text-sm text-[var(--color-text-muted)]">
-              No posts in this community yet.
+              {t('communityPage.noPosts')}
             </p>
           </Card>
         ) : (
@@ -308,6 +307,7 @@ interface NotifyDropdownProps {
 }
 
 function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -326,10 +326,10 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
-        aria-label="Notification level"
+        aria-label={t('communityPage.notifyLevel')}
       >
         <Bell className="h-4 w-4" />
-        <span className="hidden sm:inline">{notifyLabels[value]}</span>
+        <span className="hidden sm:inline">{t(`communityPage.notify_${value}`)}</span>
         <ChevronDown className="h-4 w-4 text-[var(--color-text-muted)]" />
       </button>
       {open && (
@@ -347,7 +347,7 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
                 level === value && 'text-[var(--color-accent)]',
               )}
             >
-              {notifyLabels[level]}
+              {t(`communityPage.notify_${level}`)}
             </button>
           ))}
         </div>

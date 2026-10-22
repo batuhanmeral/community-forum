@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { NsfwReveal } from '@/components/posts/NsfwReveal';
@@ -87,13 +88,14 @@ export function PostDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>;
+  if (loading) return <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>;
   if (notFound || !post) {
     return (
       <Card>
-        <h2 className="text-lg font-semibold">Post not found</h2>
+        <PageTitle title={t('postPage.notFound')} />
+        <h2 className="text-lg font-semibold">{t('postPage.notFound')}</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          This post may have been removed.
+          {t('postPage.notFoundBody')}
         </p>
       </Card>
     );
@@ -110,6 +112,7 @@ export function PostDetailPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
+      <PageTitle title={post.title} />
       <Card>
         {!post.is_approved && !post.is_deleted && (
           <p
@@ -129,7 +132,7 @@ export function PostDetailPage() {
               u/{post.author_username}
             </Link>
           ) : (
-            <span>u/[deleted]</span>
+            <span>u/{t('common.deleted')}</span>
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(post.created_at)}</span>
@@ -153,8 +156,8 @@ export function PostDetailPage() {
               {post.flair_detail.name}
             </span>
           )}
-          {post.is_pinned && <Badge tone="accent">Pinned</Badge>}
-          {post.is_nsfw && <Badge tone="danger">NSFW</Badge>}
+          {post.is_pinned && <Badge tone="accent">{t('post.pinned')}</Badge>}
+          {post.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
         </div>
 
         {editing ? (
@@ -229,22 +232,22 @@ export function PostDetailPage() {
                     onClick={handleSticky}
                     loading={stickyBusy}
                   >
-                    {post.is_pinned ? 'Unpin' : 'Pin'}
+                    {post.is_pinned ? t('postPage.unpin') : t('postPage.pin')}
                   </Button>
                 )}
                 {canReport && (
                   <Button variant="ghost" size="sm" onClick={() => setReporting(true)}>
-                    Report
+                    {t('common.report')}
                   </Button>
                 )}
                 {canEdit && (
                   <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-                    Edit
+                    {t('common.edit')}
                   </Button>
                 )}
                 {(isAuthor || isMod) && (
                   <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>
-                    {isAuthor ? 'Delete' : 'Remove'}
+                    {isAuthor ? t('common.delete') : t('postPage.remove')}
                   </Button>
                 )}
               </div>
@@ -262,20 +265,20 @@ export function PostDetailPage() {
       <Modal
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Delete this post?"
+        title={t('postPage.deleteTitle')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button variant="danger" onClick={handleDelete}>
-              Delete
+              {t('common.delete')}
             </Button>
           </>
         }
       >
         <p className="text-sm text-[var(--color-text-muted)]">
-          This action cannot be undone. The post will be removed from your community.
+          {t('postPage.deleteBody')}
         </p>
       </Modal>
 
@@ -298,6 +301,7 @@ interface EditFormProps {
 }
 
 function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(post.title);
   const [body, setBody] = useState(post.body);
   const [isNsfw, setIsNsfw] = useState(post.is_nsfw);
@@ -322,7 +326,7 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
     <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
       <Input
         name="title"
-        label="Title"
+        label={t('postForm.title')}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         required
@@ -331,7 +335,7 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
       {post.kind === 'text' && (
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-            Body
+            {t('postForm.body')}
           </label>
           <textarea
             rows={8}
@@ -348,14 +352,14 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
           onChange={(e) => setIsNsfw(e.target.checked)}
           className="h-4 w-4 accent-[var(--color-accent)]"
         />
-        NSFW
+        {t('post.nsfw')}
       </label>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button type="submit" loading={saving}>
-          Save
+          {t('common.save')}
         </Button>
       </div>
     </form>

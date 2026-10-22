@@ -6,6 +6,7 @@ import type { Community } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import type { UserProfile } from '@/api/users';
 import { Card } from '@/components/ui/Card';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { Avatar } from '@/components/ui/Avatar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FollowButton } from '@/components/follow/FollowButton';
@@ -83,12 +84,13 @@ export function SearchPage() {
     }
   }
 
-  function selectTab(t: SearchType) {
-    setParams({ q, type: t }, { replace: true });
+  function selectTab(next: SearchType) {
+    setParams({ q, type: next }, { replace: true });
   }
 
   return (
     <div className="flex flex-col gap-4">
+      <PageTitle title={t('titles.search')} />
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight">
           {q ? (
@@ -184,12 +186,12 @@ function CommunityResult({ community }: { community: Community }) {
           </h3>
           {community.is_nsfw && (
             <span className="rounded-full border border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-danger)]">
-              NSFW
+              {t('post.nsfw')}
             </span>
           )}
           {community.is_member && (
             <span className="rounded-full border border-[var(--color-accent-border)] bg-[var(--color-accent)]/8 px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-accent)]">
-              Joined
+              {t('rightbar.joined')}
             </span>
           )}
         </div>
@@ -219,7 +221,7 @@ function UserResult({ user }: { user: UserProfile }) {
           u/{user.username}
         </h3>
         <p className="font-mono mt-0.5 text-[11.5px] text-[var(--color-text-dim)]">
-          <ArrowBigUp className="inline h-3.5 w-3.5 align-text-bottom" /> {user.total_karma.toLocaleString()} karma · {user.followers_count.toLocaleString()}{' '}
+          <ArrowBigUp className="inline h-3.5 w-3.5 align-text-bottom" /> {user.total_karma.toLocaleString()} {t('nav.karma')} · {user.followers_count.toLocaleString()}{' '}
           {user.followers_count === 1 ? t('search.follower') : t('search.followers')}
         </p>
         {user.bio && (

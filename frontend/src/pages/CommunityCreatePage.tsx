@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AxiosError } from 'axios';
 import { createCommunity } from '@/api/communities';
 import { membershipsChanged } from '@/features/communities/membershipsSlice';
@@ -7,10 +8,12 @@ import { useAppDispatch } from '@/app/hooks';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PageTitle } from '@/components/ui/PageTitle';
 
 type FieldErrors = Partial<Record<'slug' | 'name' | 'description' | 'avatar' | 'non_field', string>>;
 
 export function CommunityCreatePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [slug, setSlug] = useState('');
@@ -53,10 +56,11 @@ export function CommunityCreatePage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
+      <PageTitle title={t('titles.createCommunity')} />
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Create a community</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('titles.createCommunity')}</h1>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Pick a slug — it can't be changed later.
+          {t('communityForm.subtitle')}
         </p>
       </div>
 
@@ -64,8 +68,8 @@ export function CommunityCreatePage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             name="slug"
-            label="Slug (URL identifier)"
-            placeholder="e.g. webdev"
+            label={t('communityForm.slugLabel')}
+            placeholder={t('communityForm.slugPlaceholder')}
             value={slug}
             onChange={(e) => setSlug(e.target.value.replace(/[^a-z0-9_-]/gi, '').toLowerCase())}
             error={errors.slug}
@@ -75,7 +79,7 @@ export function CommunityCreatePage() {
           />
           <Input
             name="name"
-            label="Display name"
+            label={t('communityForm.displayName')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             error={errors.name}
@@ -87,7 +91,7 @@ export function CommunityCreatePage() {
               htmlFor="description"
               className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]"
             >
-              Description
+              {t('communityForm.description')}
             </label>
             <textarea
               id="description"
@@ -105,7 +109,7 @@ export function CommunityCreatePage() {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-              Icon (optional)
+              {t('communityForm.icon')}
             </label>
             <input
               type="file"
@@ -124,9 +128,9 @@ export function CommunityCreatePage() {
               className="h-4 w-4 accent-[var(--color-accent)]"
             />
             <span className="text-sm">
-              <span className="font-medium">NSFW</span>
+              <span className="font-medium">{t('post.nsfw')}</span>
               <span className="ml-2 text-[var(--color-text-muted)]">
-                Mark this community as Not Safe For Work.
+                {t('communityForm.nsfwHint')}
               </span>
             </span>
           </label>
@@ -137,10 +141,10 @@ export function CommunityCreatePage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={loading}>
-              Create community
+              {t('communityForm.submit')}
             </Button>
           </div>
         </form>

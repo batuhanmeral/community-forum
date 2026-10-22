@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -10,6 +10,8 @@ import { PostDetailPage } from './PostDetailPage';
 import * as postsApi from '@/api/posts';
 import * as communitiesApi from '@/api/communities';
 import * as commentsApi from '@/api/comments';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/posts', () => ({
   getPost: vi.fn(),
@@ -207,5 +209,66 @@ describe('PostDetailPage NSFW image', () => {
     await user.click(await screen.findByRole('button', { name: 'Show NSFW content' }));
     expect(screen.queryByRole('button', { name: 'Show NSFW content' })).toBeNull();
     expect(screen.getByAltText('Title').closest('[aria-hidden="true"]')).toBeNull();
+  });
+});
+
+describe('PostDetailPage in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Loading|Post not found|removed|Pinned|Unpin|Pin|Report|Edit|Delete|Remove|Cancel|Save|Title|Body|undone)\b/;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('skip'));
+  });
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish for a moderator and the delete dialog', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'moderator' } as never);
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, title: 'Merhaba', is_pinned: true });
+    await i18n.changeLanguage('tr');
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Kaldır' }));
+    expect(await screen.findByText(/geri alınamaz/)).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders no English in Turkish for the author edit form', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, author: 1 });
+    await i18n.changeLanguage('tr');
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Düzenle' }));
+    expect(await screen.findByLabelText('Başlık')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders no English in Turkish for a missing post', async () => {
+    vi.mocked(postsApi.getPost).mockRejectedValue(new Error('404'));
+    await i18n.changeLanguage('tr');
+    renderPage();
+    expect(await screen.findByText('Gönderi bulunamadı')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('shows the loading text in Turkish', async () => {
+    vi.mocked(postsApi.getPost).mockReturnValue(new Promise(() => undefined));
+    await i18n.changeLanguage('tr');
+    renderPage();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+    expect(screen.getByText('Yükleniyor…')).toBeInTheDocument();
+  });
+});
+
+describe('PostDetailPage title', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('skip'));
+  });
+
+  it('sets the page title to the post title', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, title: 'Hello world' });
+    renderPage();
+    await waitFor(() => expect(document.title).toBe('Hello world · Nexus'));
   });
 });

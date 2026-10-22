@@ -61,18 +61,9 @@ export const I18N_SELECTORS = [
 
 // Files that still render English; Tasks 12-14 translate them and shrink this list.
 export const I18N_PENDING = [
-  'src/pages/CommunityCreatePage.tsx',
-  'src/pages/CommunityDetailPage.tsx',
-  'src/pages/CommunityListPage.tsx',
-  'src/pages/HomePage.tsx',
-  'src/pages/InboxPage.tsx',
   'src/pages/LoginPage.tsx',
   'src/pages/MessagesPage.tsx',
   'src/pages/ModPage.tsx',
-  'src/pages/PostCreatePage.tsx',
-  'src/pages/PostDetailPage.tsx',
-  'src/pages/SavedPage.tsx',
-  'src/pages/SearchPage.tsx',
   'src/pages/SettingsPage.tsx',
   'src/pages/UserProfilePage.tsx',
   'src/pages/VerifyEmailPage.tsx',

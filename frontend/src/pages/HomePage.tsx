@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listFeed, listFollowingFeed, type SortOption } from '@/api/posts';
 import { listCommunities } from '@/api/communities';
 import { updatePreferences } from '@/api/users';
@@ -7,13 +8,13 @@ import type { Post } from '@/features/posts/types';
 import { setUser } from '@/features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { cn } from '@/lib/cn';
 import { ArrowRight, ArrowUpToLine, BarChart3, Clock, Flame, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
 interface SortTab {
   id: SortOption;
-  label: string;
   icon: React.ReactNode;
 }
 
@@ -28,22 +29,16 @@ const topIcon = (
 );
 
 const SORT_TABS: SortTab[] = [
-  { id: 'hot', label: 'Hot', icon: hotIcon },
-  { id: 'new', label: 'New', icon: newIcon },
-  { id: 'top', label: 'Top', icon: topIcon },
+  { id: 'hot', icon: hotIcon },
+  { id: 'new', icon: newIcon },
+  { id: 'top', icon: topIcon },
 ];
 
 type FeedKind = 'home' | 'following';
 
 type KindFilter = 'all' | 'text' | 'image' | 'link' | 'poll';
 
-const KIND_FILTERS: Array<{ id: KindFilter; label: string }> = [
-  { id: 'all', label: 'All posts' },
-  { id: 'text', label: 'Discussion' },
-  { id: 'image', label: 'Media' },
-  { id: 'link', label: 'Links' },
-  { id: 'poll', label: 'Polls' },
-];
+const KIND_FILTERS: KindFilter[] = ['all', 'text', 'image', 'link', 'poll'];
 
 export type FeedVariant = 'home' | 'popular' | 'all';
 
@@ -54,6 +49,7 @@ const VARIANT_DEFAULT_SORT: Record<FeedVariant, SortOption> = {
 };
 
 export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
+  const { t } = useTranslation();
   const user = useAppSelector((s) => s.auth.user);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const dispatch = useAppDispatch();
@@ -156,26 +152,30 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     }
   }
 
+  const headerTitle =
+    variant === 'popular'
+      ? t('feed.title_popular')
+      : variant === 'all'
+        ? t('feed.title_all')
+        : feedKind === 'following'
+          ? t('feed.title_following')
+          : isAuthed
+            ? t('feed.title_home')
+            : t('feed.title_anon');
+  // The plain home feed keeps the bare app name as its title.
+  const pageTitle = variant === 'popular' ? t('feed.title_popular') : variant === 'all' ? t('feed.title_all') : undefined;
+
   return (
     <div className="min-w-0">
+      <PageTitle title={pageTitle} />
       {/* Feed header */}
       <div className="mb-[18px] flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
-          <span>
-            {variant === 'popular'
-              ? 'Popular'
-              : variant === 'all'
-                ? 'All posts'
-                : feedKind === 'following'
-                  ? 'Following'
-                  : isAuthed
-                    ? 'Your feed'
-                    : 'Popular feed'}
-          </span>
+          <span>{headerTitle}</span>
           <span className="font-mono text-[14px] font-normal text-[var(--color-text-dim)]">
-            / {variant === 'home' ? feedKind : variant}
+            / {t(`feed.slug_${variant === 'home' ? feedKind : variant}`)}
             {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0
-              ? ` · ${memberCount} ${memberCount === 1 ? 'community' : 'communities'}`
+              ? ` · ${t('feed.communityCount', { count: memberCount })}`
               : ''}
           </span>
         </div>
@@ -189,33 +189,33 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
                   type="button"
                   onClick={() => setFeedKind(k)}
                   className={cn(
-                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
+                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                     feedKind === k
                       ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                   )}
                 >
-                  {k}
+                  {t(`feed.tab_${k}`)}
                 </button>
               ))}
             </div>
           )}
 
           <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
-            {SORT_TABS.map((t) => (
+            {SORT_TABS.map((tab) => (
               <button
-                key={t.id}
+                key={tab.id}
                 type="button"
-                onClick={() => setSort(t.id)}
+                onClick={() => setSort(tab.id)}
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
-                  sort === t.id
+                  sort === tab.id
                     ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                 )}
               >
-                {t.icon}
-                {t.label}
+                {tab.icon}
+                {t(`sort.${tab.id}`)}
               </button>
             ))}
           </div>
@@ -226,18 +226,18 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
       <div className="mb-3.5 flex items-center gap-1.5 overflow-x-auto pb-1">
         {KIND_FILTERS.map((f) => (
           <button
-            key={f.id}
+            key={f}
             type="button"
-            onClick={() => setKind(f.id)}
+            onClick={() => setKind(f)}
             className={cn(
               'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-[7px] text-[12.5px] font-normal transition',
-              kind === f.id
+              kind === f
                 ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
             )}
           >
-            {f.label}
-            <span className="font-mono text-[11px] opacity-80">{counts[f.id]}</span>
+            {t(`feed.kind_${f}`)}
+            <span className="font-mono text-[11px] opacity-80">{counts[f]}</span>
           </button>
         ))}
 
@@ -247,7 +247,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             type="button"
             onClick={toggleNsfw}
             disabled={nsfwBusy}
-            title={nsfwShown ? 'Hide NSFW' : 'Show NSFW'}
+            title={nsfwShown ? t('feed.nsfwHide') : t('feed.nsfwShow')}
             className={cn(
               'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-[7px] text-[12px] font-medium transition',
               nsfwShown
@@ -268,7 +268,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
                 )}
               />
             </span>
-            NSFW
+            {t('post.nsfw')}
           </button>
           )}
         </div>
@@ -284,17 +284,17 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
               to="/submit"
               className="outline-none after:absolute after:inset-0 after:rounded-[14px] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-accent)]"
             >
-              What's on your mind{user ? `, ${user.username}` : ''}?
+              {user ? t('feed.composePromptNamed', { name: user.username }) : t('feed.composePrompt')}
             </Link>
           </div>
           <div className="relative z-10 flex gap-1">
-            <ComposeTool title="Image" kind="image">
+            <ComposeTool title={t('post.kind_image')} kind="image">
               <ImageIcon className="h-[17px] w-[17px]" />
             </ComposeTool>
-            <ComposeTool title="Link" kind="link">
+            <ComposeTool title={t('post.kind_link')} kind="link">
               <LinkIcon className="h-[17px] w-[17px]" />
             </ComposeTool>
-            <ComposeTool title="Poll" kind="poll">
+            <ComposeTool title={t('post.kind_poll')} kind="poll">
               <BarChart3 className="h-[17px] w-[17px]" />
             </ComposeTool>
           </div>
@@ -313,25 +313,25 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
           {kind === 'all' ? (
             feedKind === 'following' ? (
               <>
-                You aren't following anyone yet.{' '}
+                {t('feed.followingEmpty')}{' '}
                 <Link to="/search?type=user" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
-                  Discover users
+                  {t('feed.discoverUsers')}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : isAuthed ? (
               <>
-                Your feed is empty.{' '}
+                {t('feed.feedEmpty')}{' '}
                 <Link to="/c" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
-                  Browse communities
+                  {t('composer.browseCommunities')}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : (
-              'No posts yet. Be the first to contribute!'
+              t('feed.anonEmpty')
             )
           ) : (
-            'No posts match this filter.'
+            t('feed.filterEmpty')
           )}
         </div>
       ) : (
@@ -346,7 +346,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             disabled={loadingMore}
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
-            {loadingMore ? 'Loading…' : 'Load more posts'}
+            {loadingMore ? t('common.loading') : t('community.loadMore')}
           </button>
         </div>
       )}
