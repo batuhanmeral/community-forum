@@ -12,6 +12,8 @@ import { HomeRightSidebar } from './HomeRightSidebar';
 import { MobileNav } from './MobileNav';
 import { cn } from '@/lib/cn';
 
+const PROFILE_RETRY_MS = 30_000;
+
 export function AppLayout() {
   const dispatch = useAppDispatch();
   const { getState } = useStore<RootState>();
@@ -29,20 +31,32 @@ export function AppLayout() {
   useEffect(() => {
     if (!accessToken || user) return;
     let active = true;
-    const load = () =>
-      fetchMe().then((u) => {
+    let lastAttempt = 0;
+    const load = () => {
+      lastAttempt = Date.now();
+      return fetchMe().then((u) => {
         // A logout or account switch (possibly in another tab) while loading makes this user stale.
         const current = getState().auth.accessToken;
         if (active && current && jwtUserId(current) === String(u.id)) dispatch(setUser(u));
       });
+    };
     const retry = () => void load().catch(() => undefined);
+    // Returning to the tab also retries (5xx, transient refresh failure), at most once per PROFILE_RETRY_MS.
+    const retryWhenBack = () => {
+      if (!document.hidden && Date.now() - lastAttempt >= PROFILE_RETRY_MS) retry();
+    };
     // Logout belongs to the refresh path; a failed load (often offline) retries once on reconnect.
     load().catch(() => {
-      if (active) window.addEventListener('online', retry, { once: true });
+      if (!active) return;
+      window.addEventListener('online', retry, { once: true });
+      window.addEventListener('focus', retryWhenBack);
+      document.addEventListener('visibilitychange', retryWhenBack);
     });
     return () => {
       active = false;
       window.removeEventListener('online', retry);
+      window.removeEventListener('focus', retryWhenBack);
+      document.removeEventListener('visibilitychange', retryWhenBack);
     };
   }, [accessToken, user, dispatch, getState]);
 

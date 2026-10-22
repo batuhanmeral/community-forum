@@ -155,4 +155,29 @@ describe('api client token refresh', () => {
     expect(lastAuthHeader()).toBe('Bearer a5');
     expect(store.getState().auth.accessToken).toBe('a5');
   });
+
+  it('gives up on a hung refresh after 10 seconds and keeps the session', async () => {
+    vi.useFakeTimers();
+    try {
+      // Mirrors axios' adapters: a request with a timeout fails with ECONNABORTED and no response.
+      vi.spyOn(axios, 'post').mockImplementation(
+        (_url, _data, config) =>
+          new Promise((_resolve, reject) => {
+            if (config?.timeout) {
+              setTimeout(() => reject(new AxiosError('timeout exceeded', 'ECONNABORTED')), config.timeout);
+            }
+          }),
+      );
+      const request = api.get('/x/').then(
+        () => 'resolved',
+        () => 'rejected',
+      );
+      await vi.advanceTimersByTimeAsync(10_000);
+      await expect(Promise.race([request, Promise.resolve('pending')])).resolves.toBe('rejected');
+      expect(store.getState().auth.refreshToken).toBe('r1');
+      expect(localStorage.getItem(REFRESH_KEY)).toBe('r1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

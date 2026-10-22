@@ -10,6 +10,9 @@ import {
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
+/** Refresh and logout run under the cross-tab lock; a hung request must not hold it forever. */
+export const AUTH_REQUEST_TIMEOUT_MS = 10_000;
+
 export const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -54,7 +57,7 @@ async function refreshUnderLock(failedAccess: string | null): Promise<string | n
   // No refresh token means a logout elsewhere; a different access token means another tab refreshed.
   if (!refresh || (access && access !== failedAccess)) return adoptStoredTokens();
   try {
-    const res = await axios.post(`${BASE_URL}/auth/refresh/`, { refresh });
+    const res = await axios.post(`${BASE_URL}/auth/refresh/`, { refresh }, { timeout: AUTH_REQUEST_TIMEOUT_MS });
     // A logout or another tab's refresh during the request wins; storing this pair would undo it.
     if (readStoredTokens().refresh !== refresh) return adoptStoredTokens();
     const newAccess = res.data.access as string;

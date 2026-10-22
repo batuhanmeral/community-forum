@@ -5,6 +5,7 @@ export const en = {
     messages: 'Messages',
     login: 'Log in',
     signup: 'Sign up',
+    loadingAccount: 'Loading your account…',
     signedInAs: 'Signed in as',
     profile: 'Profile',
     settings: 'Settings',

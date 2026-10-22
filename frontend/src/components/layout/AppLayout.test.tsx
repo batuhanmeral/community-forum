@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useNavigate, type NavigateFunction } from 'react-router-dom';
@@ -114,6 +114,61 @@ describe('AppLayout session loading', () => {
     });
     expect(fetchMe).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(store.getState().auth.user).toEqual(alice));
+  });
+});
+
+describe('AppLayout profile retry', () => {
+  const serverError = new Error('Request failed with status code 500');
+
+  beforeEach(() => {
+    localStorage.clear();
+    fetchMe.mockReset();
+    vi.useFakeTimers({ toFake: ['Date'] });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  async function failFirstLoad() {
+    const store = renderLayout();
+    await waitFor(() => expect(fetchMe).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    return store;
+  }
+
+  it('retries a failed profile load when the tab becomes visible again', async () => {
+    fetchMe.mockRejectedValueOnce(serverError).mockResolvedValue(alice);
+    const store = await failFirstLoad();
+    vi.setSystemTime(Date.now() + 30_000);
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await waitFor(() => expect(store.getState().auth.user).toEqual(alice));
+  });
+
+  it('retries a failed profile load when the window regains focus', async () => {
+    fetchMe.mockRejectedValueOnce(serverError).mockResolvedValue(alice);
+    const store = await failFirstLoad();
+    vi.setSystemTime(Date.now() + 30_000);
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(store.getState().auth.user).toEqual(alice));
+  });
+
+  it('retries at most once every 30 seconds', async () => {
+    fetchMe.mockRejectedValue(serverError);
+    await failFirstLoad();
+    vi.setSystemTime(Date.now() + 29_000);
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(fetchMe).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(Date.now() + 1_000);
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(fetchMe).toHaveBeenCalledTimes(2);
   });
 });
 

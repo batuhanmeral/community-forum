@@ -185,6 +185,50 @@ describe('Navbar logout', () => {
   });
 });
 
+describe('Navbar while the profile is loading', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    users.getUnreadCounts.mockResolvedValue({ notifications: 0, messages: 0 });
+  });
+
+  // Offering "Log in" to a signed-in user is a dead end: LoginPage sends them straight back.
+  it('shows a neutral placeholder instead of log in and sign up', async () => {
+    const store = configureStore({
+      reducer: { auth: authReducer, messaging: messagingReducer, notifications: notificationReducer },
+      preloadedState: {
+        auth: { user: null, accessToken: 'a1', refreshToken: 'r1', status: 'authenticated' as const, error: null },
+      },
+    });
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Navbar />
+        </MemoryRouter>
+      </Provider>,
+    );
+    await act(async () => {});
+    expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Sign up' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading your account…');
+  });
+
+  it('still offers log in and sign up when signed out', async () => {
+    const store = configureStore({
+      reducer: { auth: authReducer, messaging: messagingReducer, notifications: notificationReducer },
+    });
+    store.dispatch(logout());
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Navbar />
+        </MemoryRouter>
+      </Provider>,
+    );
+    expect(screen.getByRole('link', { name: 'Log in' })).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+});
+
 describe('Navbar mobile header', () => {
   beforeEach(() => {
     vi.clearAllMocks();

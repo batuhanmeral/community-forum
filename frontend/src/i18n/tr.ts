@@ -9,6 +9,7 @@ export const tr: Translation = {
     messages: 'Mesajlar',
     login: 'Giriş yap',
     signup: 'Kayıt ol',
+    loadingAccount: 'Hesabın yükleniyor…',
     signedInAs: 'Oturum açan:',
     profile: 'Profil',
     settings: 'Ayarlar',

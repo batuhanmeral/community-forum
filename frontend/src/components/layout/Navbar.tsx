@@ -237,6 +237,11 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
                 )}
               </div>
             </>
+          ) : isAuthed ? (
+            // Signed in but the profile has not loaded: "Log in" here would loop back via LoginPage.
+            <span role="status" className="grid h-10 w-10 shrink-0 rounded-full bg-[var(--color-bg-3)]">
+              <span className="sr-only">{t('nav.loadingAccount')}</span>
+            </span>
           ) : (
             <>
               <Link
