@@ -47,7 +47,9 @@ The project is split into two independent applications: a Django REST Framework 
 - JWT auth (SimpleJWT) with refresh rotation and blacklist, register/login/logout
 - Password reset and email verification flows (console backend in dev, SMTP via env)
 - Account settings: NSFW preference, password change, account deactivation
-- Interface language picker (EN/TR via i18next); Turkish coverage is partial, full coverage is tracked for M6
+- Interface language picker (EN/TR via i18next) with full Turkish coverage, `<html lang>` and per-page titles; an ESLint rule blocks hard-coded English in JSX
+- Responsive from 360 px: mobile navigation drawer below 960 px, tap-to-reveal for NSFW images
+- Sessions survive refresh hiccups (429/network) and stay in sync across tabs; stale-chunk errors reload once
 - Uploaded images are automatically downscaled (avatars 512px, post images 1920px)
 - Rate throttling per scope (auth, write, vote), pagination, and permission classes throughout
 
@@ -57,7 +59,7 @@ The project is split into two independent applications: a Django REST Framework 
 |----------|------------|
 | Backend  | Python, Django, Django REST Framework, SimpleJWT |
 | Database | PostgreSQL (full-text search, GIN indexes) |
-| Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4 |
+| Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4, Lucide icons |
 | Testing  | pytest + pytest-cov (backend), Vitest + React Testing Library (frontend) |
 | Tooling  | ruff (lint + format), ESLint |
 | Deploy   | Docker (gunicorn + WhiteNoise, nginx SPA + API proxy), docker-compose |
