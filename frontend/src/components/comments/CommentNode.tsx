@@ -14,6 +14,7 @@ import type { CommentWithChildren } from './tree';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { deletedBodyKey } from '@/lib/deletedBody';
 
 interface CommentNodeProps {
   node: CommentWithChildren;
@@ -110,6 +111,9 @@ export function CommentNode({
                   onCancel={() => setEditing(false)}
                 />
               </div>
+            ) : node.is_deleted ? (
+              // The API's English body marker is swapped for the reader's language.
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t(deletedBodyKey(node.body))}</p>
             ) : (
               <div
                 className="prose-nexus mt-1 text-sm text-[var(--color-text)]"
@@ -168,9 +172,11 @@ export function CommentNode({
               <div className="mt-2">
                 <CommentForm
                   autoFocus
-                  placeholder={t('comments.replyPlaceholder', {
-                    name: node.author_username ?? t('comments.replyTargetFallback'),
-                  })}
+                  placeholder={
+                    node.author_username
+                      ? t('comments.replyPlaceholder', { name: node.author_username })
+                      : t('comments.replyPlaceholderNoAuthor')
+                  }
                   submitLabel={t('common.reply')}
                   onCancel={() => setReplying(false)}
                   onSubmit={async (body) => {

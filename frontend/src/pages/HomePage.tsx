@@ -191,7 +191,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
                   className={cn(
                     'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                     feedKind === k
-                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
+                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                   )}
                 >
@@ -210,7 +210,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                   sort === tab.id
-                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
+                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                 )}
               >

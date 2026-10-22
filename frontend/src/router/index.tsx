@@ -4,6 +4,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RouteErrorPage } from './RouteErrorPage';
+import { PageTitle } from '@/components/ui/PageTitle';
 import {
   CommunityCreatePage,
   ForgotPasswordPage,
@@ -31,6 +32,7 @@ function page(node: ReactNode) {
     <Suspense
       fallback={
         <div className="flex justify-center py-16">
+          <PageTitle />
           <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent opacity-50" />
         </div>
       }

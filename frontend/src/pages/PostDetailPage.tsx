@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { PageTitle } from '@/components/ui/PageTitle';
+import { deletedBodyKey } from '@/lib/deletedBody';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { NsfwReveal } from '@/components/posts/NsfwReveal';
@@ -88,7 +89,14 @@ export function PostDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>;
+  if (loading) {
+    return (
+      <>
+        <PageTitle />
+        <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
+      </>
+    );
+  }
   if (notFound || !post) {
     return (
       <Card>
@@ -190,14 +198,19 @@ export function PostDetailPage() {
               </div>
             )}
 
-            {post.kind === 'text' && post.body_html && (
+            {post.kind === 'text' && post.is_deleted && (
+              // The API's English body marker is swapped for the reader's language.
+              <p className="mt-3 text-sm text-[var(--color-text-muted)]">{t(deletedBodyKey(post.body))}</p>
+            )}
+
+            {post.kind === 'text' && !post.is_deleted && post.body_html && (
               <div
                 className="prose-nexus mt-3 text-sm text-[var(--color-text)]"
                 dangerouslySetInnerHTML={{ __html: post.body_html }}
               />
             )}
 
-            {post.kind === 'text' && !post.body_html && post.body && (
+            {post.kind === 'text' && !post.is_deleted && !post.body_html && post.body && (
               <p className="mt-3 whitespace-pre-wrap text-sm">{post.body}</p>
             )}
 

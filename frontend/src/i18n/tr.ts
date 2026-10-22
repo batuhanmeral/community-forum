@@ -145,7 +145,7 @@ export const tr: Translation = {
     placeholder: 'Yorum yaz...',
     addPlaceholder: 'Yorum ekle...',
     replyPlaceholder: '{{name}} kişisine yanıt ver...',
-    replyTargetFallback: 'yorum',
+    replyPlaceholderNoAuthor: 'Yoruma yanıt ver…',
     submit: 'Yorum yap',
     loginPrompt: 'Yorum yapmak için <login>giriş yap</login>.',
     sort_best: 'En iyi',
@@ -402,6 +402,7 @@ export const tr: Translation = {
     reply: 'Yanıtla',
     report: 'Bildir',
     deleted: '[silindi]',
+    removed: '[kaldırıldı]',
   },
   poll: {
     votes_one: '{{count, number}} oy',

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, useRouteError } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button, buttonClasses } from '@/components/ui/Button';
+import { PageTitle } from '@/components/ui/PageTitle';
 
 export const CHUNK_RELOAD_KEY = 'nexus.chunkReloadAt';
 export const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
@@ -44,6 +45,7 @@ export function RouteErrorPage() {
 
   return (
     <div className="flex flex-col items-center gap-4 py-24 text-center">
+      <PageTitle title={t('errors.title')} />
       <h1 className="text-2xl font-bold tracking-tight">{t('errors.title')}</h1>
       <p className="text-[var(--color-text-muted)]">{t('errors.body')}</p>
       <div className="flex gap-3">

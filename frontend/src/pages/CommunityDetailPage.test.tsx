@@ -217,6 +217,12 @@ describe('CommunityDetailPage in Turkish', () => {
 });
 
 describe('CommunityDetailPage title', () => {
+  it('sets the page title while the community is loading', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await waitFor(() => expect(document.title).toBe('Nexus'));
+  });
+
   it('sets the page title to c/<slug>', async () => {
     vi.mocked(communitiesApi.getCommunity).mockResolvedValue(baseCommunity);
     vi.mocked(communitiesApi.listRules).mockResolvedValue([]);

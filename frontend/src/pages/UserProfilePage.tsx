@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { PageTitle } from '@/components/ui/PageTitle';
+import { deletedBodyKey } from '@/lib/deletedBody';
 import { PostCard } from '@/components/posts/PostCard';
 import { blockUser, unblockUser } from '@/api/follow';
 import { FollowButton } from '@/components/follow/FollowButton';
@@ -85,10 +86,18 @@ export function UserProfilePage() {
     };
   }, [username]);
 
-  if (loading) return <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>;
+  if (loading) {
+    return (
+      <>
+        <PageTitle />
+        <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
+      </>
+    );
+  }
   if (notFound || !profile) {
     return (
       <Card>
+        <PageTitle title={t('profile.notFoundTitle')} />
         <h2 className="text-lg font-semibold">{t('profile.notFoundTitle')}</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
           {t('profile.notFoundBody', { username })}
@@ -283,7 +292,7 @@ function ProfileContent({ username }: { username: string }) {
             className={cn(
               'rounded-full px-4 py-1.5 text-[13px] font-medium transition',
               tab === name
-                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
+                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
             )}
           >
@@ -330,7 +339,7 @@ function ProfileCommentRow({ comment }: { comment: Comment }) {
         </span>
       </div>
       <p className="line-clamp-3 text-sm text-[var(--color-text-soft)] whitespace-pre-wrap">
-        {comment.body}
+        {comment.is_deleted ? t(deletedBodyKey(comment.body)) : comment.body}
       </p>
     </Link>
   );

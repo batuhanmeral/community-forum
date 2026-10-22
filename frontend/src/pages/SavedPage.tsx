@@ -9,6 +9,7 @@ import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { deletedBodyKey } from '@/lib/deletedBody';
 import { ArrowRight } from 'lucide-react';
 
 type Filter = 'all' | 'post' | 'comment';
@@ -82,7 +83,7 @@ export function SavedPage() {
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                 filter === f
-                  ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
+                  ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
               )}
             >
@@ -155,7 +156,7 @@ function SavedCommentRow({ comment }: { comment: Comment }) {
         <span>{timeAgo(comment.created_at)}</span>
       </div>
       <p className="line-clamp-3 text-sm text-[var(--color-text-soft)] whitespace-pre-wrap">
-        {comment.body}
+        {comment.is_deleted ? t(deletedBodyKey(comment.body)) : comment.body}
       </p>
     </Link>
   );

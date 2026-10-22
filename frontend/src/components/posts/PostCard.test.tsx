@@ -175,4 +175,25 @@ describe('PostCard in Turkish', () => {
     });
     expect(document.body.textContent).not.toMatch(/ago/);
   });
+
+  // The API masks a deleted body with an English marker; the reader's language must win.
+  it.each([
+    ['text', '[removed]', '[kaldırıldı]'],
+    ['link', '[deleted]', '[silindi]'],
+  ] as const)('shows a masked %s post body %s in Turkish', async (kind, marker, expected) => {
+    await i18n.changeLanguage('tr');
+    renderCard(
+      makePost({
+        kind,
+        url: kind === 'link' ? 'https://example.com/x' : '',
+        is_deleted: true,
+        author: null,
+        author_username: null,
+        body: marker,
+        body_html: `<p>${marker}</p>`,
+      }),
+    );
+    expect(screen.getByText(expected)).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
+  });
 });

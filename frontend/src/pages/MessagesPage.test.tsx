@@ -527,6 +527,23 @@ describe('MessagesPage conversation list', () => {
   });
 });
 
+describe('MessagesPage read receipts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.listConversations.mockResolvedValue(convs([conversation]));
+    api.markConversationRead.mockResolvedValue();
+  });
+
+  // A title tooltip is not announced reliably, and the icon itself is hidden from screen readers.
+  it('names the receipt state for screen readers', async () => {
+    api.listMessages.mockResolvedValue(page([{ ...msg(2, 1), read_at: '2026-10-01T00:05:00Z' }, msg(1, 1)], null));
+    renderAt('/messages/1');
+    const read = await screen.findByText('m2', { selector: 'div' });
+    expect(read).toHaveTextContent(/^m2.*Read$/);
+    expect(screen.getByText('m1', { selector: 'div' })).toHaveTextContent(/^m1.*Sent$/);
+  });
+});
+
 describe('MessagesPage in Turkish', () => {
   const ENGLISH_PROBE =
     /\b(Inbox|New|Start a new|Select a conversation|No conversations|No messages|Say hi|Loading|Send|You|Read|Sent|Cancel|Username|Could not start)\b/;

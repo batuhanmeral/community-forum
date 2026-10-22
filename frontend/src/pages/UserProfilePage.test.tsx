@@ -152,6 +152,50 @@ describe('UserProfilePage', () => {
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 
+  it('shows a deleted comment body in Turkish in the comment list', async () => {
+    await i18n.changeLanguage('tr');
+    api.getUserProfile.mockResolvedValue(bob);
+    api.getUserComments.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: 7,
+          post: 3,
+          author: null,
+          author_username: null,
+          parent: null,
+          body: '[deleted]',
+          body_html: '<p>[deleted]</p>',
+          is_deleted: true,
+          score: 0,
+          user_vote: null,
+          is_saved: false,
+          created_at: '2026-10-01T00:00:00Z',
+          updated_at: '2026-10-01T00:00:00Z',
+          edited_at: null,
+        },
+      ],
+    });
+    renderProfile(null);
+    await userEvent.click(await screen.findByRole('button', { name: 'Yorumlar' }));
+    expect(await screen.findByText('[silindi]')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
+  });
+
+  it('sets the page title while the profile is loading', async () => {
+    api.getUserProfile.mockReturnValue(new Promise(() => undefined));
+    renderProfile(null);
+    await waitFor(() => expect(document.title).toBe('Nexus'));
+  });
+
+  it('sets the page title for a missing user', async () => {
+    api.getUserProfile.mockRejectedValue(new Error('404'));
+    renderProfile(null, 'ghost');
+    await waitFor(() => expect(document.title).toBe('User not found · Nexus'));
+  });
+
   it('sets the page title to u/<username>', async () => {
     api.getUserProfile.mockResolvedValue(bob);
     renderProfile(null);

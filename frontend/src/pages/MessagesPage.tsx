@@ -494,6 +494,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                       {own && (
                         <span title={m.read_at ? t('messages.read') : t('messages.sent')}>
                           {m.read_at ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                          <span className="sr-only">{m.read_at ? t('messages.read') : t('messages.sent')}</span>
                         </span>
                       )}
                     </div>

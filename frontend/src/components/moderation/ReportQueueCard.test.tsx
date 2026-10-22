@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ReportQueueCard } from './ReportQueueCard';
 import * as moderationApi from '@/api/moderation';
 import type { Report } from '@/api/moderation';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/moderation', () => ({
   listModReports: vi.fn(),
@@ -114,5 +116,20 @@ describe('ReportQueueCard', () => {
     expect(await screen.findByText('Action failed. Try again.')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Resolved' }));
     expect(screen.queryByText('Action failed. Try again.')).not.toBeInTheDocument();
+  });
+});
+
+describe('ReportQueueCard in Turkish', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(resetLanguage);
+
+  it('shows a removed comment preview in Turkish', async () => {
+    api.listModReports.mockResolvedValue(
+      page([report(1, { target_preview: { text: '[removed]', link: '/posts/1#comment-1', is_deleted: true } })]),
+    );
+    await i18n.changeLanguage('tr');
+    renderCard();
+    expect(await screen.findByRole('link', { name: '[kaldırıldı]' })).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
   });
 });

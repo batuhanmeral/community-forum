@@ -8,6 +8,7 @@ import { SaveButton } from '@/components/saves/SaveButton';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { deletedBodyKey } from '@/lib/deletedBody';
 import { MessageSquare, Pin, Share } from 'lucide-react';
 
 interface PostCardProps {
@@ -19,6 +20,8 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
   // Subscribes to language changes so timeAgo() re-renders in the new language.
   const { t } = useTranslation();
   const isPinned = post.is_pinned;
+  // Saved deleted posts still reach the card; the API's English body marker is swapped for the reader's language.
+  const body = post.is_deleted ? t(deletedBodyKey(post.body)) : post.body;
   const image = post.image && (
     <img src={post.image} alt={post.title} className="max-h-[420px] w-full object-contain" loading="lazy" />
   );
@@ -94,9 +97,9 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         </h2>
 
         {/* Body / content */}
-        {post.kind === 'text' && post.body && (
+        {post.kind === 'text' && body && (
           <p className="mb-2 line-clamp-3 max-w-[70ch] text-[14px] leading-relaxed text-[var(--color-text-soft)] whitespace-pre-wrap">
-            {post.body}
+            {body}
           </p>
         )}
 
@@ -123,7 +126,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
                 {post.title}
               </div>
               <div className="line-clamp-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
-                {post.body || post.url}
+                {body || post.url}
               </div>
             </div>
           </a>

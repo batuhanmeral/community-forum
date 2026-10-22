@@ -118,7 +118,7 @@ export function SearchPage() {
             className={cn(
               'rounded-full px-4 py-1.5 text-[13px] font-medium transition',
               type === tab.type
-                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
+                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
             )}
           >

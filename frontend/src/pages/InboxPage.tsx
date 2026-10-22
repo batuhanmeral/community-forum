@@ -106,7 +106,7 @@ export function InboxPage() {
                 className={cn(
                   'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
                   filter === f
-                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] '
+                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                 )}
               >

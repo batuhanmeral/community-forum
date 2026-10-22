@@ -250,6 +250,21 @@ describe('PostDetailPage in Turkish', () => {
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 
+  it('shows a removed post body in Turkish', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({
+      ...basePost,
+      is_deleted: true,
+      author: null,
+      author_username: null,
+      body: '[removed]',
+      body_html: '<p>[removed]</p>',
+    } as unknown as Post);
+    await i18n.changeLanguage('tr');
+    renderPage();
+    expect(await screen.findByText('[kaldırıldı]')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
+  });
+
   it('shows the loading text in Turkish', async () => {
     vi.mocked(postsApi.getPost).mockReturnValue(new Promise(() => undefined));
     await i18n.changeLanguage('tr');
@@ -264,6 +279,12 @@ describe('PostDetailPage title', () => {
     vi.clearAllMocks();
     vi.mocked(commentsApi.listComments).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
     vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('skip'));
+  });
+
+  it('sets the page title while the post is loading', async () => {
+    vi.mocked(postsApi.getPost).mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await waitFor(() => expect(document.title).toBe('Nexus'));
   });
 
   it('sets the page title to the post title', async () => {

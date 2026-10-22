@@ -141,7 +141,7 @@ export const en = {
     placeholder: 'Write a comment...',
     addPlaceholder: 'Add a comment...',
     replyPlaceholder: 'Reply to {{name}}...',
-    replyTargetFallback: 'comment',
+    replyPlaceholderNoAuthor: 'Reply to this comment…',
     submit: 'Comment',
     loginPrompt: '<login>Log in</login> to leave a comment.',
     sort_best: 'Best',
@@ -398,6 +398,7 @@ export const en = {
     reply: 'Reply',
     report: 'Report',
     deleted: '[deleted]',
+    removed: '[removed]',
   },
   poll: {
     votes_one: '{{count, number}} vote',

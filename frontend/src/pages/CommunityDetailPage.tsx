@@ -158,7 +158,12 @@ export function CommunityDetailPage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</div>;
+    return (
+      <>
+        <PageTitle />
+        <div className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</div>
+      </>
+    );
   }
   if (notFound || !community) {
     return (

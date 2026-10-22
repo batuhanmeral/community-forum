@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { usePagedList } from '@/lib/usePagedList';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { deletedBodyKey } from '@/lib/deletedBody';
 
 const STATUSES: ReportStatus[] = ['open', 'resolved', 'dismissed'];
 
@@ -121,7 +122,8 @@ function ReportRow({ report: r, busy, onAct }: ReportRowProps) {
               to={preview.link}
               className="truncate text-[var(--color-accent)] hover:underline"
             >
-              {preview.text}
+              {/* A deleted comment's preview is the API's English body marker; post previews are titles. */}
+              {preview.is_deleted && r.target_type === 'comment' ? t(deletedBodyKey(preview.text)) : preview.text}
             </Link>
             {preview.is_deleted && (
               <span className="shrink-0 text-[var(--color-text-muted)]">

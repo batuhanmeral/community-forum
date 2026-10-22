@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -27,12 +27,17 @@ vi.mock('@/api/trending', () => ({
 }));
 
 let thrown: unknown;
-vi.mock('./pages', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./pages')>()),
-  HomePage: () => {
-    throw thrown;
-  },
-}));
+vi.mock('./pages', async (importOriginal) => {
+  const { lazy } = await import('react');
+  return {
+    ...(await importOriginal<typeof import('./pages')>()),
+    HomePage: () => {
+      throw thrown;
+    },
+    // A chunk that never arrives keeps the route on its Suspense fallback.
+    SearchPage: lazy(() => new Promise<never>(() => undefined)),
+  };
+});
 
 const reload = vi.fn();
 let consoleError: ReturnType<typeof vi.spyOn>;
@@ -103,4 +108,16 @@ describe('RouteErrorPage', () => {
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
   });
+
+  // React 19 drops index.html's <title> once a page title unmounts, so every screen needs its own.
+  it('sets the page title', async () => {
+    renderThrowing(new Error('boom'));
+    await waitFor(() => expect(document.title).toBe('Something went wrong · Nexus'));
+  });
+
+  it('sets the page title while a page chunk is loading', async () => {
+    renderWith(createMemoryRouter(routes, { initialEntries: ['/search'] }));
+    await waitFor(() => expect(document.title).toBe('Nexus'));
+  });
 });
+

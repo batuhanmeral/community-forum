@@ -237,4 +237,37 @@ describe('CommentSection in Turkish', () => {
     await userEvent.click(screen.getAllByRole('button', { name: i18n.t('comments.collapse') })[0]);
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
+
+  // The backend masks deleted bodies with English markers; the reader's language must win.
+  it('shows deleted and removed comment bodies in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    const gone = { author: null, author_username: null, is_deleted: true };
+    listComments.mockResolvedValue({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [
+        { ...comment(1), ...gone, body: '[deleted]', body_html: '<p>[deleted]</p>' },
+        { ...comment(2), ...gone, body: '[removed]', body_html: '<p>[removed]</p>' },
+      ],
+    });
+    renderAs(null);
+    expect(await screen.findByText('[kaldırıldı]')).toBeInTheDocument();
+    expect(screen.getAllByText('[silindi]')).toHaveLength(3);
+    expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
+  });
+
+  it('asks for a reply in a full sentence when the author is unknown', async () => {
+    await i18n.changeLanguage('tr');
+    listComments.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ ...comment(1), author_username: null }],
+    });
+    renderAs(5);
+    await userEvent.click(await screen.findByRole('button', { name: 'Yanıtla' }));
+    expect(screen.getByPlaceholderText('Yoruma yanıt ver…')).toBeInTheDocument();
+  });
 });
+
