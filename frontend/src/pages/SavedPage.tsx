@@ -102,7 +102,7 @@ export function SavedPage() {
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
             {t('savedPage.empty')}{' '}
-            <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+            <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
               {t('savedPage.browseFeed')}
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>

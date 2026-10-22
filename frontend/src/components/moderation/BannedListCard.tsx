@@ -73,7 +73,7 @@ export function BannedListCard({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={loadMore}
-          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 text-sm text-[var(--color-link)] hover:underline"
         >
           {t('mod.loadMore')}
         </button>

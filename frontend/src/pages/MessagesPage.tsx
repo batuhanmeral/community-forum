@@ -249,7 +249,7 @@ function ConversationRow({ conversation, active, currentUserId }: ConversationRo
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-[12.5px] text-[var(--color-text-muted)]">{preview}</p>
           {conversation.unread_count > 0 && (
-            <span className="font-mono shrink-0 rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-accent)]">
+            <span className="font-mono shrink-0 rounded-full bg-[var(--color-link)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-link)]">
               {conversation.unread_count}
             </span>
           )}
@@ -433,7 +433,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         <div className="min-w-0 flex-1">
           <Link
             to={userPath(other?.username ?? '')}
-            className="text-[14px] font-semibold hover:text-[var(--color-accent)]"
+            className="text-[14px] font-semibold hover:text-[var(--color-link)]"
           >
             u/{other?.username}
           </Link>
@@ -479,7 +479,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                     className={cn(
                       'max-w-[70%] rounded-2xl px-3.5 py-2 text-[14px] leading-snug whitespace-pre-wrap',
                       own
-                        ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)] rounded-br-md'
+                        ? 'bg-[var(--color-link)] text-[var(--color-on-link)] rounded-br-md'
                         : 'bg-[var(--color-bg-elevated)] text-[var(--color-text)] rounded-bl-md',
                     )}
                   >
@@ -487,7 +487,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                     <div
                       className={cn(
                         'font-mono mt-1 flex items-center gap-1 text-[10px]',
-                        own ? 'justify-end text-[var(--color-on-accent)]/60' : 'text-[var(--color-text-dim)]',
+                        own ? 'justify-end text-[var(--color-on-link)]/60' : 'text-[var(--color-text-dim)]',
                       )}
                     >
                       {timeAgo(m.created_at)}
@@ -521,7 +521,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
             onKeyDown={handleKeyDown}
             rows={1}
             placeholder={t('messages.placeholder', { username: other?.username })}
-            className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
           />
           <Button type="submit" size="md" loading={sending} disabled={!body.trim()}>
             {t('messages.send')}

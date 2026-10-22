@@ -108,7 +108,7 @@ export function RegisterPage() {
       </form>
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
         {t('auth.haveAccount')}{' '}
-        <Link to="/login" className="font-medium text-[var(--color-accent)] hover:underline">
+        <Link to="/login" className="font-medium text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
           {t('auth.loginInstead')}
         </Link>
       </p>

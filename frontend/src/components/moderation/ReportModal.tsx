@@ -103,7 +103,7 @@ export function ReportModal({ open, onClose, target, objectId, label }: ReportMo
                 className={cn(
                   'rounded-[10px] border px-3 py-2 text-left text-sm transition',
                   reason === r.value
-                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-dim)] text-[var(--color-text)]'
+                    ? 'border-[var(--color-link)] bg-[var(--color-link-dim)] text-[var(--color-text)]'
                     : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-soft)] hover:border-[var(--color-border-strong)]',
                 )}
               >
@@ -116,7 +116,7 @@ export function ReportModal({ open, onClose, target, objectId, label }: ReportMo
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder={t('report.contextPlaceholder')}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
           />
           {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
         </div>

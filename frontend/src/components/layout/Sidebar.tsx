@@ -97,7 +97,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             <NavLink
               to="/c/create"
               onClick={onNavigate}
-              className="text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)]"
+              className="text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-link)]"
             >
               {t('sidebar.new')}
             </NavLink>
@@ -167,7 +167,7 @@ function SidebarItem({
         <>
           {isActive && (
             <span
-              className="absolute -left-1.5 top-1/2 h-[16px] w-[2.5px] -translate-y-1/2 rounded-full bg-[var(--color-accent)]"
+              className="absolute left-0 top-1/2 h-[16px] w-[2.5px] -translate-y-1/2 rounded-full bg-[var(--color-link)]"
             />
           )}
           <span className="grid h-[22px] w-[22px] place-items-center">
@@ -196,7 +196,7 @@ function CommunityItem({ community, onNavigate }: { community: Community; onNavi
       }
     >
       <span
-        className="grid h-[22px] w-[22px] place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-accent)]"
+        className="grid h-[22px] w-[22px] place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-link)]"
       >
         {community.slug[0]?.toUpperCase()}
       </span>

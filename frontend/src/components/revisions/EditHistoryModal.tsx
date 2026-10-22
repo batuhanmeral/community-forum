@@ -48,7 +48,7 @@ function RevisionList({ load }: { load: LoadRevisions }) {
         </article>
       ))}
       {nextPage !== null && (
-        <button type="button" onClick={loadMore} className="text-sm text-[var(--color-accent)] hover:underline">
+        <button type="button" onClick={loadMore} className="text-sm text-[var(--color-link)] hover:underline">
           {t('history.loadMore')}
         </button>
       )}

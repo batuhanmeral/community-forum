@@ -67,14 +67,14 @@ export function LoginPage() {
         </Button>
         <Link
           to="/forgot-password"
-          className="text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+          className="text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-link)]"
         >
           {t('auth.forgotPassword')}
         </Link>
       </form>
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
         {t('auth.newToNexus')}{' '}
-        <Link to="/register" className="font-medium text-[var(--color-accent)] hover:underline">
+        <Link to="/register" className="font-medium text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
           {t('auth.createAccount')}
         </Link>
       </p>
@@ -94,7 +94,7 @@ export function AuthShell({ title, subtitle, children }: ShellProps) {
       <PageTitle title={title} />
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--color-accent)] text-[var(--color-on-accent)] font-black">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--color-link)] text-[var(--color-on-link)] font-black">
             N
           </span>
           <span className="text-xl font-bold lowercase tracking-tight">{APP_NAME}</span>

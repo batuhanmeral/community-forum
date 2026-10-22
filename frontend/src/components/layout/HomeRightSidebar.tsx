@@ -50,7 +50,7 @@ export function HomeRightSidebar() {
               to={`/posts/${p.id}`}
               className="flex gap-2.5 border-t border-[var(--color-border)] px-4 py-2.5 text-[12.5px] transition hover:bg-[var(--color-surface)]"
             >
-              <span className={cn('font-mono w-[16px] shrink-0 pt-0.5 text-[11px]', i < 3 ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-dim)]')}>
+              <span className={cn('font-mono w-[16px] shrink-0 pt-0.5 text-[11px]', i < 3 ? 'text-[var(--color-link)]' : 'text-[var(--color-text-dim)]')}>
                 {String(i + 1).padStart(2, '0')}
               </span>
               <div className="min-w-0 flex-1">
@@ -89,7 +89,7 @@ export function HomeRightSidebar() {
               to={userPath(u.username)}
               className="flex items-center gap-2.5 border-t border-[var(--color-border)] px-4 py-2 text-[12.5px] transition hover:bg-[var(--color-surface)]"
             >
-              <span className={cn('font-mono w-3 text-[10.5px]', i === 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-dim)]')}>
+              <span className={cn('font-mono w-3 text-[10.5px]', i === 0 ? 'text-[var(--color-link)]' : 'text-[var(--color-text-dim)]')}>
                 {i + 1}
               </span>
               <div className="min-w-0 flex-1">
@@ -126,7 +126,7 @@ export function HomeRightSidebar() {
       <style>{`
         .live-dot {
           width: 5px; height: 5px; border-radius: 50%;
-          background: var(--color-accent);
+          background: var(--color-link);
           animation: nexus-pulse 2s ease-in-out infinite;
           display: inline-block;
         }
@@ -151,7 +151,7 @@ function CardHead({ title, more }: { title: React.ReactNode; more?: string }) {
         {title}
       </h3>
       {more && (
-        <Link to={more} className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)]">
+        <Link to={more} className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-link)]">
           {t('rightbar.seeAll')}
           <ArrowRight className="h-3 w-3" />
         </Link>
@@ -193,7 +193,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
     >
       <span className="font-mono w-3 text-[10.5px] text-[var(--color-text-dim)]">{rank}</span>
       <span
-        className="grid h-6 w-6 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-accent)]"
+        className="grid h-6 w-6 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-link)]"
       >
         {community.slug[0]?.toUpperCase()}
       </span>

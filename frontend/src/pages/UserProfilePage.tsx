@@ -437,7 +437,7 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
             onChange={(e) => setBio(e.target.value)}
             maxLength={500}
             placeholder={t('profile.bioPlaceholder')}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
           />
           <span className="font-mono self-end text-[11px] text-[var(--color-text-dim)]">
             {bio.length}/500
@@ -466,7 +466,7 @@ function KarmaStat({ label, value, accent }: KarmaStatProps) {
       <div
         className={
           accent
-            ? 'font-mono text-[20px] font-medium tracking-tight text-[var(--color-accent)]'
+            ? 'font-mono text-[20px] font-medium tracking-tight text-[var(--color-link)]'
             : 'font-mono text-[18px] font-medium tracking-tight text-[var(--color-text)]'
         }
       >

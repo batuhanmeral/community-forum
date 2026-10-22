@@ -69,7 +69,7 @@ export function SaveButton({
         className={cn(
           'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium transition disabled:opacity-60',
           saved
-            ? 'bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+            ? 'bg-[var(--color-link-dim)] text-[var(--color-link)]'
             : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
         )}
       >
@@ -89,7 +89,7 @@ export function SaveButton({
         'inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-60',
         heightCls,
         saved
-          ? 'border-[var(--color-accent)] bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+          ? 'border-[var(--color-link)] bg-[var(--color-link-dim)] text-[var(--color-link)]'
           : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
       )}
     >

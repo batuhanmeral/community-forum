@@ -94,7 +94,7 @@ export function VoteCluster({
           className={cn(
             'font-mono font-medium tracking-tight',
             fontSize,
-            localVote === 1 && 'text-[var(--color-accent)]',
+            localVote === 1 && 'text-[var(--color-link)]',
             localVote === -1 && 'text-[var(--color-danger)]',
             localVote === null && 'text-[var(--color-text)]',
           )}
@@ -125,7 +125,7 @@ export function VoteCluster({
         className={cn(
           'min-w-[36px] text-center font-medium tracking-tight',
           fontSize,
-          localVote === 1 && 'text-[var(--color-accent)]',
+          localVote === 1 && 'text-[var(--color-link)]',
           localVote === -1 && 'text-[var(--color-danger)]',
           localVote === null && 'text-[var(--color-text)]',
         )}
@@ -159,11 +159,12 @@ function ArrowBtn({ direction, active, size, btnSize, onClick }: ArrowBtnProps) 
       onClick={onClick}
       aria-label={direction === 'up' ? t('votes.upvote') : t('votes.downvote')}
       className={cn(
-        'grid place-items-center rounded-full text-[var(--color-text-muted)] transition',
+        'grid place-items-center rounded-full transition',
         btnSize,
-        'hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
-        active && direction === 'up' && 'bg-[var(--color-accent-dim)] text-[var(--color-accent)] hover:bg-[var(--color-accent-dim)] hover:text-[var(--color-accent)]',
-        active && direction === 'down' && 'bg-[var(--color-danger)]/12 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/12 hover:text-[var(--color-danger)]',
+        // cn() does not merge, so the idle colours must be absent when active or they win by CSS order.
+        !active && 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
+        active && direction === 'up' && 'bg-[var(--color-link-dim)] text-[var(--color-link)]',
+        active && direction === 'down' && 'bg-[var(--color-danger)]/12 text-[var(--color-danger)]',
       )}
     >
       {direction === 'up' ? <ArrowBigUp size={size} /> : <ArrowBigDown size={size} />}

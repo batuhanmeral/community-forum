@@ -33,7 +33,7 @@ const sizeClasses: Record<Size, string> = {
 export function buttonClasses({ variant = 'primary', size = 'md' }: { variant?: Variant; size?: Size } = {}): string {
   return cn(
     'inline-flex items-center justify-center gap-2 transition-colors',
-    'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]',
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-link)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]',
     'disabled:opacity-50 disabled:cursor-not-allowed',
     variantClasses[variant],
     sizeClasses[size],

@@ -252,7 +252,7 @@ function CommentSaveLink({ commentId, initialSaved }: { commentId: number; initi
       type="button"
       onClick={handleClick}
       disabled={busy}
-      className={saved ? 'text-[var(--color-accent)] hover:opacity-80' : 'hover:text-[var(--color-text)]'}
+      className={saved ? 'text-[var(--color-link)] hover:opacity-80' : 'hover:text-[var(--color-text)]'}
     >
       {saved ? t('common.saved') : t('common.save')}
     </button>

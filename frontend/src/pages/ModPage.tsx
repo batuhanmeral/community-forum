@@ -68,7 +68,7 @@ export function ModPage() {
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
           {t('mod.accessDenied', { slug })}
         </p>
-        <Link to={`/c/${slug}`} className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-accent)] hover:underline">
+        <Link to={`/c/${slug}`} className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-link)] hover:underline">
           <ArrowLeft className="h-3.5 w-3.5" />
           {t('mod.backToCommunity')}
         </Link>
@@ -84,7 +84,7 @@ export function ModPage() {
       <div>
         <div className="font-mono text-[12px] text-[var(--color-text-dim)]">{t('mod.tools')}</div>
         <h1 className="text-[22px] font-semibold tracking-tight">
-          <Link to={`/c/${community.slug}`} className="hover:text-[var(--color-accent)]">
+          <Link to={`/c/${community.slug}`} className="hover:text-[var(--color-link)]">
             c/{community.slug}
           </Link>
         </h1>
@@ -161,7 +161,7 @@ function ModLogCard({ slug }: { slug: string }) {
               </span>
               <span className="text-[var(--color-text-soft)]">{t(`mod.log_${e.action}`)}</span>
               {e.target_type === 'post' && e.object_id && (
-                <Link to={`/posts/${e.object_id}`} className="text-[var(--color-accent)] hover:underline">
+                <Link to={`/posts/${e.object_id}`} className="text-[var(--color-link)] hover:underline">
                   #{e.object_id}
                 </Link>
               )}
@@ -179,7 +179,7 @@ function ModLogCard({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={loadMore}
-          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 text-sm text-[var(--color-link)] hover:underline"
         >
           {t('mod.loadMore')}
         </button>
@@ -231,7 +231,7 @@ function AutoModCard({
           rows={4}
           onChange={(e) => setKeywords(e.target.value)}
           placeholder={t('mod.keywordsPlaceholder')}
-          className="font-mono w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none"
+          className="font-mono w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-link)] focus:outline-none"
         />
         <div className="flex items-center gap-3">
           <Button type="submit" loading={busy} disabled={!dirty}>
@@ -355,7 +355,7 @@ function CommunitySettingsCard({
             maxLength={500}
             rows={3}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none"
+            className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-link)] focus:outline-none"
             placeholder={t('mod.descriptionPlaceholder')}
           />
         </div>
@@ -364,7 +364,7 @@ function CommunitySettingsCard({
             type="checkbox"
             checked={isNsfw}
             onChange={(e) => setIsNsfw(e.target.checked)}
-            className="h-4 w-4 accent-[var(--color-accent)]"
+            className="h-4 w-4 accent-[var(--color-link)]"
           />
           {t('mod.markNsfw')}
         </label>
@@ -373,7 +373,7 @@ function CommunitySettingsCard({
             type="checkbox"
             checked={requiresApproval}
             onChange={(e) => setRequiresApproval(e.target.checked)}
-            className="h-4 w-4 accent-[var(--color-accent)]"
+            className="h-4 w-4 accent-[var(--color-link)]"
           />
           {t('mod.requiresApproval')}
         </label>
@@ -398,7 +398,7 @@ function FlairCard({ slug }: { slug: string }) {
   const [name, setName] = useState('');
   // Flair colours are user data, not theme colours; the picker needs a hex default.
   // eslint-disable-next-line no-restricted-syntax
-  const [color, setColor] = useState('#818cf8');
+  const [color, setColor] = useState('#60a5fa');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -592,7 +592,7 @@ function RoleCard({ slug }: { slug: string }) {
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as CommunityRole)}
-          className="h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+          className="h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
         >
           <option value="member">{t('mod.role_member')}</option>
           <option value="moderator">{t('mod.role_moderator')}</option>

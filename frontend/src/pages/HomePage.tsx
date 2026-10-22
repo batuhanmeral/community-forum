@@ -232,7 +232,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             className={cn(
               'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-[7px] text-[12.5px] font-normal transition',
               kind === f
-                ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+                ? 'border-[var(--color-link)]/30 bg-[var(--color-link-dim)] text-[var(--color-link)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
             )}
           >
@@ -282,7 +282,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             {/* The ::after overlay makes the whole box clickable without nesting links */}
             <Link
               to="/submit"
-              className="outline-none after:absolute after:inset-0 after:rounded-[14px] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-accent)]"
+              className="outline-none after:absolute after:inset-0 after:rounded-[14px] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-link)]"
             >
               {user ? t('feed.composePromptNamed', { name: user.username }) : t('feed.composePrompt')}
             </Link>
@@ -314,7 +314,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             feedKind === 'following' ? (
               <>
                 {t('feed.followingEmpty')}{' '}
-                <Link to="/search?type=user" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+                <Link to="/search?type=user" className="inline-flex items-center gap-1 text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
                   {t('feed.discoverUsers')}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
@@ -322,7 +322,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             ) : isAuthed ? (
               <>
                 {t('feed.feedEmpty')}{' '}
-                <Link to="/c" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+                <Link to="/c" className="inline-flex items-center gap-1 text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
                   {t('composer.browseCommunities')}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
@@ -359,7 +359,7 @@ function ComposeTool({ title, kind, children }: { title: string; kind: string; c
     <Link
       to={`/submit?kind=${kind}`}
       title={title}
-      className="grid h-9 w-9 place-items-center rounded-[10px] text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-accent)]"
+      className="grid h-9 w-9 place-items-center rounded-[10px] text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-link)]"
     >
       {children}
     </Link>

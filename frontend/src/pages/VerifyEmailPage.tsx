@@ -44,7 +44,7 @@ export function VerifyEmailPage() {
     <AuthShell title={t('auth.verifyTitle')}>
       {message}
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
-        <Link to="/" className="inline-flex items-center gap-1 font-medium text-[var(--color-accent)] hover:underline">
+        <Link to="/" className="inline-flex items-center gap-1 font-medium text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
           {APP_NAME}
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>

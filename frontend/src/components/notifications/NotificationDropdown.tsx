@@ -84,7 +84,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
         <Bell className="h-[18px] w-[18px]" />
         {unreadCount > 0 && (
           <span
-            className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[var(--color-on-accent)]"
+            className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-link)] px-1 text-[10px] font-bold leading-none text-[var(--color-on-link)]"
             style={{ boxShadow: '0 0 0 2px var(--color-bg)' }}
           >
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -101,7 +101,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
               <button
                 type="button"
                 onClick={handleMarkAll}
-                className="text-[11.5px] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+                className="text-[11.5px] text-[var(--color-text-muted)] hover:text-[var(--color-link)]"
               >
                 {t('notifications.markAllRead')}
               </button>
@@ -126,14 +126,14 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
                     onClick={() => handleClickItem(n)}
                     className={cn(
                       'flex w-full items-start gap-3 border-b border-[var(--color-border)] px-4 py-3 text-left transition last:border-b-0',
-                      unread ? 'bg-[var(--color-accent-dim)]/40' : 'hover:bg-[var(--color-surface)]',
+                      unread ? 'bg-[var(--color-link-dim)]/40' : 'hover:bg-[var(--color-surface)]',
                     )}
                   >
                     <span
                       className={cn(
                         'grid h-7 w-7 shrink-0 place-items-center rounded-full text-[14px]',
                         unread
-                          ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                          ? 'bg-[var(--color-link)] text-[var(--color-on-link)]'
                           : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',
                       )}
                     >
@@ -147,7 +147,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
                         {timeAgo(n.created_at)}
                       </p>
                     </div>
-                    {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />}
+                    {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-link)]" />}
                   </button>
                 );
               })
@@ -158,7 +158,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
             <Link
               to="/inbox"
               onClick={() => setOpen(false)}
-              className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-accent)] hover:underline"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-link)] hover:underline"
             >
               {t('notifications.seeAll')}
               <ArrowRight className="h-3 w-3" />

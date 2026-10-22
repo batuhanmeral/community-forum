@@ -17,7 +17,7 @@ export function NsfwReveal({ children }: { children: ReactNode }) {
     <div
       ref={wrapperRef}
       tabIndex={-1}
-      className="relative w-full outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]"
+      className="relative w-full outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-link)]"
     >
       <div aria-hidden={revealed ? undefined : true} className={cn(!revealed && 'pointer-events-none blur-2xl')}>
         {children}
@@ -27,7 +27,7 @@ export function NsfwReveal({ children }: { children: ReactNode }) {
         <button
           type="button"
           onClick={reveal}
-          className="absolute inset-0 z-10 grid cursor-pointer place-items-center text-sm font-semibold text-[var(--color-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+          className="absolute inset-0 z-10 grid cursor-pointer place-items-center text-sm font-semibold text-[var(--color-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-link)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
         >
           <span className="rounded-full bg-[var(--color-bg-elevated)] px-4 py-2">{t('nsfw.reveal')}</span>
         </button>

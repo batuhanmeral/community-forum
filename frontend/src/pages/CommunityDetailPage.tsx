@@ -173,7 +173,7 @@ export function CommunityDetailPage() {
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
           {t('communityPage.notFoundBody', { slug })}
         </p>
-        <Link to="/c" className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-accent)] hover:underline">
+        <Link to="/c" className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-link)] hover:underline">
           <ArrowLeft className="h-3.5 w-3.5" />
           {t('composer.browseCommunities')}
         </Link>
@@ -349,7 +349,7 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
               }}
               className={cn(
                 'block w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--color-surface-hover)]',
-                level === value && 'text-[var(--color-accent)]',
+                level === value && 'text-[var(--color-link)]',
               )}
             >
               {t(`communityPage.notify_${level}`)}

@@ -100,7 +100,7 @@ export function CommunityCreatePage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}
-              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
             />
             {errors.description && (
               <p className="text-xs text-[var(--color-danger)]">{errors.description}</p>
@@ -125,7 +125,7 @@ export function CommunityCreatePage() {
               type="checkbox"
               checked={isNsfw}
               onChange={(e) => setIsNsfw(e.target.checked)}
-              className="h-4 w-4 accent-[var(--color-accent)]"
+              className="h-4 w-4 accent-[var(--color-link)]"
             />
             <span className="text-sm">
               <span className="font-medium">{t('post.nsfw')}</span>

@@ -30,7 +30,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
     <article
       className={cn(
         'group relative mb-2 rounded-2xl border border-transparent px-3 py-2.5 transition-colors duration-150 hover:border-[var(--color-border)] hover:bg-[var(--color-bg-1)]',
-        isPinned && 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/[0.03]',
+        isPinned && 'border-[var(--color-link-border)] bg-[var(--color-link)]/[0.03]',
       )}
     >
       <div>
@@ -39,10 +39,10 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {!hideCommunity && (
             <Link
               to={`/c/${post.community}`}
-              className="relative z-10 inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
+              className="relative z-10 inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-link)]"
             >
               <span
-                className="grid h-5 w-5 place-items-center rounded-full border border-[var(--color-accent-border)] bg-[var(--color-bg-3)] text-[10px] font-bold text-[var(--color-accent)]"
+                className="grid h-5 w-5 place-items-center rounded-full border border-[var(--color-link-border)] bg-[var(--color-bg-3)] text-[10px] font-bold text-[var(--color-link)]"
               >
                 {post.community[0]?.toUpperCase()}
               </span>
@@ -52,7 +52,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {post.author_username ? (
             <Link
               to={userPath(post.author_username)}
-              className="relative z-10 text-[var(--color-text-soft)] hover:text-[var(--color-accent)]"
+              className="relative z-10 text-[var(--color-text-soft)] hover:text-[var(--color-link)]"
             >
               u/{post.author_username}
             </Link>
@@ -78,7 +78,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {post.kind === 'link' && <Flair kind="news">{t('post.kind_link')}</Flair>}
           {post.is_nsfw && <Flair kind="news">{t('post.nsfw')}</Flair>}
           {isPinned && (
-            <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-accent)]">
+            <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-link)]">
               <Pin className="h-3 w-3" />
               {t('post.pinned')}
             </span>
@@ -90,7 +90,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {/* The ::after overlay makes the whole card clickable without nesting links */}
           <Link
             to={`/posts/${post.id}`}
-            className="outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-accent)]"
+            className="outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-link)]"
           >
             {post.title}
           </Link>
@@ -116,7 +116,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
             <div className="min-w-0 flex-1">
               <div className="font-mono mb-1.5 flex items-center gap-2 text-[11px] text-[var(--color-text-dim)]">
                 <span
-                  className="block h-[12px] w-[12px] rounded-sm bg-[var(--color-accent)]"
+                  className="block h-[12px] w-[12px] rounded-sm bg-[var(--color-link)]"
                 />
                 <span>{tryHostname(post.url)}</span>
                 <span>·</span>
@@ -153,13 +153,13 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
                     className={cn(
                       'absolute inset-y-0 left-0 z-0 border-r',
                       leading
-                        ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)]'
-                        : 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/8',
+                        ? 'border-[var(--color-link)]/40 bg-[var(--color-link-dim)]'
+                        : 'border-[var(--color-link-border)] bg-[var(--color-link)]/8',
                     )}
                     style={{ width: `${opt.percent}%` }}
                   />
                   <span className="relative z-10">{opt.text}</span>
-                  <span className={cn('font-mono relative z-10 text-[12px]', leading ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]')}>
+                  <span className={cn('font-mono relative z-10 text-[12px]', leading ? 'text-[var(--color-link)]' : 'text-[var(--color-text-muted)]')}>
                     {opt.percent.toFixed(0)}%
                   </span>
                 </div>
@@ -220,7 +220,7 @@ function ActionBtn({ href, icon, children }: { href?: string; icon: React.ReactN
 
 function Flair({ kind, children }: { kind: 'discussion' | 'showcase' | 'question' | 'news'; children: React.ReactNode }) {
   const palette: Record<typeof kind, string> = {
-    discussion: 'bg-[var(--color-accent)]/8 text-[var(--color-accent)] border-[var(--color-accent-border)]',
+    discussion: 'bg-[var(--color-link)]/8 text-[var(--color-link)] border-[var(--color-link-border)]',
     showcase: 'bg-[var(--color-success-dim)] text-[var(--color-success)] border-[var(--color-success)]/20',
     question: 'bg-[var(--color-warn-dim)] text-[var(--color-warn)] border-[var(--color-warn)]/20',
     news: 'bg-[var(--color-danger-dim)] text-[var(--color-danger)] border-[var(--color-danger)]/20',

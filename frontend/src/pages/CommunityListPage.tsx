@@ -103,7 +103,7 @@ export function CommunityListPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="truncate text-sm font-semibold">c/{c.slug}</h3>
                       {c.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
-                      {c.is_member && <Badge tone="accent">{t('rightbar.joined')}</Badge>}
+                      {c.is_member && <Badge tone="link">{t('rightbar.joined')}</Badge>}
                     </div>
                     <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
                       {t('rightbar.members', { count: c.member_count, formatted: c.member_count.toLocaleString() })}

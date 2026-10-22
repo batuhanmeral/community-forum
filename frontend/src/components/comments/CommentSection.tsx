@@ -134,7 +134,7 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as CommentSort)}
-          className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1 text-xs focus:border-[var(--color-accent)] focus:outline-none"
+          className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1 text-xs focus:border-[var(--color-link)] focus:outline-none"
         >
           {SORTS.map((s) => (
             <option key={s} value={s}>
@@ -152,7 +152,7 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
             <p className="text-sm text-[var(--color-text-muted)]">
               <Trans
                 i18nKey="comments.loginPrompt"
-                components={{ login: <Link to="/login" className="text-[var(--color-accent)] hover:underline" /> }}
+                components={{ login: <Link to="/login" className="text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]" /> }}
               />
             </p>
           )}

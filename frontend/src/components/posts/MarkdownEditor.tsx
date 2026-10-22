@@ -62,7 +62,7 @@ export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEdi
           rows={rows}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
         />
       ) : (
         <div className="min-h-[10rem] rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2">

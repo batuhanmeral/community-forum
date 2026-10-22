@@ -86,7 +86,7 @@ export function ReportQueueCard({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={loadMore}
-          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 text-sm text-[var(--color-link)] hover:underline"
         >
           {t('mod.loadMore')}
         </button>
@@ -120,7 +120,7 @@ function ReportRow({ report: r, busy, onAct }: ReportRowProps) {
           <p className="flex min-w-0 items-baseline gap-1 text-sm">
             <Link
               to={preview.link}
-              className="truncate text-[var(--color-accent)] hover:underline"
+              className="truncate text-[var(--color-link)] hover:underline"
             >
               {/* A deleted comment's preview is the API's English body marker; post previews are titles. */}
               {preview.is_deleted && r.target_type === 'comment' ? t(deletedBodyKey(preview.text)) : preview.text}

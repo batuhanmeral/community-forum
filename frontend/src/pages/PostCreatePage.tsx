@@ -190,7 +190,7 @@ export function PostCreatePage() {
               <select
                 value={communitySlug}
                 onChange={(e) => setCommunitySlug(e.target.value)}
-                className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
               >
                 <option value="" disabled>
                   {t('postForm.chooseCommunity')}
@@ -204,7 +204,7 @@ export function PostCreatePage() {
               {communitiesLoaded && communities.length === 0 && (
                 <p className="text-xs text-[var(--color-text-muted)]">
                   {t('composer.joinFirst')}{' '}
-                  <Link to="/c" className="text-[var(--color-accent)] hover:underline">
+                  <Link to="/c" className="text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
                     {t('composer.browseCommunities')}
                   </Link>
                 </p>
@@ -228,7 +228,7 @@ export function PostCreatePage() {
                 // Below 480 px the icon stacks over the label so all four tabs fit a 360 px screen.
                 'flex min-w-0 flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors max-[480px]:flex-col max-[480px]:gap-1 max-[480px]:px-1 max-[480px]:py-2.5',
                 kind === tab.value
-                  ? 'border-b-2 border-[var(--color-accent)] text-[var(--color-text)]'
+                  ? 'border-b-2 border-[var(--color-link)] text-[var(--color-text)]'
                   : 'border-b-2 border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
               )}
             >
@@ -240,7 +240,7 @@ export function PostCreatePage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
           {draftSavedAt && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-accent-border)] bg-[var(--color-accent-dim)] px-3 py-2 text-[13px] text-[var(--color-accent)]">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-link-border)] bg-[var(--color-link-dim)] px-3 py-2 text-[13px] text-[var(--color-link)]">
               <span>{t('postForm.draftRestored', { time: timeAgo(draftSavedAt) })}</span>
               <button
                 type="button"
@@ -316,7 +316,7 @@ export function PostCreatePage() {
                         setPollOptions(next);
                       }}
                       placeholder={t('postForm.optionPlaceholder', { number: i + 1 })}
-                      className="h-10 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                      className="h-10 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
                       maxLength={120}
                     />
                     {pollOptions.length > 2 && (
@@ -335,7 +335,7 @@ export function PostCreatePage() {
                   <button
                     type="button"
                     onClick={() => setPollOptions([...pollOptions, ''])}
-                    className="self-start text-sm text-[var(--color-accent)] hover:underline"
+                    className="self-start text-sm text-[var(--color-link)] hover:underline"
                   >
                     {t('postForm.addOption')}
                   </button>
@@ -349,7 +349,7 @@ export function PostCreatePage() {
                   type="datetime-local"
                   value={pollClosesAt}
                   onChange={(e) => setPollClosesAt(e.target.value)}
-                  className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                  className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
                 />
               </div>
               {errors.poll_input && (
@@ -371,7 +371,7 @@ export function PostCreatePage() {
                     onClick={() => setFlairId(flairId === f.id ? '' : f.id)}
                     className={cn(
                       'inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium transition',
-                      flairId === f.id ? 'ring-2 ring-[var(--color-accent)]/40' : 'opacity-75 hover:opacity-100',
+                      flairId === f.id ? 'ring-2 ring-[var(--color-link)]/40' : 'opacity-75 hover:opacity-100',
                     )}
                     style={{
                       color: f.color,
@@ -391,7 +391,7 @@ export function PostCreatePage() {
               type="checkbox"
               checked={isNsfw}
               onChange={(e) => setIsNsfw(e.target.checked)}
-              className="h-4 w-4 accent-[var(--color-accent)]"
+              className="h-4 w-4 accent-[var(--color-link)]"
             />
             <span className="text-sm">
               <span className="font-medium">{t('post.nsfw')}</span>

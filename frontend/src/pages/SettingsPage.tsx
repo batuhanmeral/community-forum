@@ -92,7 +92,7 @@ function PreferencesCard() {
         <select
           value={i18n.language}
           onChange={(e) => i18n.changeLanguage(e.target.value as Language)}
-          className="h-9 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+          className="h-9 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
         >
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
@@ -131,7 +131,7 @@ function EmailVerificationRow({ verified, email }: { verified: boolean; email: s
           className={cn(
             'ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium',
             verified
-              ? 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
+              ? 'border-[var(--color-link-border)] bg-[var(--color-link)]/8 text-[var(--color-link)]'
               : 'border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] text-[var(--color-danger)]',
           )}
         >
@@ -148,7 +148,7 @@ function EmailVerificationRow({ verified, email }: { verified: boolean; email: s
             type="button"
             onClick={resend}
             disabled={busy}
-            className="text-sm text-[var(--color-accent)] hover:underline disabled:opacity-60"
+            className="text-sm text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)] disabled:opacity-60"
           >
             {t('settings.resendVerification')}
           </button>

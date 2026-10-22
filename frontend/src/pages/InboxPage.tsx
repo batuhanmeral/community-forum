@@ -130,7 +130,7 @@ export function InboxPage() {
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
             {filter === 'unread' ? t('inbox.caughtUp') : t('notifications.empty')}{' '}
-            <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:underline">
+            <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
               {t('inbox.backToFeed')}
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -149,14 +149,14 @@ export function InboxPage() {
                 className={cn(
                   'flex w-full items-start gap-3 px-4 py-3.5 text-left transition',
                   i > 0 && 'border-t border-[var(--color-border)]',
-                  unread ? 'bg-[var(--color-accent-dim)]/30 hover:bg-[var(--color-accent-dim)]/50' : 'hover:bg-[var(--color-surface)]',
+                  unread ? 'bg-[var(--color-link-dim)]/30 hover:bg-[var(--color-link-dim)]/50' : 'hover:bg-[var(--color-surface)]',
                 )}
               >
                 <span
                   className={cn(
                     'grid h-8 w-8 shrink-0 place-items-center rounded-full text-[15px]',
                     unread
-                      ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                      ? 'bg-[var(--color-link)] text-[var(--color-on-link)]'
                       : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',
                   )}
                 >
@@ -170,7 +170,7 @@ export function InboxPage() {
                     {timeAgo(n.created_at)}
                   </p>
                 </div>
-                {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />}
+                {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-link)]" />}
               </button>
             );
           })}

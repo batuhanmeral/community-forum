@@ -176,7 +176,7 @@ export function RulesCard({ slug }: { slug: string }) {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             aria-describedby={errors.description ? 'rule-description-error' : undefined}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
           />
           {errors.description && (
             <p id="rule-description-error" className="text-xs text-[var(--color-danger)]">

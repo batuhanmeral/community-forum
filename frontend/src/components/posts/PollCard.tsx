@@ -57,9 +57,9 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
             className={cn(
               'relative flex items-center justify-between overflow-hidden rounded-[10px] border px-3.5 py-3 text-left text-[13.5px] transition',
               voted
-                ? 'border-[var(--color-accent)] bg-[var(--color-bg-elevated)]'
+                ? 'border-[var(--color-link)] bg-[var(--color-bg-elevated)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)]',
-              canVote && 'hover:border-[var(--color-accent)] cursor-pointer',
+              canVote && 'hover:border-[var(--color-link)] cursor-pointer',
               !canVote && 'cursor-default',
             )}
           >
@@ -68,17 +68,17 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
                 className={cn(
                   'absolute inset-y-0 left-0 z-0 border-r transition-all',
                   voted
-                    ? 'border-[var(--color-accent)]/50 bg-[var(--color-accent)]/20'
+                    ? 'border-[var(--color-link)]/50 bg-[var(--color-link)]/20'
                     : leading
-                      ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)]'
-                      : 'border-[var(--color-accent-border)] bg-[var(--color-accent)]/8',
+                      ? 'border-[var(--color-link)]/40 bg-[var(--color-link-dim)]'
+                      : 'border-[var(--color-link-border)] bg-[var(--color-link)]/8',
                 )}
                 style={{ width: `${opt.percent}%` }}
               />
             )}
             <span className="relative z-10 flex items-center gap-2">
               {voted && (
-                <Check strokeWidth={2.4} className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                <Check strokeWidth={2.4} className="h-3.5 w-3.5 text-[var(--color-link)]" />
               )}
               <span>{opt.text}</span>
             </span>
@@ -87,9 +87,9 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
                 className={cn(
                   'font-mono relative z-10 text-[12px]',
                   voted
-                    ? 'text-[var(--color-accent)] font-semibold'
+                    ? 'text-[var(--color-link)] font-semibold'
                     : leading
-                      ? 'text-[var(--color-accent)]'
+                      ? 'text-[var(--color-link)]'
                       : 'text-[var(--color-text-muted)]',
                 )}
               >
@@ -115,7 +115,7 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
                 e.preventDefault();
                 navigate('/login');
               }}
-              className="text-[var(--color-accent)] hover:underline"
+              className="text-[var(--color-link)] hover:underline"
             >
               {t('poll.loginToVote')}
             </button>

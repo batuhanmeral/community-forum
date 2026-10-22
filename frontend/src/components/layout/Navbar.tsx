@@ -154,8 +154,8 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
             title={leftOpen ? t('nav.hideNavigation') : t('nav.showNavigation')}
             className={cn(
               'hidden place-items-center rounded-[8px] p-1.5 transition min-[960px]:grid',
-              'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
-              !leftOpen && 'text-[var(--color-accent)]',
+              'hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
+              leftOpen ? 'text-[var(--color-text-dim)]' : 'text-[var(--color-link)]',
             )}
           >
             {panelLeftIcon}
@@ -215,7 +215,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
                     <div className="px-4 py-2.5 text-xs text-[var(--color-text-muted)]">
                       {t('nav.signedInAs')} <span className="font-semibold text-[var(--color-text)]">{user.username}</span>
                       <div className="font-mono mt-1 flex gap-3 text-[11px] text-[var(--color-text-dim)]">
-                        <span className="inline-flex items-center gap-0.5"><ArrowBigUp className="h-3.5 w-3.5" /><span className="text-[var(--color-accent)]">{user.post_karma + user.comment_karma}</span> {t('nav.karma')}</span>
+                        <span className="inline-flex items-center gap-0.5"><ArrowBigUp className="h-3.5 w-3.5" /><span className="text-[var(--color-link)]">{user.post_karma + user.comment_karma}</span> {t('nav.karma')}</span>
                       </div>
                     </div>
                     <div className="border-t border-[var(--color-border)]" />
@@ -267,8 +267,8 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
               title={rightOpen ? t('nav.hideSidebar') : t('nav.showSidebar')}
               className={cn(
                 'hidden place-items-center rounded-[8px] p-1.5 transition min-[960px]:grid',
-                'text-[var(--color-text-dim)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
-                !rightOpen && 'text-[var(--color-accent)]',
+                'hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
+                rightOpen ? 'text-[var(--color-text-dim)]' : 'text-[var(--color-link)]',
               )}
             >
               {panelRightIcon}
@@ -306,11 +306,11 @@ function SearchForm({ inputRef, value, onChange, onSubmit, className }: SearchFo
     <form
       onSubmit={onSubmit}
       className={cn(
-        'w-full items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[var(--color-accent)]/40 focus-within:bg-[var(--color-bg-3)]',
+        'w-full items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[var(--color-link)]/40 focus-within:bg-[var(--color-bg-3)]',
         className,
       )}
     >
-      <button type="submit" aria-label={t('nav.search')} className="shrink-0 text-[var(--color-text-dim)] transition hover:text-[var(--color-accent)]">
+      <button type="submit" aria-label={t('nav.search')} className="shrink-0 text-[var(--color-text-dim)] transition hover:text-[var(--color-link)]">
         {searchIcon}
       </button>
       <input
@@ -345,7 +345,7 @@ function IconButton({ title, count, to, children }: IconButtonProps) {
       {children}
       {count !== undefined && count > 0 ? (
         <span
-          className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold leading-none text-[var(--color-on-accent)]"
+          className="font-mono absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-link)] px-1 text-[10px] font-bold leading-none text-[var(--color-on-link)]"
           style={{ boxShadow: '0 0 0 2px var(--color-bg)' }}
         >
           {count > 99 ? '99+' : count}

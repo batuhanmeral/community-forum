@@ -164,7 +164,7 @@ export function PostDetailPage() {
               {post.flair_detail.name}
             </span>
           )}
-          {post.is_pinned && <Badge tone="accent">{t('post.pinned')}</Badge>}
+          {post.is_pinned && <Badge tone="link">{t('post.pinned')}</Badge>}
           {post.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
         </div>
 
@@ -186,7 +186,7 @@ export function PostDetailPage() {
                 href={post.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 inline-flex items-center gap-1 text-sm text-[var(--color-accent)] hover:underline break-all"
+                className="mt-2 inline-flex items-center gap-1 text-sm text-[var(--color-link)] hover:underline break-all"
               >
                 {post.url}
               </a>
@@ -354,7 +354,7 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
             rows={8}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
           />
         </div>
       )}
@@ -363,7 +363,7 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
           type="checkbox"
           checked={isNsfw}
           onChange={(e) => setIsNsfw(e.target.checked)}
-          className="h-4 w-4 accent-[var(--color-accent)]"
+          className="h-4 w-4 accent-[var(--color-link)]"
         />
         {t('post.nsfw')}
       </label>

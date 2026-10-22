@@ -91,7 +91,7 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
               type="button"
               onClick={loadMore}
               disabled={loading}
-              className="text-[12px] font-medium text-[var(--color-accent)] hover:underline disabled:opacity-60"
+              className="text-[12px] font-medium text-[var(--color-link)] hover:underline disabled:opacity-60"
             >
               {loading ? t('common.loading') : t('common.loadMore')}
             </button>

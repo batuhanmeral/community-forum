@@ -96,7 +96,7 @@ export function SearchPage() {
           {q ? (
             <>
               {t('search.resultsFor')}{' '}
-              <span className="text-[var(--color-accent)]">“{q}”</span>
+              <span className="text-[var(--color-link)]">“{q}”</span>
             </>
           ) : (
             t('search.title')
@@ -190,7 +190,7 @@ function CommunityResult({ community }: { community: Community }) {
             </span>
           )}
           {community.is_member && (
-            <span className="rounded-full border border-[var(--color-accent-border)] bg-[var(--color-accent)]/8 px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-accent)]">
+            <span className="rounded-full border border-[var(--color-link-border)] bg-[var(--color-link)]/8 px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-link)]">
               {t('rightbar.joined')}
             </span>
           )}
@@ -217,7 +217,7 @@ function UserResult({ user }: { user: UserProfile }) {
         <Avatar src={user.avatar} alt={user.username} size="md" />
       </Link>
       <Link to={userPath(user.username)} className="min-w-0 flex-1">
-        <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]">
+        <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)] hover:text-[var(--color-link)]">
           u/{user.username}
         </h3>
         <p className="font-mono mt-0.5 text-[11.5px] text-[var(--color-text-dim)]">

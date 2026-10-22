@@ -181,7 +181,7 @@ export function CommentForm({
           if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
           blurTimerRef.current = window.setTimeout(() => setMention(emptyMention), 150);
         }}
-        className="resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+        className="resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
       />
 
       {mention.active && mention.results.length > 0 && (
