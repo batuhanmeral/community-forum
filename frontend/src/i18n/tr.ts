@@ -206,6 +206,8 @@ export const tr: Translation = {
     pinned: 'Sabitlendi',
     externalLink: 'Dış bağlantı',
     share: 'Paylaş',
+    shareCopied: 'Bağlantı kopyalandı',
+    shareFailed: 'Kopyalanamadı',
   },
   nsfw: {
     reveal: 'NSFW içeriği göster',

@@ -132,6 +132,40 @@ describe('PostCard', () => {
   });
 });
 
+describe('PostCard share', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('copies the post link and confirms when the browser has no share sheet', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, share: undefined, clipboard: { writeText } });
+    renderCard(makePost({ id: 42 }));
+    await userEvent.click(screen.getByRole('button', { name: 'Share' }));
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/posts/42`);
+    expect(await screen.findByRole('button', { name: 'Link copied' })).toBeInTheDocument();
+  });
+
+  it('opens the native share sheet with the post link when available', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const writeText = vi.fn();
+    vi.stubGlobal('navigator', { ...navigator, share, clipboard: { writeText } });
+    renderCard(makePost({ id: 42, title: 'Hello' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Share' }));
+    expect(share).toHaveBeenCalledWith({ title: 'Hello', url: `${window.location.origin}/posts/42` });
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it('says so when the link cannot be copied', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+    vi.stubGlobal('navigator', { ...navigator, share: undefined, clipboard: { writeText } });
+    renderCard(makePost());
+    await userEvent.click(screen.getByRole('button', { name: 'Share' }));
+    expect(await screen.findByRole('button', { name: 'Copy failed' })).toBeInTheDocument();
+  });
+});
+
 describe('PostCard in Turkish', () => {
   const ENGLISH_PROBE =
     /\b(Share|Pinned|Poll|Image|Link|External link|votes?|closes|closed|Save|Saved|Upvote|Downvote|ago)\b/;

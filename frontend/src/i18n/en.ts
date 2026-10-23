@@ -202,6 +202,8 @@ export const en = {
     pinned: 'Pinned',
     externalLink: 'External link',
     share: 'Share',
+    shareCopied: 'Link copied',
+    shareFailed: 'Copy failed',
   },
   nsfw: {
     reveal: 'Show NSFW content',

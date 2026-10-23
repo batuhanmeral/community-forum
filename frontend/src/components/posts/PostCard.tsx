@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Post } from '@/features/posts/types';
@@ -9,7 +10,7 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { deletedBodyKey } from '@/lib/deletedBody';
-import { MessageSquare, Pin, Share } from 'lucide-react';
+import { Check, MessageSquare, Pin, Share } from 'lucide-react';
 
 interface PostCardProps {
   post: Post;
@@ -188,11 +189,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           <span className="font-mono text-[12px]">{post.comment_count}</span>
         </ActionBtn>
 
-        <ActionBtn icon={
-          <Share className="h-[15px] w-[15px]" />
-        }>
-          <span className="max-[480px]:hidden">{t('post.share')}</span>
-        </ActionBtn>
+        <ShareButton postId={post.id} title={post.title} />
 
         <SaveButton target="post" objectId={post.id} initialSaved={post.is_saved} />
       </div>
@@ -200,20 +197,62 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
   );
 }
 
-function ActionBtn({ href, icon, children }: { href?: string; icon: React.ReactNode; children?: React.ReactNode }) {
-  const cls = 'inline-flex items-center gap-1.5 rounded-full bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]';
-  if (href) {
-    return (
-      <Link to={href} className={cls}>
-        {icon}
-        {children}
-      </Link>
-    );
-  }
+const ACTION_BTN_CLASSES = 'inline-flex items-center gap-1.5 rounded-full bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]';
+
+function ActionBtn({ href, icon, children }: { href: string; icon: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <button type="button" className={cls} onClick={(e) => e.preventDefault()}>
+    <Link to={href} className={ACTION_BTN_CLASSES}>
       {icon}
       {children}
+    </Link>
+  );
+}
+
+const SHARE_STATUS_RESET_MS = 2000;
+
+type ShareStatus = 'idle' | 'copied' | 'failed';
+
+const SHARE_LABEL_KEYS: Record<ShareStatus, string> = {
+  idle: 'post.share',
+  copied: 'post.shareCopied',
+  failed: 'post.shareFailed',
+};
+
+function ShareButton({ postId, title }: { postId: number; title: string }) {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<ShareStatus>('idle');
+
+  useEffect(() => {
+    if (status === 'idle') return;
+    const timer = setTimeout(() => setStatus('idle'), SHARE_STATUS_RESET_MS);
+    return () => clearTimeout(timer);
+  }, [status]);
+
+  async function share() {
+    const url = `${window.location.origin}/posts/${postId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (e) {
+        // Dismissing the share sheet is not a failure; anything else falls back to copying.
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setStatus('copied');
+    } catch {
+      setStatus('failed');
+    }
+  }
+
+  const label = t(SHARE_LABEL_KEYS[status]);
+  const Icon = status === 'copied' ? Check : Share;
+  return (
+    <button type="button" className={ACTION_BTN_CLASSES} onClick={share} aria-label={label}>
+      <Icon className="h-[15px] w-[15px]" />
+      <span aria-live="polite" className="max-[480px]:hidden">{label}</span>
     </button>
   );
 }
