@@ -35,7 +35,7 @@ export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEdi
 
   const tabCls = (active: boolean) =>
     cn(
-      'rounded-full px-3 py-1 text-[12.5px] font-medium transition',
+      'rounded-[var(--radius-control-inner)] px-3 py-1 text-[12.5px] font-medium transition',
       active
         ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
         : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
@@ -47,7 +47,7 @@ export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEdi
         <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
           {t('editor.bodyLabel')}
         </label>
-        <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-0.5">
+        <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-0.5">
           <button type="button" onClick={() => setTab('write')} className={tabCls(tab === 'write')}>
             {t('editor.write')}
           </button>

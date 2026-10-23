@@ -334,7 +334,7 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
+        className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
         aria-label={t('communityPage.notifyLevel')}
       >
         <Bell className="h-4 w-4" />

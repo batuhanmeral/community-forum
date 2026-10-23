@@ -110,7 +110,7 @@ export function HomeRightSidebar() {
         <div className="px-4 py-3.5">
           <Link
             to={isAuthed ? '/c/create' : '/register'}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent)] px-3.5 py-[7px] text-[12.5px] font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)] active:bg-[var(--color-accent-pressed)]"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-3.5 py-[7px] text-[12.5px] font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)] active:bg-[var(--color-accent-pressed)]"
           >
             <Plus strokeWidth={2.2} className="h-[13px] w-[13px]" />
             {t('rightbar.createCommunity')}
@@ -193,7 +193,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
     >
       <span className="font-mono w-3 text-[10.5px] text-[var(--color-text-dim)]">{rank}</span>
       <span
-        className="grid h-6 w-6 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-link)]"
+        className="grid h-6 w-6 place-items-center rounded-[var(--radius-avatar)] border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-link)]"
       >
         {community.slug[0]?.toUpperCase()}
       </span>
@@ -211,7 +211,7 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
         onClick={toggle}
         disabled={!isAuthed || busy}
         className={cn(
-          'rounded-full border px-2.5 py-[3px] text-[11px] font-medium transition disabled:opacity-60',
+          'rounded-[var(--radius-control)] border px-2.5 py-[3px] text-[11px] font-medium transition disabled:opacity-60',
           joined
             ? 'border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)]'
             : 'border-[var(--color-border)] bg-[var(--color-bg-3)] text-[var(--color-text)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)]',

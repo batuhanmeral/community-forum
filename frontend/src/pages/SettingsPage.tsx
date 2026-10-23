@@ -92,7 +92,7 @@ function PreferencesCard() {
         <select
           value={i18n.language}
           onChange={(e) => i18n.changeLanguage(e.target.value as Language)}
-          className="h-9 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
+          className="h-9 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
         >
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>

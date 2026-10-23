@@ -23,9 +23,9 @@ const variantClasses: Record<Variant, string> = {
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-8 px-3 text-sm rounded-full',
-  md: 'h-10 px-4 text-sm rounded-full',
-  lg: 'h-12 px-6 text-base rounded-full',
+  sm: 'h-8 px-3 text-sm rounded-[var(--radius-control)]',
+  md: 'h-10 px-4 text-sm rounded-[var(--radius-control)]',
+  lg: 'h-12 px-6 text-base rounded-[var(--radius-control)]',
 };
 
 // Shared with link-styled buttons so a link and a <button> look identical.

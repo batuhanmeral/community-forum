@@ -115,7 +115,7 @@ export function CommunityCreatePage() {
               type="file"
               accept="image/*"
               onChange={(e) => setAvatar(e.target.files?.[0] ?? null)}
-              className="text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-surface-hover)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-[var(--color-border)]"
+              className="text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-[var(--radius-control)] file:border-0 file:bg-[var(--color-surface-hover)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-[var(--color-border)]"
             />
             {errors.avatar && <p className="text-xs text-[var(--color-danger)]">{errors.avatar}</p>}
           </div>

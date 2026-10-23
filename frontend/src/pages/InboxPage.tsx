@@ -97,14 +97,14 @@ export function InboxPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+          <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
             {(['all', 'unread'] as Filter[]).map((f) => (
               <button
                 key={f}
                 type="button"
                 onClick={() => setFilter(f)}
                 className={cn(
-                  'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
+                  'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
                   filter === f
                     ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
@@ -154,7 +154,7 @@ export function InboxPage() {
               >
                 <span
                   className={cn(
-                    'grid h-8 w-8 shrink-0 place-items-center rounded-full text-[15px]',
+                    'grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-avatar)] text-[15px]',
                     unread
                       ? 'bg-[var(--color-link)] text-[var(--color-on-link)]'
                       : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',
@@ -183,7 +183,7 @@ export function InboxPage() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
             {loadingMore ? t('common.loading') : t('common.loadMore')}
           </button>

@@ -245,14 +245,14 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
             </>
           ) : isAuthed ? (
             // Signed in but the profile has not loaded: "Log in" here would loop back via LoginPage.
-            <span role="status" className="grid h-10 w-10 shrink-0 rounded-full bg-[var(--color-bg-3)]">
+            <span role="status" className="grid h-10 w-10 shrink-0 rounded-[var(--radius-avatar)] bg-[var(--color-bg-3)]">
               <span className="sr-only">{t('nav.loadingAccount')}</span>
             </span>
           ) : (
             <>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]"
+                className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]"
               >
                 {t('nav.login')}
               </Link>
@@ -312,7 +312,7 @@ function SearchForm({ inputRef, value, onChange, onSubmit, className }: SearchFo
     <form
       onSubmit={onSubmit}
       className={cn(
-        'w-full items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[var(--color-link)]/40 focus-within:bg-[var(--color-bg-3)]',
+        'w-full items-center gap-2.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 transition focus-within:border-[var(--color-link)]/40 focus-within:bg-[var(--color-bg-3)]',
         className,
       )}
     >

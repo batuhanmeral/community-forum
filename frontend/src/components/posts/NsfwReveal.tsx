@@ -29,7 +29,7 @@ export function NsfwReveal({ children }: { children: ReactNode }) {
           onClick={reveal}
           className="absolute inset-0 z-10 grid cursor-pointer place-items-center text-sm font-semibold text-[var(--color-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-link)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
         >
-          <span className="rounded-full bg-[var(--color-bg-elevated)] px-4 py-2">{t('nsfw.reveal')}</span>
+          <span className="rounded-[var(--radius-control)] bg-[var(--color-bg-elevated)] px-4 py-2">{t('nsfw.reveal')}</span>
         </button>
       )}
     </div>

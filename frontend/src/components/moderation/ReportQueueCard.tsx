@@ -46,7 +46,7 @@ export function ReportQueueCard({ slug }: { slug: string }) {
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold tracking-tight">{t('mod.reportsTitle')}</h2>
-        <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+        <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
           {STATUSES.map((s) => (
             <button
               key={s}
@@ -57,7 +57,7 @@ export function ReportQueueCard({ slug }: { slug: string }) {
                 setError(null);
               }}
               className={cn(
-                'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
+                'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
                 status === s
                   ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',

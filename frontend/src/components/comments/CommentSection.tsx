@@ -134,7 +134,7 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as CommentSort)}
-          className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1 text-xs focus:border-[var(--color-link)] focus:outline-none"
+          className="rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1 text-xs focus:border-[var(--color-link)] focus:outline-none"
         >
           {SORTS.map((s) => (
             <option key={s} value={s}>

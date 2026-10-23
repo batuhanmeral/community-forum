@@ -287,7 +287,7 @@ export function PostCreatePage() {
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-                className="text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-surface-hover)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-[var(--color-border)]"
+                className="text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-[var(--radius-control)] file:border-0 file:bg-[var(--color-surface-hover)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-[var(--color-border)]"
               />
               {imagePreview && (
                 <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
@@ -323,7 +323,7 @@ export function PostCreatePage() {
                       <button
                         type="button"
                         onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
-                        className="rounded-full p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)]"
+                        className="rounded-[var(--radius-control)] p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)]"
                         aria-label={t('postForm.removeOption')}
                       >
                         <X className="h-4 w-4" />
@@ -370,7 +370,7 @@ export function PostCreatePage() {
                     type="button"
                     onClick={() => setFlairId(flairId === f.id ? '' : f.id)}
                     className={cn(
-                      'inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium transition',
+                      'inline-flex items-center rounded-[var(--radius-control)] border px-3 py-1 text-[12px] font-medium transition',
                       flairId === f.id ? 'ring-2 ring-[var(--color-link)]/40' : 'opacity-75 hover:opacity-100',
                     )}
                     style={{

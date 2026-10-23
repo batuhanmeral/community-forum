@@ -237,7 +237,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             type="button"
             onClick={() => setKind(f)}
             className={cn(
-              'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-[7px] text-[12.5px] font-normal transition',
+              'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-control)] border px-3.5 py-[7px] text-[12.5px] font-normal transition',
               kind === f
                 ? 'border-[var(--color-link)]/30 bg-[var(--color-link-dim)] text-[var(--color-link)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
@@ -256,7 +256,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             disabled={nsfwBusy}
             title={nsfwShown ? t('feed.nsfwHide') : t('feed.nsfwShow')}
             className={cn(
-              'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-[7px] text-[12px] font-medium transition',
+              'inline-flex items-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] border px-3 py-[7px] text-[12px] font-medium transition',
               nsfwShown
                 ? 'border-[var(--color-danger)]/30 bg-[var(--color-danger-dim)] text-[var(--color-danger)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
@@ -351,7 +351,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
             {loadingMore ? t('common.loading') : t('community.loadMore')}
           </button>

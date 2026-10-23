@@ -129,7 +129,7 @@ export function MessagesPage() {
           <button
             type="button"
             onClick={() => setNewOpen(true)}
-            className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[var(--color-on-accent)] transition hover:opacity-90"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[var(--color-on-accent)] transition hover:opacity-90"
           >
             {t('messages.newButton')}
           </button>
@@ -197,7 +197,7 @@ export function MessagesPage() {
               <button
                 type="button"
                 onClick={() => setNewOpen(true)}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[var(--color-on-accent)]"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[var(--color-on-accent)]"
               >
                 {t('messages.startNew')}
               </button>
@@ -425,7 +425,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         <Link
           to="/messages"
           aria-label={t('messages.back')}
-          className="grid h-8 w-8 place-items-center rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-[721px]:hidden"
+          className="grid h-8 w-8 place-items-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-[721px]:hidden"
         >
           <ChevronLeft className="h-4 w-4" />
         </Link>

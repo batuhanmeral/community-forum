@@ -55,7 +55,7 @@ export function FollowButton({ username, initialFollowing, size = 'md', onChange
       onClick={handleClick}
       disabled={busy}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border font-semibold tracking-tight transition disabled:opacity-60',
+        'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border font-semibold tracking-tight transition disabled:opacity-60',
         heightCls,
         following
           ? 'border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]'

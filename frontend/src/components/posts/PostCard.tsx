@@ -43,7 +43,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               className="relative z-10 inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-link)]"
             >
               <span
-                className="grid h-5 w-5 place-items-center rounded-full border border-[var(--color-link-border)] bg-[var(--color-bg-3)] text-[10px] font-bold text-[var(--color-link)]"
+                className="grid h-5 w-5 place-items-center rounded-[var(--radius-avatar)] border border-[var(--color-link-border)] bg-[var(--color-bg-3)] text-[10px] font-bold text-[var(--color-link)]"
               >
                 {post.community[0]?.toUpperCase()}
               </span>
@@ -197,7 +197,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
   );
 }
 
-const ACTION_BTN_CLASSES = 'inline-flex items-center gap-1.5 rounded-full bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]';
+const ACTION_BTN_CLASSES = 'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]';
 
 function ActionBtn({ href, icon, children }: { href: string; icon: React.ReactNode; children?: React.ReactNode }) {
   return (

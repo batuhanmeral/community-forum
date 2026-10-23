@@ -131,7 +131,7 @@ export function NotificationDropdown({ unreadCount }: NotificationDropdownProps)
                   >
                     <span
                       className={cn(
-                        'grid h-7 w-7 shrink-0 place-items-center rounded-full text-[14px]',
+                        'grid h-7 w-7 shrink-0 place-items-center rounded-[var(--radius-avatar)] text-[14px]',
                         unread
                           ? 'bg-[var(--color-link)] text-[var(--color-on-link)]'
                           : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',

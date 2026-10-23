@@ -320,7 +320,7 @@ function CommunitySettingsCard({
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <Avatar src={preview ?? community.avatar} alt={community.name} size="lg" />
-          <label className="cursor-pointer rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
+          <label className="cursor-pointer rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
             {avatarFile ? avatarFile.name : t('mod.changeIcon')}
             <input
               type="file"
@@ -592,7 +592,7 @@ function RoleCard({ slug }: { slug: string }) {
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as CommunityRole)}
-          className="h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
+          className="h-10 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
         >
           <option value="member">{t('mod.role_member')}</option>
           <option value="moderator">{t('mod.role_moderator')}</option>

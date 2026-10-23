@@ -196,7 +196,7 @@ function CommunityItem({ community, onNavigate }: { community: Community; onNavi
       }
     >
       <span
-        className="grid h-[22px] w-[22px] place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-link)]"
+        className="grid h-[22px] w-[22px] place-items-center rounded-[var(--radius-avatar)] border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-link)]"
       >
         {community.slug[0]?.toUpperCase()}
       </span>

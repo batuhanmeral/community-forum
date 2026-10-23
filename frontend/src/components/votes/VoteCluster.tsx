@@ -113,7 +113,7 @@ export function VoteCluster({
   }
 
   return (
-    <div className="font-mono inline-flex items-center gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
+    <div className="font-mono inline-flex items-center gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
       <ArrowBtn
         direction="up"
         active={localVote === 1}
@@ -159,7 +159,7 @@ function ArrowBtn({ direction, active, size, btnSize, onClick }: ArrowBtnProps) 
       onClick={onClick}
       aria-label={direction === 'up' ? t('votes.upvote') : t('votes.downvote')}
       className={cn(
-        'grid place-items-center rounded-full transition',
+        'grid place-items-center rounded-[var(--radius-control-inner)] transition',
         btnSize,
         // cn() does not merge, so the idle colours must be absent when active or they win by CSS order.
         !active && 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',

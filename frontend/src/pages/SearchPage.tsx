@@ -109,14 +109,14 @@ export function SearchPage() {
         )}
       </div>
 
-      <div className="flex gap-0.5 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+      <div className="flex gap-0.5 self-start rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
         {TABS.map((tab) => (
           <button
             key={tab.type}
             type="button"
             onClick={() => selectTab(tab.type)}
             className={cn(
-              'rounded-full px-4 py-1.5 text-[13px] font-medium transition',
+              'rounded-[var(--radius-control-inner)] px-4 py-1.5 text-[13px] font-medium transition',
               type === tab.type
                 ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
@@ -161,7 +161,7 @@ export function SearchPage() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
             {loadingMore ? t('search.loading') : t('search.loadMore')}
           </button>

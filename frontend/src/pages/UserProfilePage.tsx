@@ -160,7 +160,7 @@ export function UserProfilePage() {
                         onClick={() => setReporting(true)}
                         title={t('profile.reportUser')}
                         aria-label={t('profile.reportUser')}
-                        className="grid h-9 w-9 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+                        className="grid h-9 w-9 place-items-center rounded-[var(--radius-control)] border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
                       >
                         <Flag className="h-[17px] w-[17px]" />
                       </button>
@@ -283,14 +283,14 @@ function ProfileContent({ username }: { username: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-0.5 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+      <div className="flex gap-0.5 self-start rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
         {(['posts', 'comments'] as ProfileTab[]).map((name) => (
           <button
             key={name}
             type="button"
             onClick={() => setTab(name)}
             className={cn(
-              'rounded-full px-4 py-1.5 text-[13px] font-medium transition',
+              'rounded-[var(--radius-control-inner)] px-4 py-1.5 text-[13px] font-medium transition',
               tab === name
                 ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
@@ -417,7 +417,7 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <Avatar src={preview} alt={t('profile.avatarPreview')} size="lg" />
-          <label className="cursor-pointer rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
+          <label className="cursor-pointer rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
             {avatar ? t('profile.changeImage') : t('profile.uploadAvatar')}
             <input type="file" accept="image/*" onChange={onFile} className="hidden" />
           </label>
