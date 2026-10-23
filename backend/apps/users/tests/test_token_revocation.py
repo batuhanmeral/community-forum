@@ -14,6 +14,7 @@ REFRESH = reverse("api_v1:auth:auth-refresh")
 RESET_CONFIRM = reverse("api_v1:auth:auth-password-reset-confirm")
 ME = reverse("api_v1:users:users-me")
 PASSWORD = reverse("api_v1:users:users-change-password")
+COOKIE = "nexus_refresh"
 OLD_PW = "OldPass123!x"
 NEW_PW = "NewPass456!y"
 
@@ -24,12 +25,20 @@ def _bearer(access: str) -> APIClient:
     return client
 
 
+def _pair(resp) -> dict:
+    return {"access": resp.data["access"], "refresh": resp.cookies[COOKIE].value}
+
+
 def _login(password=OLD_PW) -> dict:
-    return APIClient().post(LOGIN, {"username": "alice", "password": password}, format="json").data
+    return _pair(
+        APIClient().post(LOGIN, {"username": "alice", "password": password}, format="json")
+    )
 
 
 def _refresh(token: str) -> int:
-    return APIClient().post(REFRESH, {"refresh": token}, format="json").status_code
+    client = APIClient()
+    client.cookies[COOKIE] = token
+    return client.post(REFRESH).status_code
 
 
 @pytest.fixture
@@ -48,8 +57,10 @@ class TestRevocation:
         assert resp.status_code == 200
         assert client.get(ME).status_code == 401
         assert _refresh(old["refresh"]) == 401
-        assert _bearer(resp.data["access"]).get(ME).status_code == 200
-        assert _refresh(resp.data["refresh"]) == 200
+        new = _pair(resp)
+        assert "refresh" not in resp.data
+        assert _bearer(new["access"]).get(ME).status_code == 200
+        assert _refresh(new["refresh"]) == 200
 
     def test_password_reset_revokes_sessions(self, alice):
         old = _login()

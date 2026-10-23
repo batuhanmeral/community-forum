@@ -1,4 +1,4 @@
-import { api } from './client';
+import { AUTH_REQUEST_TIMEOUT_MS, api } from './client';
 import type { Paginated } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import type { Comment } from '@/features/comments/types';
@@ -79,8 +79,15 @@ export async function changePassword(
   return res.data;
 }
 
-export async function deactivateAccount(): Promise<void> {
-  await api.delete('/users/me/');
+/** Erases the account's personal data; the server checks the password and clears the session cookie. */
+export async function deleteAccount(password: string): Promise<void> {
+  await api.delete('/users/me/', { data: { password }, timeout: AUTH_REQUEST_TIMEOUT_MS });
+}
+
+/** The account's own data as a JSON file (KVKK/GDPR right of access). */
+export async function downloadAccountExport(): Promise<Blob> {
+  const res = await api.get<Blob>('/users/me/export/', { responseType: 'blob' });
+  return res.data;
 }
 
 export interface UnreadCounts {

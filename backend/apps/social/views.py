@@ -15,7 +15,7 @@ User = get_user_model()
 
 
 def _get_target(username: str):
-    return get_object_or_404(User, username__iexact=username)
+    return get_object_or_404(User, username__iexact=username, is_active=True)
 
 
 class FollowToggleView(APIView):

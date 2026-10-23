@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { store } from '@/app/store';
-import { ACCESS_KEY, REFRESH_KEY, setTokens, setUser } from './authSlice';
+import { SESSION_KEY, setAccessToken, setUser } from './authSlice';
 import { startAuthStorageSync } from './storageSync';
 import type { User } from './types';
 import { fakeJwt as jwt } from '@/test/fakeJwt';
@@ -17,13 +17,11 @@ const alice: User = {
   comment_karma: 0,
 };
 
-/** Simulates another tab writing the refresh token (storage events never fire in the writing tab). */
-function otherTabWrites(access: string | null, refresh: string | null) {
-  if (access === null) localStorage.removeItem(ACCESS_KEY);
-  else localStorage.setItem(ACCESS_KEY, access);
-  if (refresh === null) localStorage.removeItem(REFRESH_KEY);
-  else localStorage.setItem(REFRESH_KEY, refresh);
-  window.dispatchEvent(new StorageEvent('storage', { key: REFRESH_KEY, newValue: refresh }));
+/** Simulates another tab writing the session marker (storage events never fire in the writing tab). */
+function otherTabWrites(userId: string | null) {
+  if (userId === null) localStorage.removeItem(SESSION_KEY);
+  else localStorage.setItem(SESSION_KEY, userId);
+  window.dispatchEvent(new StorageEvent('storage', { key: SESSION_KEY, newValue: userId }));
 }
 
 describe('startAuthStorageSync', () => {
@@ -31,49 +29,46 @@ describe('startAuthStorageSync', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    store.dispatch(setTokens({ access: jwt({ user_id: 1 }), refresh: 'r1' }));
+    store.dispatch(setAccessToken(jwt({ user_id: 1 })));
     store.dispatch(setUser(alice));
     stop = startAuthStorageSync(store);
   });
 
   afterEach(() => stop());
 
-  it('logs this tab out when another tab removes the refresh token', () => {
-    otherTabWrites(null, null);
-    expect(store.getState().auth.refreshToken).toBeNull();
+  it('logs this tab out when another tab logs out', () => {
+    otherTabWrites(null);
+    expect(store.getState().auth.sessionUserId).toBeNull();
     expect(store.getState().auth.accessToken).toBeNull();
   });
 
-  it('picks up tokens written by another tab', () => {
-    // SimpleJWT may encode the id as a string; it still matches the numeric user id.
-    const a4 = jwt({ user_id: '1' });
-    otherTabWrites(a4, 'r4');
-    expect(store.getState().auth.accessToken).toBe(a4);
-    expect(store.getState().auth.refreshToken).toBe('r4');
+  it('keeps the session when the same account signs in again elsewhere', () => {
+    otherTabWrites('1');
     expect(store.getState().auth.user).toEqual(alice);
+    expect(store.getState().auth.accessToken).not.toBeNull();
   });
 
-  it('drops the cached user when another account signs in', () => {
-    otherTabWrites(jwt({ user_id: 99 }), 'r5');
-    expect(store.getState().auth.refreshToken).toBe('r5');
+  it('drops the cached user and token when another account signs in', () => {
+    otherTabWrites('99');
+    expect(store.getState().auth.sessionUserId).toBe('99');
     expect(store.getState().auth.user).toBeNull();
+    expect(store.getState().auth.accessToken).toBeNull();
   });
 
   it('logs this tab out when another tab clears localStorage', () => {
     localStorage.clear();
     window.dispatchEvent(new StorageEvent('storage', { key: null }));
-    expect(store.getState().auth.refreshToken).toBeNull();
-    expect(store.getState().auth.accessToken).toBeNull();
+    expect(store.getState().auth.sessionUserId).toBeNull();
   });
 
-  it('keeps the session on a clear event when the refresh token is still stored', () => {
+  it('keeps the session on a clear event when the marker is still stored', () => {
     window.dispatchEvent(new StorageEvent('storage', { key: null }));
-    expect(store.getState().auth.refreshToken).toBe('r1');
+    expect(store.getState().auth.sessionUserId).toBe('1');
   });
 
   it('stops listening once unsubscribed', () => {
     stop();
-    otherTabWrites(null, null);
-    expect(store.getState().auth.refreshToken).toBe('r1');
+    otherTabWrites(null);
+    expect(store.getState().auth.sessionUserId).toBe('1');
   });
 });

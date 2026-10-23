@@ -241,7 +241,7 @@ class UserPostListView(generics.ListAPIView):
         # feed.py imports this module, so import it lazily.
         from .feed import _apply_nsfw_filter
 
-        author = get_object_or_404(User, username__iexact=self.kwargs["username"])
+        author = get_object_or_404(User, username__iexact=self.kwargs["username"], is_active=True)
         qs = _annotate_score(
             _base_post_qs(
                 Post.objects.filter(author=author, is_approved=True, deleted_at__isnull=True),

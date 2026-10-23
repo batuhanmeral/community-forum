@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useNavigate, type NavigateFunction } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer, { logout, setTokens, syncFromStorage } from '@/features/auth/authSlice';
+import authReducer, { logout, sessionChanged, setAccessToken } from '@/features/auth/authSlice';
 import type { User } from '@/features/auth/types';
 import * as authApi from '@/api/auth';
 import { fakeJwt } from '@/test/fakeJwt';
@@ -48,7 +48,7 @@ function NavigateProbe() {
 
 function renderLayout() {
   const store = configureStore({ reducer: { auth: authReducer } });
-  store.dispatch(setTokens({ access: ALICE_ACCESS, refresh: 'r1' }));
+  store.dispatch(setAccessToken(ALICE_ACCESS));
   render(
     <Provider store={store}>
       <MemoryRouter>
@@ -71,7 +71,7 @@ describe('AppLayout session loading', () => {
     const store = renderLayout();
     await waitFor(() => expect(fetchMe).toHaveBeenCalledTimes(1));
     await act(async () => {});
-    expect(store.getState().auth.refreshToken).toBe('r1');
+    expect(store.getState().auth.sessionUserId).toBe('1');
     expect(store.getState().auth.accessToken).toBe(ALICE_ACCESS);
   });
 
@@ -95,7 +95,7 @@ describe('AppLayout session loading', () => {
     const store = renderLayout();
     await waitFor(() => expect(fetchMe).toHaveBeenCalledTimes(1));
     act(() => {
-      store.dispatch(syncFromStorage({ access: fakeJwt({ user_id: 99 }), refresh: 'r9' }));
+      store.dispatch(sessionChanged('99'));
     });
     await waitFor(() => expect(fetchMe).toHaveBeenCalledTimes(2));
     await act(async () => pending[0](alice));

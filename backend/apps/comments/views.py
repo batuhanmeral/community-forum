@@ -135,7 +135,7 @@ class UserCommentListView(generics.ListAPIView):
     permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
-        author = get_object_or_404(User, username__iexact=self.kwargs["username"])
+        author = get_object_or_404(User, username__iexact=self.kwargs["username"], is_active=True)
         return _base_comment_qs(
             _annotate_score(
                 Comment.objects.filter(

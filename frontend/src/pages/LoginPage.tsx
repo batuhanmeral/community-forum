@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { authFailure, authStart, setTokens, setUser } from '@/features/auth/authSlice';
+import { authFailure, authStart, setAccessToken, setUser } from '@/features/auth/authSlice';
 import { fetchMe, login } from '@/api/auth';
+import { withAuthLock } from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PageTitle } from '@/components/ui/PageTitle';
@@ -29,8 +30,11 @@ export function LoginPage() {
     e.preventDefault();
     dispatch(authStart());
     try {
-      const tokens = await login({ username, password });
-      dispatch(setTokens(tokens));
+      // Under the refresh lock so another tab's refresh can't overwrite this login's cookie.
+      await withAuthLock(async () => {
+        const tokens = await login({ username, password });
+        dispatch(setAccessToken(tokens.access));
+      });
       const me = await fetchMe();
       dispatch(setUser(me));
       const from = (location.state as { from?: string } | null)?.from ?? '/';

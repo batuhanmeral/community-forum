@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer, { REFRESH_KEY, logout, setUser } from '@/features/auth/authSlice';
+import authReducer, { SESSION_KEY, logout, setUser } from '@/features/auth/authSlice';
 import messagingReducer from '@/features/messaging/messagingSlice';
 import notificationReducer from '@/features/notifications/notificationSlice';
 import { Navbar } from './Navbar';
@@ -165,20 +165,20 @@ describe('Navbar logout', () => {
     users.getUnreadCounts.mockResolvedValue({ notifications: 0, messages: 0 });
   });
 
-  it('logs out under the refresh lock with the refresh token in storage', async () => {
+  it('logs out under the refresh lock and clears the session marker', async () => {
     const request = vi.fn((_name: string, fn: () => Promise<unknown>) => fn());
     Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } });
     try {
       const store = renderNavbar();
-      localStorage.setItem(REFRESH_KEY, 'r2'); // rotated by a refresh; the store never held it
+      localStorage.setItem(SESSION_KEY, '1');
       fireEvent.click(screen.getByRole('button', { name: 'Profile menu' }));
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
       });
       expect(request).toHaveBeenCalledWith('nexus.auth.refresh', expect.any(Function));
-      expect(vi.mocked(authApi.logoutRequest)).toHaveBeenCalledWith('r2');
+      expect(vi.mocked(authApi.logoutRequest)).toHaveBeenCalledWith();
       expect(store.getState().auth.user).toBeNull();
-      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+      expect(localStorage.getItem(SESSION_KEY)).toBeNull();
     } finally {
       delete (navigator as { locks?: unknown }).locks;
     }
@@ -196,7 +196,7 @@ describe('Navbar while the profile is loading', () => {
     const store = configureStore({
       reducer: { auth: authReducer, messaging: messagingReducer, notifications: notificationReducer },
       preloadedState: {
-        auth: { user: null, accessToken: 'a1', refreshToken: 'r1', status: 'authenticated' as const, error: null },
+        auth: { user: null, accessToken: 'a1', sessionUserId: '1', status: 'authenticated' as const, error: null },
       },
     });
     render(

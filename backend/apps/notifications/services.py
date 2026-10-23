@@ -43,7 +43,8 @@ def notify(
     community=None,
 ) -> Notification | None:
     """Create a Notification. Skips self-notification and respects notify_level."""
-    if recipient is None:
+    # Deleted accounts are inactive; their inbox was erased and must not refill.
+    if recipient is None or not recipient.is_active:
         return None
     if actor is not None and getattr(actor, "id", None) == getattr(recipient, "id", None):
         return None

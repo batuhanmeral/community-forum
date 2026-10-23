@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { resendVerificationEmail } from '@/api/auth';
-import { changePassword, deactivateAccount, updatePreferences } from '@/api/users';
+import { changePassword, deleteAccount, downloadAccountExport, updatePreferences } from '@/api/users';
+import { withAuthLock } from '@/api/client';
 import { listBlocked, unblockUser, type FollowUser } from '@/api/follow';
-import { logout, setTokens, setUser } from '@/features/auth/authSlice';
+import { logout, setAccessToken, setUser } from '@/features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -34,6 +35,7 @@ export function SettingsPage() {
       <PreferencesCard />
       <PasswordCard />
       <BlockedUsersCard />
+      <DataExportCard />
       <DangerZoneCard />
     </div>
   );
@@ -177,7 +179,7 @@ function PasswordCard() {
     setMsg(null);
     try {
       const tokens = await changePassword(current, next);
-      dispatch(setTokens(tokens));
+      dispatch(setAccessToken(tokens.access));
       setMsg({ ok: true, text: t('settings.passwordUpdated') });
       setCurrent('');
       setNext('');
@@ -301,23 +303,76 @@ function BlockedUsersCard() {
   );
 }
 
+function DataExportCard() {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function handleDownload() {
+    setBusy(true);
+    setFailed(false);
+    try {
+      const blob = await downloadAccountExport();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'nexus-export.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="text-base font-semibold tracking-tight">{t('settings.dataTitle')}</h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('settings.dataHint')}</p>
+      <div className="mt-3">
+        <Button variant="secondary" size="sm" loading={busy} onClick={handleDownload}>
+          {t('settings.dataDownload')}
+        </Button>
+      </div>
+      {failed && <p className="mt-2 text-sm text-[var(--color-danger)]">{t('settings.dataFailed')}</p>}
+    </Card>
+  );
+}
+
 function DangerZoneCard() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleDeactivate() {
+  async function handleDelete(e: FormEvent) {
+    e.preventDefault();
     if (busy) return;
     setBusy(true);
+    setError(null);
     try {
-      await deactivateAccount();
-      dispatch(logout());
+      // Outside the lock: the request may itself need a refresh, and the lock is not re-entrant.
+      await deleteAccount(password);
+      // Under it, so a refresh in flight in another tab can't restore the session just deleted.
+      await withAuthLock(async () => {
+        dispatch(logout());
+      });
       navigate('/', { replace: true });
-    } finally {
+    } catch (err) {
+      const wrongPassword = (err as AxiosError).response?.status === 400;
+      setError(t(wrongPassword ? 'settings.deleteWrongPassword' : 'settings.deleteFailed'));
       setBusy(false);
     }
+  }
+
+  function cancel() {
+    setConfirming(false);
+    setPassword('');
+    setError(null);
   }
 
   return (
@@ -326,22 +381,34 @@ function DangerZoneCard() {
         {t('settings.dangerTitle')}
       </h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('settings.dangerHint')}</p>
-      <div className="mt-3 flex items-center gap-2">
-        {confirming ? (
-          <>
-            <Button variant="danger" size="sm" loading={busy} onClick={handleDeactivate}>
-              {t('settings.deactivateConfirm')}
+      {confirming ? (
+        <form onSubmit={handleDelete} className="mt-3 flex flex-col gap-3">
+          <Input
+            name="delete-password"
+            type="password"
+            autoComplete="current-password"
+            label={t('settings.deletePassword')}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={error}
+            required
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" variant="danger" size="sm" loading={busy} disabled={!password}>
+              {t('settings.deleteConfirm')}
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setConfirming(false)}>
+            <Button type="button" variant="secondary" size="sm" onClick={cancel}>
               {t('common.cancel')}
             </Button>
-          </>
-        ) : (
+          </div>
+        </form>
+      ) : (
+        <div className="mt-3">
           <Button variant="danger" size="sm" onClick={() => setConfirming(true)}>
-            {t('settings.deactivate')}
+            {t('settings.deleteAccount')}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </Card>
   );
 }

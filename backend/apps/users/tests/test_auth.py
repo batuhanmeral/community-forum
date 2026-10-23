@@ -66,15 +66,22 @@ class TestLoginRefresh:
     refresh_url = reverse("api_v1:auth:auth-refresh")
     logout_url = reverse("api_v1:auth:auth-logout")
 
-    def test_login_returns_tokens(self, api, user):
-        resp = api.post(
+    def _login(self, api):
+        return api.post(
             self.login_url,
             {"username": "alice", "password": "StrongPass123!"},
             format="json",
         )
+
+    def test_login_returns_access_and_sets_refresh_cookie(self, api, user):
+        resp = self._login(api)
         assert resp.status_code == 200
         assert "access" in resp.data
-        assert "refresh" in resp.data
+        assert "refresh" not in resp.data
+        cookie = resp.cookies["nexus_refresh"]
+        assert cookie.value
+        assert cookie["httponly"] and cookie["samesite"] == "Strict"
+        assert cookie["path"] == "/api/v1/auth/"
 
     def test_login_rejects_bad_password(self, api, user):
         resp = api.post(
@@ -83,30 +90,48 @@ class TestLoginRefresh:
             format="json",
         )
         assert resp.status_code == 401
+        assert "nexus_refresh" not in resp.cookies
 
-    def test_refresh_returns_new_access(self, api, user):
-        login = api.post(
-            self.login_url,
-            {"username": "alice", "password": "StrongPass123!"},
-            format="json",
-        )
-        refresh = login.data["refresh"]
-        resp = api.post(self.refresh_url, {"refresh": refresh}, format="json")
+    def test_refresh_reads_the_cookie_and_rotates_it(self, api, user):
+        first = self._login(api).cookies["nexus_refresh"].value
+        resp = api.post(self.refresh_url)
         assert resp.status_code == 200
-        assert "access" in resp.data
+        assert "access" in resp.data and "refresh" not in resp.data
+        rotated = resp.cookies["nexus_refresh"].value
+        assert rotated and rotated != first
 
-    def test_logout_blacklists_refresh(self, api, user):
-        login = api.post(
-            self.login_url,
-            {"username": "alice", "password": "StrongPass123!"},
-            format="json",
+    def test_refresh_ignores_a_token_in_the_body(self, api, user):
+        token = self._login(api).cookies["nexus_refresh"].value
+        anonymous = APIClient()
+        assert (
+            anonymous.post(self.refresh_url, {"refresh": token}, format="json").status_code == 401
         )
-        refresh = login.data["refresh"]
-        resp = api.post(self.logout_url, {"refresh": refresh}, format="json")
-        assert resp.status_code == 200
-        # Reuse should now fail.
-        reuse = api.post(self.refresh_url, {"refresh": refresh}, format="json")
-        assert reuse.status_code == 401
+
+    def test_logout_blacklists_the_cookie_and_clears_it(self, api, user):
+        token = self._login(api).cookies["nexus_refresh"].value
+        resp = api.post(self.logout_url)
+        assert resp.status_code == 204
+        assert resp.cookies["nexus_refresh"].value == ""
+        reuse = APIClient()
+        reuse.cookies["nexus_refresh"] = token
+        assert reuse.post(self.refresh_url).status_code == 401
+
+    def test_logout_without_a_session_leaves_cookies_alone(self, api):
+        resp = APIClient().post(self.logout_url)
+        assert resp.status_code == 204
+        assert "nexus_refresh" not in resp.cookies
+
+    def test_logout_is_not_throttled(self, api, user, monkeypatch):
+        from rest_framework.throttling import ScopedRateThrottle
+
+        monkeypatch.setattr(ScopedRateThrottle, "THROTTLE_RATES", {"refresh": "1/min"})
+        statuses = [APIClient().post(self.logout_url).status_code for _ in range(3)]
+        assert statuses == [204, 204, 204]
+
+    def test_login_rejects_form_posts(self, api, user):
+        resp = APIClient().post(self.login_url, {"username": "alice", "password": "StrongPass123!"})
+        assert resp.status_code == 415
+        assert "nexus_refresh" not in resp.cookies
 
 
 @pytest.mark.django_db

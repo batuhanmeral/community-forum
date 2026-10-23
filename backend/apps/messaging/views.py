@@ -94,7 +94,7 @@ class MessageListCreateView(
             if conv.participant_a_id == self.request.user.id
             else conv.participant_a
         )
-        if is_blocked_between(self.request.user, recipient):
+        if not recipient.is_active or is_blocked_between(self.request.user, recipient):
             raise PermissionDenied("You cannot message this user.")
         msg = serializer.save(sender=self.request.user, conversation=conv)
         notify(recipient, actor=self.request.user, verb="dm", target=msg)

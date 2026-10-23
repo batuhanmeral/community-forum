@@ -57,24 +57,14 @@ class TestChangePassword:
         )
         assert resp.status_code == 200
         fresh = APIClient()
-        assert fresh.post(LOGIN, {"username": "alice", "password": OLD_PW}).status_code == 401
-        assert fresh.post(LOGIN, {"username": "alice", "password": NEW_PW}).status_code == 200
-
-
-@pytest.mark.django_db
-class TestAccountDeactivation:
-    def test_delete_me_deactivates(self, api, alice):
-        api.force_authenticate(alice)
-        resp = api.delete(ME)
-        assert resp.status_code == 204
-        alice.refresh_from_db()
-        assert alice.is_active is False
-
-    def test_deactivated_user_cannot_login(self, api, alice):
-        api.force_authenticate(alice)
-        api.delete(ME)
-        fresh = APIClient()
-        assert fresh.post(LOGIN, {"username": "alice", "password": OLD_PW}).status_code == 401
+        assert (
+            fresh.post(LOGIN, {"username": "alice", "password": OLD_PW}, format="json").status_code
+            == 401
+        )
+        assert (
+            fresh.post(LOGIN, {"username": "alice", "password": NEW_PW}, format="json").status_code
+            == 200
+        )
 
 
 @pytest.mark.django_db

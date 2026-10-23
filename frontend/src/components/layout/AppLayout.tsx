@@ -5,7 +5,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type { RootState } from '@/app/store';
 import { fetchMe } from '@/api/auth';
 import { setUser } from '@/features/auth/authSlice';
-import { jwtUserId } from '@/features/auth/jwt';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { HomeRightSidebar } from './HomeRightSidebar';
@@ -17,7 +16,7 @@ const PROFILE_RETRY_MS = 30_000;
 export function AppLayout() {
   const dispatch = useAppDispatch();
   const { getState } = useStore<RootState>();
-  const { accessToken, user } = useAppSelector((s) => s.auth);
+  const { sessionUserId, user } = useAppSelector((s) => s.auth);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,15 +28,14 @@ export function AppLayout() {
   }, [locationKey]);
 
   useEffect(() => {
-    if (!accessToken || user) return;
+    if (!sessionUserId || user) return;
     let active = true;
     let lastAttempt = 0;
     const load = () => {
       lastAttempt = Date.now();
       return fetchMe().then((u) => {
         // A logout or account switch (possibly in another tab) while loading makes this user stale.
-        const current = getState().auth.accessToken;
-        if (active && current && jwtUserId(current) === String(u.id)) dispatch(setUser(u));
+        if (active && getState().auth.sessionUserId === String(u.id)) dispatch(setUser(u));
       });
     };
     const retry = () => void load().catch(() => undefined);
@@ -58,7 +56,7 @@ export function AppLayout() {
       window.removeEventListener('focus', retryWhenBack);
       document.removeEventListener('visibilitychange', retryWhenBack);
     };
-  }, [accessToken, user, dispatch, getState]);
+  }, [sessionUserId, user, dispatch, getState]);
 
   return (
     <div className="min-h-screen text-[var(--color-text)]">

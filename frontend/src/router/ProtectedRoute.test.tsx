@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer, { setAccessToken, setTokens, syncFromStorage } from '@/features/auth/authSlice';
+import authReducer, { sessionChanged, setAccessToken } from '@/features/auth/authSlice';
 import { fakeJwt } from '@/test/fakeJwt';
 import { ProtectedRoute } from './ProtectedRoute';
 
@@ -23,7 +23,7 @@ function StatefulPage() {
 
 function renderProtected() {
   const store = configureStore({ reducer: { auth: authReducer } });
-  store.dispatch(setTokens({ access: fakeJwt({ user_id: 1, n: 1 }), refresh: 'r1' }));
+  store.dispatch(setAccessToken(fakeJwt({ user_id: 1, n: 1 })));
   render(
     <Provider store={store}>
       <MemoryRouter initialEntries={['/messages']}>
@@ -44,7 +44,7 @@ describe('ProtectedRoute', () => {
   it("drops the previous account's page state after an account switch in another tab", () => {
     const store = renderProtected();
     act(() => {
-      store.dispatch(syncFromStorage({ access: fakeJwt({ user_id: 2 }), refresh: 'r2' }));
+      store.dispatch(sessionChanged('2'));
     });
     expect(screen.getByTestId('draft')).toBeEmptyDOMElement();
   });

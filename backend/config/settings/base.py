@@ -143,6 +143,16 @@ SIMPLE_JWT = {
     "CHECK_REVOKE_TOKEN": True,
 }
 
+# The refresh token lives in an HttpOnly cookie scoped to the auth endpoints, so XSS can't read it.
+AUTH_REFRESH_COOKIE = {
+    "key": "nexus_refresh",
+    "path": "/api/v1/auth/",
+    "samesite": "Strict",
+    "secure": config("AUTH_COOKIE_SECURE", default=not DEBUG, cast=bool),
+}
+# The SPA's dev server is another origin; the refresh cookie must travel with its auth calls.
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
     default="http://localhost:5173,http://127.0.0.1:5173",

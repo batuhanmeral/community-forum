@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type { RootState } from '@/app/store';
-import { logout, readStoredTokens } from '@/features/auth/authSlice';
+import { logout } from '@/features/auth/authSlice';
 import { logoutRequest } from '@/api/auth';
 import { withAuthLock } from '@/api/client';
 import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
@@ -129,8 +129,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
   async function handleLogout() {
     // Under the refresh lock so a refresh in flight can't store a new session after this logout.
     await withAuthLock(async () => {
-      const { refresh } = readStoredTokens();
-      if (refresh) await logoutRequest(refresh);
+      await logoutRequest();
       dispatch(logout());
     });
     setMenuOpen(false);

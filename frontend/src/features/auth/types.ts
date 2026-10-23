@@ -10,7 +10,7 @@ export interface User {
   comment_karma: number;
 }
 
+/** The refresh token never reaches page scripts: the server sets it as an HttpOnly cookie. */
 export interface AuthTokens {
   access: string;
-  refresh: string;
 }

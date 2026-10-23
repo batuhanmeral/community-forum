@@ -52,10 +52,15 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "post", "created_at", "updated_at", "edited_at")
 
     def get_author(self, obj: Comment):
-        return None if obj.deleted_at is not None else obj.author_id
+        if obj.deleted_at is not None or not obj.author.is_active:
+            return None
+        return obj.author_id
 
     def get_author_username(self, obj: Comment):
-        return None if obj.deleted_at is not None else obj.author.username
+        # Removed content and deleted accounts both show as "[deleted]".
+        if obj.deleted_at is not None or not obj.author.is_active:
+            return None
+        return obj.author.username
 
     def get_body_html(self, obj: Comment) -> str:
         return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"

@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { authFailure, authStart, setTokens, setUser } from '@/features/auth/authSlice';
+import { authFailure, authStart, setAccessToken, setUser } from '@/features/auth/authSlice';
 import { fetchMe, login, register } from '@/api/auth';
+import { withAuthLock } from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AuthShell } from './LoginPage';
@@ -38,8 +39,10 @@ export function RegisterPage() {
     dispatch(authStart());
     try {
       await register({ username, email, password });
-      const tokens = await login({ username, password });
-      dispatch(setTokens(tokens));
+      await withAuthLock(async () => {
+        const tokens = await login({ username, password });
+        dispatch(setAccessToken(tokens.access));
+      });
       const me = await fetchMe();
       dispatch(setUser(me));
       navigate('/', { replace: true });

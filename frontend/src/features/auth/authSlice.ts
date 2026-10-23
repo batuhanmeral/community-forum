@@ -1,27 +1,34 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { AuthTokens, User } from './types';
+import type { User } from './types';
 import { jwtUserId } from './jwt';
 
-export const ACCESS_KEY = 'nexus.access';
-export const REFRESH_KEY = 'nexus.refresh';
+/** Non-secret marker (the user id) telling every tab a session exists; the refresh token is an HttpOnly cookie. */
+export const SESSION_KEY = 'nexus.session';
+// Tokens older builds kept in localStorage; dropped so a stale refresh token doesn't linger there.
+const LEGACY_TOKEN_KEYS = ['nexus.access', 'nexus.refresh'];
 
-export function readStoredTokens(): { access: string | null; refresh: string | null } {
-  return { access: localStorage.getItem(ACCESS_KEY), refresh: localStorage.getItem(REFRESH_KEY) };
+export function readSessionUserId(): string | null {
+  return localStorage.getItem(SESSION_KEY);
 }
+
+LEGACY_TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
 
 interface AuthState {
   user: User | null;
+  /** Kept in memory only; restored from the refresh cookie on load. */
   accessToken: string | null;
-  refreshToken: string | null;
+  sessionUserId: string | null;
   status: 'idle' | 'loading' | 'authenticated' | 'error';
   error: string | null;
 }
 
+const storedSession = readSessionUserId();
+
 const initialState: AuthState = {
   user: null,
-  accessToken: localStorage.getItem(ACCESS_KEY),
-  refreshToken: localStorage.getItem(REFRESH_KEY),
-  status: localStorage.getItem(ACCESS_KEY) ? 'authenticated' : 'idle',
+  accessToken: null,
+  sessionUserId: storedSession,
+  status: storedSession ? 'authenticated' : 'idle',
   error: null,
 };
 
@@ -37,23 +44,20 @@ const authSlice = createSlice({
       state.status = 'error';
       state.error = action.payload;
     },
-    setTokens(state, action: PayloadAction<AuthTokens>) {
-      state.accessToken = action.payload.access;
-      state.refreshToken = action.payload.refresh;
-      localStorage.setItem(ACCESS_KEY, action.payload.access);
-      localStorage.setItem(REFRESH_KEY, action.payload.refresh);
-    },
     setAccessToken(state, action: PayloadAction<string>) {
+      const userId = jwtUserId(action.payload);
+      if (state.user && String(state.user.id) !== userId) state.user = null;
       state.accessToken = action.payload;
-      localStorage.setItem(ACCESS_KEY, action.payload);
+      state.sessionUserId = userId;
+      state.status = 'authenticated';
+      if (userId) localStorage.setItem(SESSION_KEY, userId);
     },
-    // State only: the tokens are already in localStorage, written by another tab.
-    syncFromStorage(state, action: PayloadAction<AuthTokens>) {
-      if (state.user && jwtUserId(action.payload.access) !== String(state.user.id)) {
-        state.user = null;
-      }
-      state.accessToken = action.payload.access;
-      state.refreshToken = action.payload.refresh;
+    // Another tab signed in as someone else: drop this tab's account; the next request restores the new one.
+    sessionChanged(state, action: PayloadAction<string>) {
+      state.user = null;
+      state.accessToken = null;
+      state.sessionUserId = action.payload;
+      state.status = 'authenticated';
     },
     setUser(state, action: PayloadAction<User>) {
       state.user = action.payload;
@@ -63,22 +67,14 @@ const authSlice = createSlice({
     logout(state) {
       state.user = null;
       state.accessToken = null;
-      state.refreshToken = null;
+      state.sessionUserId = null;
       state.status = 'idle';
       state.error = null;
-      localStorage.removeItem(ACCESS_KEY);
-      localStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(SESSION_KEY);
     },
   },
 });
 
-export const {
-  authStart,
-  authFailure,
-  setTokens,
-  setAccessToken,
-  syncFromStorage,
-  setUser,
-  logout,
-} = authSlice.actions;
+export const { authStart, authFailure, setAccessToken, sessionChanged, setUser, logout } =
+  authSlice.actions;
 export default authSlice.reducer;
