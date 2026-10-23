@@ -189,28 +189,35 @@ export function CommunityDetailPage() {
       <Card padded={false} className="overflow-hidden">
         <div className="h-24 w-full bg-[var(--color-bg-3)]" />
         <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="-mt-12">
-              <Avatar
-                src={community.avatar}
-                alt={community.name}
-                size="lg"
-                className="ring-4 ring-[var(--color-surface)]"
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight">{community.name}</h1>
-                {community.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
+          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:gap-6">
+            <div className="flex shrink-0 items-start gap-4">
+              <div className="-mt-12">
+                <Avatar
+                  src={community.avatar}
+                  alt={community.name}
+                  size="lg"
+                  className="ring-4 ring-[var(--color-surface)]"
+                />
               </div>
-              <p className="text-sm text-[var(--color-text-muted)]">c/{community.slug}</p>
-              <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
-                {t('rightbar.members', {
-                  count: community.member_count,
-                  formatted: community.member_count.toLocaleString(),
-                })}
-              </p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-bold tracking-tight">{community.name}</h1>
+                  {community.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
+                </div>
+                <p className="text-sm text-[var(--color-text-muted)]">c/{community.slug}</p>
+                <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
+                  {t('rightbar.members', {
+                    count: community.member_count,
+                    formatted: community.member_count.toLocaleString(),
+                  })}
+                </p>
+              </div>
             </div>
+            {community.description && (
+              <p className="min-w-0 flex-1 text-sm text-[var(--color-text-muted)] whitespace-pre-wrap sm:border-l sm:border-[var(--color-border)] sm:pl-6">
+                {community.description}
+              </p>
+            )}
           </div>
 
           {isAuthed && (
@@ -243,14 +250,6 @@ export function CommunityDetailPage() {
       </Card>
 
       <div className="flex flex-col gap-3">
-        {community.description && (
-          <Card>
-            <p className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap">
-              {community.description}
-            </p>
-          </Card>
-        )}
-
         {rules.length > 0 && (
           <Card>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
