@@ -41,7 +41,7 @@ export function TimeRangeSelect({ value, onChange }: TimeRangeSelectProps) {
         aria-expanded={open}
         aria-label={`${t('timeRange.label')}: ${t(`timeRange.${value}`)}`}
         className={cn(
-          'inline-flex h-full items-center gap-1.5 rounded-[var(--radius-control)] border px-3 text-[13px] font-medium transition',
+          'inline-flex h-full min-h-10 items-center gap-1.5 rounded-[var(--radius-control)] border px-3 text-[13px] font-medium transition',
           value === 'all'
             ? 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
             : 'border-[var(--color-link-border)] bg-[var(--color-link-dim)] text-[var(--color-link)]',
