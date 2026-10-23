@@ -41,6 +41,11 @@ const searchIcon = (
   <Search className="h-4 w-4" />
 );
 
+// An "N" drawn as connected nodes; shared with the favicon.
+const logoMark = (
+  <img src="/logo.svg" alt="" className="h-7 w-7" />
+);
+
 export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpenMenu }: NavbarProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
@@ -162,8 +167,9 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
           </button>
         )}
 
-        <Link to="/" className="flex shrink-0 items-center font-semibold tracking-tight">
-          <span className="text-lg">{APP_NAME}</span>
+        <Link to="/" aria-label={APP_NAME} className="flex shrink-0 items-center gap-2">
+          {logoMark}
+          <span className="text-[17px] font-extrabold uppercase tracking-[0.12em] max-[480px]:hidden">{APP_NAME}</span>
         </Link>
 
         <SearchForm
