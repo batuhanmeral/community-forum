@@ -304,7 +304,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
       {loading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-1)]" />
+            <div key={i} className="h-28 animate-pulse rounded-[var(--radius-card)] border border-[var(--color-border-strong)] bg-[var(--color-bg-1)]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (

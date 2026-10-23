@@ -30,8 +30,8 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
   return (
     <article
       className={cn(
-        'group relative mb-2 rounded-2xl border border-transparent px-3 py-2.5 transition-colors duration-150 hover:border-[var(--color-border)] hover:bg-[var(--color-bg-1)]',
-        isPinned && 'border-[var(--color-link-border)] bg-[var(--color-link)]/[0.03]',
+        'group relative mb-3 rounded-[var(--radius-card)] border bg-[var(--color-bg-1)] px-4 py-3 transition-colors duration-150 hover:border-[var(--color-link)]',
+        isPinned ? 'border-[var(--color-link-border)]' : 'border-[var(--color-border-strong)]',
       )}
     >
       <div>
@@ -91,7 +91,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {/* The ::after overlay makes the whole card clickable without nesting links */}
           <Link
             to={`/posts/${post.id}`}
-            className="outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-link)]"
+            className="outline-none after:absolute after:inset-0 after:rounded-[var(--radius-card)] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-link)]"
           >
             {post.title}
           </Link>
