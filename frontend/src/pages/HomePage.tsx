@@ -172,12 +172,11 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
       <div className="mb-[18px] flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
           <span>{headerTitle}</span>
-          <span className="font-mono text-[14px] font-normal text-[var(--color-text-dim)]">
-            / {t(`feed.slug_${variant === 'home' ? feedKind : variant}`)}
-            {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0
-              ? ` · ${t('feed.communityCount', { count: memberCount })}`
-              : ''}
-          </span>
+          {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0 && (
+            <span className="text-[14px] font-normal text-[var(--color-text-dim)]">
+              {t('feed.communityCount', { count: memberCount })}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

@@ -105,7 +105,7 @@ describe('HomePage joined communities subtitle', () => {
       results: [joined],
     });
     renderAuthed();
-    expect(await screen.findByText(/· 37 communities/)).toBeInTheDocument();
+    expect(await screen.findByText('37 communities')).toBeInTheDocument();
     expect(communities.listCommunities).toHaveBeenCalledWith(
       expect.objectContaining({ joined: true }),
     );
@@ -140,7 +140,7 @@ describe('HomePage in Turkish', () => {
   it('renders no English in Turkish for the empty personal feed', async () => {
     await i18n.changeLanguage('tr');
     renderHome();
-    await screen.findByText(/· 3 topluluk/);
+    await screen.findByText('3 topluluk');
     await waitFor(() => expect(posts.listFeed).toHaveBeenCalled());
     expect(await screen.findByText(/Akışın boş/)).toBeInTheDocument();
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
@@ -196,5 +196,22 @@ describe('HomePage title', () => {
     unmount();
     renderHome({ authed: false, variant: 'all' });
     await waitFor(() => expect(document.title).toBe('All posts · Nexus'));
+  });
+});
+
+describe('HomePage heading', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    communities.listCommunities.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    posts.listFeed.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+
+  it('shows no slash route suffix on any variant', async () => {
+    for (const variant of ['home', 'popular', 'all'] as const) {
+      const { unmount } = renderHome({ authed: false, variant });
+      await waitFor(() => expect(posts.listFeed).toHaveBeenCalled());
+      expect(visibleText()).not.toMatch(/\/ (home|popular|all)\b/);
+      unmount();
+    }
   });
 });
