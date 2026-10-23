@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -14,12 +15,14 @@ from django.db.models import (
 from django.db.models.functions import Abs, Cast, Coalesce, Extract, Greatest, Log, Sign
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.markdown import render_markdown
+from apps.common.text_match import html_text, link_targets, url_forms
 from apps.common.throttling import WriteThrottleMixin
 from apps.common.viewer import viewer_prefetches
 from apps.communities.models import Community
@@ -117,14 +120,31 @@ def _visible_post(user, pk) -> Post:
 REAPPROVAL_FIELDS = ("title", "body", "url")
 
 
+def _edit_markers(post: Post) -> tuple:
+    # Any change here bumps `edited_at`, which is what a moderator's approval snapshot pins.
+    return (post.title, post.body, post.url, post.image.name if post.image else "", post.is_nsfw)
+
+
+def _automod_texts(title: str, body: str, url: str, body_html: str | None = None) -> tuple:
+    # Rendered text catches entity and inline-markup tricks the raw markdown hides.
+    rendered = render_markdown(body) if body_html is None else body_html
+    return (title, body, html_text(rendered), *link_targets(rendered), *url_forms(url))
+
+
 def _edit_hold_reason(post: Post, validated_data: dict) -> str | None:
     # Banned moderators are not moderators (active_membership), but banned users can't edit anyway.
     if not post.is_approved or is_moderator(post.author, post.community):
         return None
     # Only newly added keywords count: a post a mod approved with a keyword must survive typo fixes.
-    keyword = post.community.banned_keyword_added(
-        (post.title, post.body),
-        (validated_data.get("title", post.title), validated_data.get("body", post.body)),
+    new_body = validated_data.get("body", post.body)
+    keyword = post.community.banned_keyword_list() and post.community.banned_keyword_added(
+        _automod_texts(post.title, post.body, post.url, post.body_html),
+        _automod_texts(
+            validated_data.get("title", post.title),
+            new_body,
+            validated_data.get("url", post.url),
+            post.body_html if new_body == post.body else None,
+        ),
     )
     if keyword:
         return f"matched keyword on edit: {keyword}"
@@ -136,7 +156,9 @@ def _edit_hold_reason(post: Post, validated_data: dict) -> str | None:
     )
     # An upload, or clearing an existing image, is a change; an absent key is not.
     image_changed = "image" in validated_data and bool(validated_data["image"] or post.image)
-    if changed or image_changed:
+    # Dropping the NSFW flag changes how the post is shown, so a mod re-checks it.
+    nsfw_dropped = post.is_nsfw and validated_data.get("is_nsfw") is False
+    if changed or image_changed or nsfw_dropped:
         return "edited after approval"
     return None
 
@@ -179,10 +201,12 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
         is_approved = not community.requires_approval or author_is_mod
         # AutoMod: hold posts matching a banned keyword (mods bypass).
         matched_kw = None
-        if is_approved and not author_is_mod:
+        if is_approved and not author_is_mod and community.banned_keyword_list():
+            data = serializer.validated_data
+            poll_options = (data.get("poll_input") or {}).get("options", [])
             matched_kw = community.matches_banned_keyword(
-                serializer.validated_data.get("title", ""),
-                serializer.validated_data.get("body", ""),
+                *_automod_texts(data.get("title", ""), data.get("body", ""), data.get("url", "")),
+                *poll_options,
             )
             if matched_kw:
                 is_approved = False
@@ -280,8 +304,10 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
                 "is_pinned",
                 "title",
                 "body",
+                "body_html",
                 "url",
                 "image",
+                "is_nsfw",
                 "flair_id",
             )
             .get()
@@ -293,6 +319,7 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
         if instance.deleted_at is not None:
             raise ValidationError("Deleted posts cannot be edited.")
         old_title, old_body = instance.title, instance.body
+        old_markers = _edit_markers(instance)
         reason = _edit_hold_reason(instance, serializer.validated_data)
         # One write carries the hold, so no reader or racing edit ever sees the held edit approved.
         hold = {"is_approved": False, "is_pinned": False} if reason else {}
@@ -306,12 +333,13 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
             PostRevision.objects.create(
                 post=post, title=old_title, body=old_body, edited_by=self.request.user
             )
-            post.edited_at = timezone.now()
-            post.save(update_fields=["edited_at"])
             if post.is_approved:
                 from apps.comments.views import notify_mentions
 
                 notify_mentions(post.body, actor=self.request.user, target=post)
+        if _edit_markers(post) != old_markers:
+            post.edited_at = timezone.now()
+            post.save(update_fields=["edited_at"])
         if reason:
             log_mod_action(
                 post.community,
@@ -363,8 +391,14 @@ class PostStickyView(APIView):
             raise ValidationError(
                 f"Sticky limit reached ({MAX_STICKY_PER_COMMUNITY} per community)."
             )
-        post.is_pinned = True
-        post.save(update_fields=["is_pinned"])
+        # Conditional UPDATE: a hold or removal racing this click must not end up pinned.
+        pinned = Post.objects.filter(
+            pk=post.pk, is_approved=True, deleted_at__isnull=True, is_pinned=False
+        ).update(is_pinned=True)
+        if not pinned:
+            if Post.objects.filter(pk=post.pk, is_pinned=True).exists():
+                return Response({"is_pinned": True}, status=status.HTTP_200_OK)
+            raise ValidationError("Only visible posts can be pinned.")
         log_mod_action(
             post.community, actor=request.user, action=ModAction.Action.POST_PIN, target=post
         )
@@ -425,9 +459,14 @@ class PostApprovalView(APIView):
         post = self._get(pk)
         self._require_mod(request, post)
         # Conditional UPDATE: of two racing approvals only one changes the row and reports it.
-        approved = Post.objects.filter(
-            pk=post.pk, is_approved=False, deleted_at__isnull=True
-        ).update(is_approved=True)
+        pending = Post.objects.filter(pk=post.pk, is_approved=False, deleted_at__isnull=True)
+        if isinstance(request.data, Mapping) and "edited_at" in request.data:
+            # The version the moderator saw: an edit made after it must not ride on this click.
+            seen = serializers.DateTimeField(allow_null=True).run_validation(
+                request.data["edited_at"]
+            )
+            pending = pending.filter(edited_at=seen) if seen else pending.filter(edited_at=None)
+        approved = pending.update(is_approved=True)
         if approved:
             log_mod_action(
                 post.community,
@@ -446,6 +485,11 @@ class PostApprovalView(APIView):
         if state is None:
             # Hard-deleted meanwhile: answer exactly as for an id that never existed.
             get_object_or_404(Post.objects.none(), pk=pk)
+        if not state["is_approved"] and state["deleted_at"] is None:
+            return Response(
+                {"detail": "This post was edited after you loaded it."},
+                status=status.HTTP_409_CONFLICT,
+            )
         return Response(
             {"is_approved": state["is_approved"], "deleted": state["deleted_at"] is not None}
         )

@@ -109,8 +109,9 @@ export async function listApprovalQueue(slug: string, page = 1): Promise<Paginat
   return res.data;
 }
 
-export async function approvePost(id: number): Promise<void> {
-  await api.post(`/posts/${id}/approve/`);
+// `editedAt` is the version the moderator saw; the server answers 409 if the post changed since.
+export async function approvePost(id: number, editedAt: string | null): Promise<void> {
+  await api.post(`/posts/${id}/approve/`, { edited_at: editedAt });
 }
 
 export async function rejectPost(id: number): Promise<void> {

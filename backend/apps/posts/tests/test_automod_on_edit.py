@@ -1,8 +1,10 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.communities.models import Community, Membership
@@ -109,3 +111,64 @@ class TestAutoModOnEdit:
         # The edit runs in one transaction, so the keyword and its hold stand or fall together.
         stored = Post.objects.get(pk=post.pk)
         assert (stored.body, stored.is_approved) == ("", True)
+
+
+@pytest.mark.django_db
+class TestAutoModCoverage:
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"title": "hi", "body": "s.p.a.m.m.y offer"},
+            {"title": "hi", "body": "sp&#97;mmy"},
+            {"title": "ＳＰＡＭＭＹ"},
+            {"title": "hi", "kind": "link", "url": "https://spammy.example"},
+            {"title": "hi", "kind": "link", "url": "https://xn--spmmy-hra.example"},
+            {"title": "hi", "body": "[click](https://sp&#97;mmy.example)"},
+            {"title": "hi", "body": "[click](https://%73pammy.example)"},
+        ],
+    )
+    def test_create_holds_disguised_keywords(self, api, author, community, payload):
+        api.force_authenticate(author)
+        resp = api.post(list_url(community.slug), payload, format="json")
+        assert resp.status_code == 201, resp.data
+        assert Post.objects.get(pk=resp.data["id"]).is_approved is False
+
+    def test_create_holds_keyword_in_poll_option(self, api, author, community):
+        api.force_authenticate(author)
+        closes_at = (timezone.now() + timedelta(days=1)).isoformat()
+        resp = api.post(
+            list_url(community.slug),
+            {
+                "title": "vote",
+                "kind": "poll",
+                "poll_input": {"options": ["fine", "Spammy deal"], "closes_at": closes_at},
+            },
+            format="json",
+        )
+        assert resp.status_code == 201, resp.data
+        assert Post.objects.get(pk=resp.data["id"]).is_approved is False
+
+    def test_clean_post_stays_visible(self, api, author, community):
+        api.force_authenticate(author)
+        resp = api.post(
+            list_url(community.slug), {"title": "hello", "body": "spa mmy"}, format="json"
+        )
+        assert Post.objects.get(pk=resp.data["id"]).is_approved is True
+
+    def test_edit_adding_a_disguised_keyword_holds(self, api, author, community):
+        post = Post.objects.create(author=author, community=community, title="hello")
+        _edit(api, author, post, body="**spam**my")
+        post.refresh_from_db()
+        assert post.is_approved is False
+
+    def test_edit_changing_url_to_keyword_holds(self, api, author, community):
+        post = Post.objects.create(
+            author=author,
+            community=community,
+            title="hello",
+            kind=Post.Kind.LINK,
+            url="https://ok.example",
+        )
+        _edit(api, author, post, url="https://spammy.example")
+        post.refresh_from_db()
+        assert post.is_approved is False

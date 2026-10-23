@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { approvePost, listApprovalQueue, rejectPost } from '@/api/posts';
@@ -6,23 +7,30 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { usePagedList } from '@/lib/usePagedList';
 import { timeAgo } from '@/lib/time';
+import type { Post } from '@/features/posts/types';
 
 export function ApprovalQueueCard({ slug }: { slug: string }) {
   const { t } = useTranslation();
   const fetchPage = useCallback((page: number) => listApprovalQueue(slug, page), [slug]);
-  const { items, loading, loadFailed, nextPage, loadMore, loadMoreFailed, remove } = usePagedList(fetchPage);
+  const { items, loading, loadFailed, nextPage, loadMore, loadMoreFailed, remove, reload } =
+    usePagedList(fetchPage);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function act(id: number, kind: 'approve' | 'reject') {
-    setBusyId(id);
+  async function act(post: Post, kind: 'approve' | 'reject') {
+    setBusyId(post.id);
     setError(null);
     try {
-      if (kind === 'approve') await approvePost(id);
-      else await rejectPost(id);
-      remove(id);
-    } catch {
-      setError(t('mod.actionFailed'));
+      if (kind === 'approve') await approvePost(post.id, post.edited_at);
+      else await rejectPost(post.id);
+      remove(post.id);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setError(t('mod.approvalStale'));
+        reload();
+      } else {
+        setError(t('mod.actionFailed'));
+      }
     } finally {
       setBusyId(null);
     }
@@ -62,11 +70,11 @@ export function ApprovalQueueCard({ slug }: { slug: string }) {
                   variant="secondary"
                   size="sm"
                   loading={busyId === post.id}
-                  onClick={() => act(post.id, 'reject')}
+                  onClick={() => act(post, 'reject')}
                 >
                   {t('mod.reject')}
                 </Button>
-                <Button size="sm" loading={busyId === post.id} onClick={() => act(post.id, 'approve')}>
+                <Button size="sm" loading={busyId === post.id} onClick={() => act(post, 'approve')}>
                   {t('mod.approve')}
                 </Button>
               </div>

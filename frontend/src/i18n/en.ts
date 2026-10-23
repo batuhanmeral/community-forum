@@ -271,6 +271,7 @@ export const en = {
     loadMoreFailed: 'Could not load more.',
     loadFailed: 'Could not load this list. Try again later.',
     actionFailed: 'Action failed. Try again.',
+    approvalStale: 'This post was edited after you loaded it. Review the new version before approving.',
     reportsTitle: 'Report queue',
     reportsEmpty: 'No reports with this status.',
     status_open: 'Open',
