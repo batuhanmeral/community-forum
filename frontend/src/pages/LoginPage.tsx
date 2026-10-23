@@ -7,7 +7,7 @@ import { authFailure, authStart, setTokens, setUser } from '@/features/auth/auth
 import { fetchMe, login } from '@/api/auth';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { APP_NAME, PageTitle } from '@/components/ui/PageTitle';
+import { PageTitle } from '@/components/ui/PageTitle';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -93,12 +93,6 @@ export function AuthShell({ title, subtitle, children }: ShellProps) {
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-12">
       <PageTitle title={title} />
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--color-link)] text-[var(--color-on-link)] font-black">
-            N
-          </span>
-          <span className="text-xl font-bold lowercase tracking-tight">{APP_NAME}</span>
-        </Link>
         <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7">
           <h1 className="text-2xl font-bold">{title}</h1>
           {subtitle && (

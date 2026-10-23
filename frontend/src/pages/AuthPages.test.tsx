@@ -51,3 +51,13 @@ describe('auth and fallback pages', () => {
     await waitFor(() => expect(document.title).toBe(tr));
   });
 });
+
+describe('auth shell', () => {
+  it.each([
+    ['login', <LoginPage />],
+    ['register', <RegisterPage />],
+  ])('%s shows no brand block above the form', (_name, element) => {
+    const { container } = renderPage(element);
+    expect(container.querySelector('a[href="/"]')).toBeNull();
+  });
+});
