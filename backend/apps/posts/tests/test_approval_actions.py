@@ -114,3 +114,50 @@ class TestApprovalActions:
         missing = api.post(approve_url(999_999))
         assert resp.status_code == missing.status_code == 404
         assert str(resp.data) == str(missing.data)
+
+    def test_approve_with_matching_snapshot_publishes(self, api, author, community):
+        post = _held(author, community)
+        resp = api.post(approve_url(post.pk), {"edited_at": None}, format="json")
+        assert resp.status_code == 200
+        assert Post.objects.get(pk=post.pk).is_approved is True
+
+    def test_approve_with_stale_snapshot_conflicts_and_keeps_post_held(
+        self, api, author, community
+    ):
+        post = _held(author, community)
+        seen = api.get(queue_url("gated")).data["results"][0]["edited_at"]
+        api.force_authenticate(author)
+        api.patch(
+            reverse("api_v1:posts:post-detail", args=[post.pk]), {"body": "new"}, format="json"
+        )
+        api.force_authenticate(community.creator)
+        resp = api.post(approve_url(post.pk), {"edited_at": seen}, format="json")
+        assert resp.status_code == 409
+        assert Post.objects.get(pk=post.pk).is_approved is False
+        assert ModAction.objects.filter(action=ModAction.Action.POST_APPROVE).count() == 0
+        fresh = api.get(queue_url("gated")).data["results"][0]["edited_at"]
+        assert (
+            api.post(approve_url(post.pk), {"edited_at": fresh}, format="json").status_code == 200
+        )
+
+    def test_approve_rejects_a_malformed_snapshot(self, api, author, community):
+        post = _held(author, community)
+        assert api.post(approve_url(post.pk), {"edited_at": "x"}, format="json").status_code == 400
+        assert Post.objects.get(pk=post.pk).is_approved is False
+
+    def test_unticking_nsfw_on_a_held_post_invalidates_the_snapshot(self, api, author, community):
+        post = Post.objects.create(
+            author=author, community=community, title="t", is_approved=False, is_nsfw=True
+        )
+        seen = api.get(queue_url("gated")).data["results"][0]["edited_at"]
+        api.force_authenticate(author)
+        api.patch(
+            reverse("api_v1:posts:post-detail", args=[post.pk]), {"is_nsfw": False}, format="json"
+        )
+        api.force_authenticate(community.creator)
+        assert api.post(approve_url(post.pk), {"edited_at": seen}, format="json").status_code == 409
+
+    def test_approve_with_a_non_object_body_is_not_a_server_error(self, api, author, community):
+        post = _held(author, community)
+        resp = api.post(approve_url(post.pk), ["edited_at"], format="json")
+        assert resp.status_code == 200

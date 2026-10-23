@@ -192,3 +192,26 @@ class TestReapprovalOnEdit:
         _client(owner).post(approve_url(approved_post.id))
         assert mentions.count() == 1
         assert mentions.get().actor == author
+
+    def test_dropping_nsfw_sends_post_back_to_queue(self, owner, author, gated):
+        post = Post.objects.create(
+            author=author, community=gated, title="t", is_approved=True, is_nsfw=True
+        )
+        resp = _client(author).patch(detail(post.id), {"is_nsfw": False}, format="json")
+        post.refresh_from_db()
+        assert resp.status_code == 200
+        assert post.is_approved is False and post.is_nsfw is False
+        assert post.id in _queue_ids(owner, "gated")
+
+    def test_url_edit_marks_post_edited(self, author, gated):
+        post = Post.objects.create(
+            author=author,
+            community=gated,
+            title="t",
+            kind=Post.Kind.LINK,
+            url="https://a.example",
+            is_approved=False,
+        )
+        _client(author).patch(detail(post.id), {"url": "https://b.example"}, format="json")
+        post.refresh_from_db()
+        assert post.edited_at is not None

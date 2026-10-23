@@ -55,3 +55,16 @@ class TestStickySlots:
         )
         assert api.post(sticky_url(removed.id)).status_code == 400
         assert api.post(sticky_url(pending.id)).status_code == 400
+
+    def test_pin_racing_a_hold_does_not_pin(self, api, owner, community):
+        from unittest.mock import patch
+
+        from apps.posts.views import PostStickyView
+
+        post = Post.objects.create(author=owner, community=community, title="t")
+        stale = Post.objects.get(pk=post.pk)
+        Post.objects.filter(pk=post.pk).update(is_approved=False)
+        with patch.object(PostStickyView, "_get_post", return_value=stale):
+            resp = api.post(sticky_url(post.id))
+        assert resp.status_code == 400
+        assert Post.objects.get(pk=post.pk).is_pinned is False
