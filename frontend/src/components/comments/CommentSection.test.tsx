@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/authSlice';
@@ -271,3 +271,34 @@ describe('CommentSection in Turkish', () => {
   });
 });
 
+
+function ProfileStub() {
+  const { username } = useParams();
+  return <p>profile of {username}</p>;
+}
+
+describe('CommentSection mention links', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('opens a mentioned profile inside the app', async () => {
+    listComments.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ ...comment(1), body_html: '<p><a href="/u/tim">@tim</a> hi</p>' }],
+    });
+    const store = configureStore({ reducer: { auth: authReducer } });
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/posts/1']}>
+          <Routes>
+            <Route path="/posts/:id" element={<CommentSection postId={1} isModerator={false} />} />
+            <Route path="/u/:username" element={<ProfileStub />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>,
+    );
+    await userEvent.click(await screen.findByRole('link', { name: '@tim' }));
+    expect(await screen.findByText('profile of tim')).toBeInTheDocument();
+  });
+});

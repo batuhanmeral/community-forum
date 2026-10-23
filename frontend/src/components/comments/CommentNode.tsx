@@ -15,6 +15,7 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { deletedBodyKey } from '@/lib/deletedBody';
+import { useInternalLinkClick } from '@/lib/useInternalLinkClick';
 
 interface CommentNodeProps {
   node: CommentWithChildren;
@@ -46,6 +47,7 @@ export function CommentNode({
   const canModify = isAuthor && !node.is_deleted;
   const canReport = isAuthed && !isAuthor && !node.is_deleted;
   const { t } = useTranslation();
+  const onBodyClick = useInternalLinkClick();
   const [historyOpen, setHistoryOpen] = useState(false);
   const loadRevisions = useCallback(
     (page: number) => listCommentRevisions(node.id, page),
@@ -117,6 +119,7 @@ export function CommentNode({
             ) : (
               <div
                 className="prose-nexus mt-1 text-sm text-[var(--color-text)]"
+                onClick={onBodyClick}
                 dangerouslySetInnerHTML={{ __html: node.body_html }}
               />
             )}

@@ -23,11 +23,13 @@ import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
+import { useInternalLinkClick } from '@/lib/useInternalLinkClick';
 
 export function PostDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const onBodyClick = useInternalLinkClick();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
 
@@ -206,6 +208,7 @@ export function PostDetailPage() {
             {post.kind === 'text' && !post.is_deleted && post.body_html && (
               <div
                 className="prose-nexus mt-3 text-sm text-[var(--color-text)]"
+                onClick={onBodyClick}
                 dangerouslySetInnerHTML={{ __html: post.body_html }}
               />
             )}
