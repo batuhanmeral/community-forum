@@ -4,6 +4,8 @@ from django.contrib.postgres.search import SearchVectorField
 from django.core.validators import RegexValidator
 from django.db import models
 
+from apps.common.text_match import normalize_for_match
+
 HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}\Z"
 DEFAULT_FLAIR_COLOR = "#888888"
 
@@ -36,23 +38,28 @@ class Community(models.Model):
     def banned_keyword_list(self) -> list[str]:
         return [kw.strip().lower() for kw in self.banned_keywords.splitlines() if kw.strip()]
 
+    def _normalized_keywords(self) -> list[tuple[str, str]]:
+        """(keyword as written, folded form) pairs; keywords that fold to nothing are skipped."""
+        pairs = [(kw, normalize_for_match(kw)) for kw in self.banned_keyword_list()]
+        return [(kw, folded) for kw, folded in pairs if folded]
+
     def matches_banned_keyword(self, *texts: str) -> str | None:
         """Return the first banned keyword found in any of the given texts, if any."""
-        keywords = self.banned_keyword_list()
+        keywords = self._normalized_keywords()
         if not keywords:
             return None
-        haystack = " ".join(t.lower() for t in texts if t)
-        for kw in keywords:
-            if kw in haystack:
+        haystack = normalize_for_match(" ".join(t for t in texts if t))
+        for kw, folded in keywords:
+            if folded in haystack:
                 return kw
         return None
 
     def banned_keyword_added(self, before: tuple[str, ...], after: tuple[str, ...]) -> str | None:
         """First banned keyword present in `after` but not in `before`."""
-        old = " ".join(t.lower() for t in before if t)
-        new = " ".join(t.lower() for t in after if t)
-        for kw in self.banned_keyword_list():
-            if kw in new and kw not in old:
+        old = normalize_for_match(" ".join(t for t in before if t))
+        new = normalize_for_match(" ".join(t for t in after if t))
+        for kw, folded in self._normalized_keywords():
+            if folded in new and folded not in old:
                 return kw
         return None
 
