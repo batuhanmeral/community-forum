@@ -19,6 +19,7 @@ import { PollCard } from '@/components/posts/PollCard';
 import { SaveButton } from '@/components/saves/SaveButton';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
+import { PendingPostActions } from '@/components/moderation/PendingPostActions';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
 import { userPath } from '@/lib/paths';
@@ -125,12 +126,22 @@ export function PostDetailPage() {
       <PageTitle title={post.title} />
       <Card>
         {!post.is_approved && !post.is_deleted && (
-          <p
+          <div
             role="status"
             className="mb-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text-soft)]"
           >
             {t('post.pendingApproval')}
-          </p>
+            {isMod && (
+              <PendingPostActions
+                post={post}
+                onSettled={() => {
+                  getPost(post.id)
+                    .then(setPost)
+                    .catch(() => setNotFound(true));
+                }}
+              />
+            )}
+          </div>
         )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-text-muted)]">
           <Link to={`/c/${post.community}`} className="font-semibold text-[var(--color-text)] hover:underline">

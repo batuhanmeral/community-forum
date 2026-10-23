@@ -2,6 +2,7 @@ import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { AxiosError, type AxiosResponse } from 'axios';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer, { setUser } from '@/features/auth/authSlice';
@@ -19,6 +20,8 @@ vi.mock('@/api/posts', () => ({
   setPostSticky: vi.fn(),
   updatePost: vi.fn(),
   listPostRevisions: vi.fn(),
+  approvePost: vi.fn(),
+  rejectPost: vi.fn(),
 }));
 vi.mock('@/api/communities', () => ({ getCommunity: vi.fn() }));
 vi.mock('@/api/comments', () => ({
@@ -308,5 +311,51 @@ describe('PostDetailPage action row', () => {
     const actions = (await screen.findByRole('button', { name: 'Edit' })).parentElement!;
     expect(actions).toHaveClass('flex-wrap');
     expect(actions.parentElement).toHaveClass('flex-wrap');
+  });
+});
+
+describe('PostDetailPage moderator approval', () => {
+  const held = { ...basePost, is_approved: false, edited_at: '2026-10-02T10:00:00.123456Z' } as Post;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'moderator' } as never);
+  });
+
+  it('approves the version on screen and shows the result', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValueOnce(held).mockResolvedValueOnce(basePost);
+    vi.mocked(postsApi.approvePost).mockResolvedValue();
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    expect(postsApi.approvePost).toHaveBeenCalledWith(5, '2026-10-02T10:00:00.123456Z');
+    await waitFor(() =>
+      expect(screen.queryByText(/awaiting moderator approval/i)).not.toBeInTheDocument(),
+    );
+  });
+
+  it('shows the newer version when the post changed meanwhile', async () => {
+    const newer = { ...held, title: 'Newer', edited_at: '2026-10-02T11:00:00Z' } as Post;
+    vi.mocked(postsApi.getPost).mockResolvedValueOnce(held).mockResolvedValueOnce(newer);
+    vi.mocked(postsApi.approvePost).mockRejectedValue(
+      new AxiosError('conflict', '409', undefined, undefined, { status: 409 } as AxiosResponse),
+    );
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    expect(await screen.findByText(/edited after you loaded it/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Newer' })).toBeInTheDocument();
+  });
+
+  it('hides moderator actions from the author', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: null } as never);
+    vi.mocked(postsApi.getPost).mockResolvedValue(held);
+    renderPage();
+    await screen.findByText(/awaiting moderator approval/i);
+    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
   });
 });

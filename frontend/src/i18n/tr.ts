@@ -275,6 +275,7 @@ export const tr: Translation = {
     loadMoreFailed: 'Daha fazlası yüklenemedi.',
     loadFailed: 'Bu liste yüklenemedi. Daha sonra tekrar dene.',
     actionFailed: 'İşlem başarısız oldu. Tekrar dene.',
+    approvalStale: 'Bu gönderi sen yükledikten sonra düzenlendi. Onaylamadan önce yeni sürümü incele.',
     reportsTitle: 'Rapor kuyruğu',
     reportsEmpty: 'Bu durumda rapor yok.',
     status_open: 'Açık',

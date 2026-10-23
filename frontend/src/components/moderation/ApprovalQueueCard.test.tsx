@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { AxiosError, type AxiosResponse } from 'axios';
 import type { Post } from '@/features/posts/types';
 import { ApprovalQueueCard } from './ApprovalQueueCard';
 import * as postsApi from '@/api/posts';
@@ -22,6 +23,7 @@ function held(id: number): Post {
     title: `held ${id}`,
     author_username: 'bob',
     created_at: '2026-10-01T00:00:00Z',
+    edited_at: null,
   } as unknown as Post;
 }
 
@@ -54,7 +56,7 @@ describe('ApprovalQueueCard', () => {
     renderCard();
     await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
     await waitFor(() => expect(screen.queryByText('held 1')).not.toBeInTheDocument());
-    expect(api.approvePost).toHaveBeenCalledWith(1);
+    expect(api.approvePost).toHaveBeenCalledWith(1, null);
   });
 
   it('removes a post once rejected', async () => {
@@ -70,6 +72,25 @@ describe('ApprovalQueueCard', () => {
     renderCard();
     await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
     expect(await screen.findByText('Action failed. Try again.')).toBeInTheDocument();
+    expect(screen.getByText('held 1')).toBeInTheDocument();
+  });
+
+  it('sends the version the moderator saw', async () => {
+    api.listApprovalQueue.mockResolvedValue(page([{ ...held(1), edited_at: '2026-10-02T10:00:00.123456Z' } as Post]));
+    api.approvePost.mockResolvedValue();
+    renderCard();
+    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    expect(api.approvePost).toHaveBeenCalledWith(1, '2026-10-02T10:00:00.123456Z');
+  });
+
+  it('reloads and explains when the post changed since it loaded', async () => {
+    api.approvePost.mockRejectedValue(new AxiosError('conflict', '409', undefined, undefined, {
+      status: 409,
+    } as AxiosResponse));
+    renderCard();
+    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    expect(await screen.findByText(/edited after you loaded it/)).toBeInTheDocument();
+    await waitFor(() => expect(api.listApprovalQueue).toHaveBeenCalledTimes(2));
     expect(screen.getByText('held 1')).toBeInTheDocument();
   });
 
