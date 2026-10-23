@@ -175,16 +175,15 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
       <PageTitle title={pageTitle} />
       {/* Feed header */}
       <div className="mb-[18px] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
-          <span>{headerTitle}</span>
-          {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0 && (
-            <span className="text-[14px] font-normal text-[var(--color-text-dim)]">
-              {t('feed.communityCount', { count: memberCount })}
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
+            <span>{headerTitle}</span>
+            {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0 && (
+              <span className="text-[14px] font-normal text-[var(--color-text-dim)]">
+                {t('feed.communityCount', { count: memberCount })}
+              </span>
+            )}
+          </div>
           {isAuthed && variant === 'home' && (
             <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
               {(['home', 'following'] as FeedKind[]).map((k) => (
@@ -204,7 +203,9 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
               ))}
             </div>
           )}
+        </div>
 
+        <div className="flex flex-wrap items-center gap-2">
           <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
 
           <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
