@@ -1,13 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer, { setUser } from '@/features/auth/authSlice';
+import authReducer, { logout, setUser } from '@/features/auth/authSlice';
 import membershipsReducer, { membershipsChanged } from '@/features/communities/membershipsSlice';
 import { Sidebar } from './Sidebar';
 import * as communitiesApi from '@/api/communities';
+import type { Community } from '@/features/communities/types';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/communities', () => ({ listCommunities: vi.fn() }));
 
@@ -69,5 +72,48 @@ describe('Sidebar joined communities', () => {
     });
 
     await waitFor(() => expect(communitiesApi.listCommunities).toHaveBeenCalledTimes(2));
+  });
+
+  it('ignores a joined-communities response after logout', async () => {
+    let resolve!: (page: { count: number; next: null; previous: null; results: Community[] }) => void;
+    vi.mocked(communitiesApi.listCommunities).mockReturnValue(new Promise((r) => (resolve = r)));
+    const store = renderSidebar();
+    await waitFor(() => expect(communitiesApi.listCommunities).toHaveBeenCalledTimes(1));
+    act(() => {
+      store.dispatch(logout());
+    });
+    const cats = { id: 7, slug: 'cats', member_count: 3 } as Community;
+    await act(async () => resolve({ count: 1, next: null, previous: null, results: [cats] }));
+    expect(document.querySelector('a[href="/c/cats"]')).toBeNull();
+  });
+
+  it('clears the joined communities on logout', async () => {
+    const cats = { id: 7, slug: 'cats', member_count: 3 } as Community;
+    vi.mocked(communitiesApi.listCommunities).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [cats],
+    });
+    const store = renderSidebar();
+    await waitFor(() => expect(document.querySelector('a[href="/c/cats"]')).not.toBeNull());
+    act(() => {
+      store.dispatch(logout());
+    });
+    expect(document.querySelector('a[href="/c/cats"]')).toBeNull();
+  });
+});
+
+describe('Sidebar in Turkish', () => {
+  const ENGLISH_PROBE = /\b(Home|Popular|All|Saved|Your feed|Communities|Browse all|Resources|Settings|Create account|New)\b/;
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish', async () => {
+    vi.mocked(communitiesApi.listCommunities).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    await i18n.changeLanguage('tr');
+    renderSidebar();
+    await waitFor(() => expect(communitiesApi.listCommunities).toHaveBeenCalled());
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 });

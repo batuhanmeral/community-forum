@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -11,6 +11,8 @@ import type { Post } from '@/features/posts/types';
 import { CommunityDetailPage } from './CommunityDetailPage';
 import * as communitiesApi from '@/api/communities';
 import * as postsApi from '@/api/posts';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/communities', () => ({
   getCommunity: vi.fn(),
@@ -139,7 +141,7 @@ describe('CommunityDetailPage membership state', () => {
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: 'Load more posts' }));
     expect(await screen.findByText('post 2')).toBeInTheDocument();
-    expect(postsApi.listCommunityPosts).toHaveBeenLastCalledWith('py', { sort: 'hot', page: 2 });
+    expect(postsApi.listCommunityPosts).toHaveBeenLastCalledWith('py', { sort: 'hot', t: 'all', page: 2 });
   });
 
   it('keeps the button and shows an error when loading more fails', async () => {
@@ -167,5 +169,83 @@ describe('CommunityDetailPage membership state', () => {
     resolveMore({ count: 2, next: null, previous: null, results: [post(2)] });
     await new Promise((r) => setTimeout(r, 0));
     expect(screen.queryByText('post 2')).not.toBeInTheDocument();
+  });
+});
+
+describe('CommunityDetailPage in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Loading|not found|doesn't exist|Browse communities|Mod tools|Joined|Join|members?|Community rules|Create post|No posts|Hot|New|Top|All updates|Posts only|Muted|Notification level|Load more)\b/;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(communitiesApi.listRules).mockResolvedValue([{ id: 1, short: 'Be kind', description: '', order: 1 }] as never);
+    vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish for a moderator who has joined', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({
+      ...baseCommunity,
+      is_member: true,
+      my_role: 'moderator',
+      my_notify_level: 'posts_only',
+    });
+    await i18n.changeLanguage('tr');
+    renderPage();
+    expect(await screen.findByText('Bu toplulukta henüz gönderi yok.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Bildirim düzeyi' }));
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders no English in Turkish for a visitor with more posts', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue(baseCommunity);
+    vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({ count: 1, next: 'p2', previous: null, results: [post(1)] });
+    await i18n.changeLanguage('tr');
+    renderPage();
+    await screen.findByText('post 1');
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders no English in Turkish for a missing community and while loading', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('404'));
+    await i18n.changeLanguage('tr');
+    renderPage();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+    expect(await screen.findByText('Topluluk bulunamadı')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+});
+
+describe('CommunityDetailPage title', () => {
+  it('sets the page title while the community is loading', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await waitFor(() => expect(document.title).toBe('Nexus'));
+  });
+
+  it('sets the page title to c/<slug>', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue(baseCommunity);
+    vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
+    vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    renderPage();
+    await waitFor(() => expect(document.title).toBe('c/py · Nexus'));
+  });
+});
+
+describe('CommunityDetailPage time range', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue(baseCommunity);
+    vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+
+  it('refetches posts for the chosen time range', async () => {
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Time range: All time' }));
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Past 24 hours' }));
+    await waitFor(() =>
+      expect(postsApi.listCommunityPosts).toHaveBeenLastCalledWith('py', { sort: 'hot', t: 'day' }),
+    );
   });
 });

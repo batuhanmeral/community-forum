@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommentForm } from './CommentForm';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/search', () => ({ searchUsers: vi.fn() }));
 
@@ -38,5 +40,17 @@ describe('CommentForm', () => {
       unmount();
       expect(vi.getTimerCount()).toBe(0);
     });
+  });
+});
+
+describe('CommentForm in Turkish', () => {
+  const ENGLISH_PROBE = /\b(Write a comment|Comment|Cancel)\b/;
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    render(<CommentForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 });

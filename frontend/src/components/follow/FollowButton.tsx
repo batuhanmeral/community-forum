@@ -1,5 +1,6 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { followUser, unfollowUser } from '@/api/follow';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
@@ -12,6 +13,7 @@ interface FollowButtonProps {
 }
 
 export function FollowButton({ username, initialFollowing, size = 'md', onChange }: FollowButtonProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const myUsername = useAppSelector((s) => s.auth.user?.username);
@@ -53,14 +55,14 @@ export function FollowButton({ username, initialFollowing, size = 'md', onChange
       onClick={handleClick}
       disabled={busy}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border font-semibold tracking-tight transition disabled:opacity-60',
+        'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border font-semibold tracking-tight transition disabled:opacity-60',
         heightCls,
         following
           ? 'border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]'
-          : 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[#061218] hover:opacity-90',
+          : 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:opacity-90',
       )}
     >
-      {following ? 'Following' : 'Follow'}
+      {following ? t('follow.following') : t('follow.follow')}
     </button>
   );
 }

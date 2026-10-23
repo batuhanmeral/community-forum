@@ -8,9 +8,14 @@ import type { Community } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import { membershipsChanged } from '@/features/communities/membershipsSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
+import { APP_NAME } from '@/components/ui/PageTitle';
+import { ArrowBigUp, ArrowRight, Plus } from 'lucide-react';
+
+const FOOTER_TEXT = `© 2026 ${APP_NAME} Forum · v0.1.0`;
 
 export function HomeRightSidebar() {
   const { t } = useTranslation();
@@ -32,7 +37,7 @@ export function HomeRightSidebar() {
   }, []);
 
   return (
-    <aside className="sticky top-[88px] hidden h-[calc(100vh-110px)] flex-col gap-3.5 overflow-y-auto pb-10 pl-1 pt-5 lg:flex">
+    <aside className="sticky top-[88px] flex h-[calc(100vh-110px)] flex-col gap-3.5 overflow-y-auto pb-10 pl-1 pt-5">
       {/* Trending */}
       <Card>
         <CardHead title={<><span className="live-dot" /> {t('rightbar.trendingNow')}</>} more="/popular" />
@@ -45,7 +50,7 @@ export function HomeRightSidebar() {
               to={`/posts/${p.id}`}
               className="flex gap-2.5 border-t border-[var(--color-border)] px-4 py-2.5 text-[12.5px] transition hover:bg-[var(--color-surface)]"
             >
-              <span className={cn('font-mono w-[16px] shrink-0 pt-0.5 text-[11px]', i < 3 ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-dim)]')}>
+              <span className={cn('font-mono w-[16px] shrink-0 pt-0.5 text-[11px]', i < 3 ? 'text-[var(--color-link)]' : 'text-[var(--color-text-dim)]')}>
                 {String(i + 1).padStart(2, '0')}
               </span>
               <div className="min-w-0 flex-1">
@@ -81,10 +86,10 @@ export function HomeRightSidebar() {
           {topUsers.map((u, i) => (
             <Link
               key={u.id}
-              to={`/u/${u.username}`}
+              to={userPath(u.username)}
               className="flex items-center gap-2.5 border-t border-[var(--color-border)] px-4 py-2 text-[12.5px] transition hover:bg-[var(--color-surface)]"
             >
-              <span className={cn('font-mono w-3 text-[10.5px]', i === 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-dim)]')}>
+              <span className={cn('font-mono w-3 text-[10.5px]', i === 0 ? 'text-[var(--color-link)]' : 'text-[var(--color-text-dim)]')}>
                 {i + 1}
               </span>
               <div className="min-w-0 flex-1">
@@ -93,7 +98,7 @@ export function HomeRightSidebar() {
                 </div>
               </div>
               <span className="font-mono text-[10.5px] text-[var(--color-text-dim)]">
-                ↑ {formatCount(u.total_karma)}
+                <span className="inline-flex items-center gap-0.5"><ArrowBigUp className="h-3 w-3" />{formatCount(u.total_karma)}</span>
               </span>
             </Link>
           ))}
@@ -105,12 +110,9 @@ export function HomeRightSidebar() {
         <div className="px-4 py-3.5">
           <Link
             to={isAuthed ? '/c/create' : '/register'}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent)] px-3.5 py-[7px] text-[12.5px] font-semibold text-[#061218]"
-            style={{ boxShadow: '0 4px 16px rgba(97, 218, 251, 0.28), inset 0 1px 0 rgba(255,255,255,0.4)' }}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-3.5 py-[7px] text-[12.5px] font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)] active:bg-[var(--color-accent-pressed)]"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-              <path d="M12 5v14m-7-7h14" />
-            </svg>
+            <Plus strokeWidth={2.2} className="h-[13px] w-[13px]" />
             {t('rightbar.createCommunity')}
           </Link>
         </div>
@@ -118,14 +120,13 @@ export function HomeRightSidebar() {
 
       {/* Footer */}
       <div className="px-3 pt-1 text-[10.5px] leading-[1.6] text-[var(--color-text-dim)]">
-        <div className="font-mono mt-1.5 text-[10px]">© 2026 Nexus Forum · v0.1.0</div>
+        <div className="font-mono mt-1.5 text-[10px]">{FOOTER_TEXT}</div>
       </div>
 
       <style>{`
         .live-dot {
           width: 5px; height: 5px; border-radius: 50%;
-          background: var(--color-accent);
-          box-shadow: 0 0 10px var(--color-accent-glow);
+          background: var(--color-link);
           animation: nexus-pulse 2s ease-in-out infinite;
           display: inline-block;
         }
@@ -136,7 +137,7 @@ export function HomeRightSidebar() {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-1)]">
+    <div className="shrink-0 overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-1)]">
       {children}
     </div>
   );
@@ -150,8 +151,9 @@ function CardHead({ title, more }: { title: React.ReactNode; more?: string }) {
         {title}
       </h3>
       {more && (
-        <Link to={more} className="text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)]">
+        <Link to={more} className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-dim)] hover:text-[var(--color-link)]">
           {t('rightbar.seeAll')}
+          <ArrowRight className="h-3 w-3" />
         </Link>
       )}
     </div>
@@ -191,15 +193,14 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
     >
       <span className="font-mono w-3 text-[10.5px] text-[var(--color-text-dim)]">{rank}</span>
       <span
-        className="grid h-6 w-6 place-items-center rounded-full border border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-accent)]"
-        style={{ background: 'linear-gradient(135deg, #2a3540, #1a2128)' }}
+        className="grid h-6 w-6 place-items-center rounded-[var(--radius-avatar)] border border-[var(--color-border)] bg-[var(--color-bg-3)] text-[11px] font-semibold text-[var(--color-link)]"
       >
         {community.slug[0]?.toUpperCase()}
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium text-[var(--color-text)]">c/{community.slug}</div>
         <div className="font-mono text-[10.5px] text-[var(--color-text-dim)]">
-          {formatCount(community.member_count)} {t('rightbar.members')}
+          {t('rightbar.members', { count: community.member_count, formatted: formatCount(community.member_count) })}
         </div>
       </div>
       {community.is_banned ? (
@@ -210,10 +211,10 @@ function CommunityRow({ community, rank }: { community: Community; rank: number 
         onClick={toggle}
         disabled={!isAuthed || busy}
         className={cn(
-          'rounded-full border px-2.5 py-[3px] text-[11px] font-medium transition disabled:opacity-60',
+          'rounded-[var(--radius-control)] border px-2.5 py-[3px] text-[11px] font-medium transition disabled:opacity-60',
           joined
             ? 'border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)]'
-            : 'border-[var(--color-border)] bg-[var(--color-bg-3)] text-[var(--color-text)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[#061218]',
+            : 'border-[var(--color-border)] bg-[var(--color-bg-3)] text-[var(--color-text)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)]',
         )}
       >
         {joined ? t('rightbar.joined') : t('rightbar.join')}

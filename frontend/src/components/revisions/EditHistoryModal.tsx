@@ -27,7 +27,7 @@ export function EditHistoryModal({ open, onClose, load }: EditHistoryModalProps)
 
 function RevisionList({ load }: { load: LoadRevisions }) {
   const { t } = useTranslation();
-  const { items, loading, loadFailed, nextPage, loadMore } = usePagedList(load);
+  const { items, loading, loadFailed, nextPage, loadMore, loadMoreFailed } = usePagedList(load);
 
   if (loading) return <p className="text-sm text-[var(--color-text-muted)]">{t('mod.loading')}</p>;
   if (loadFailed) return <p className="text-sm text-[var(--color-danger)]">{t('history.loadFailed')}</p>;
@@ -48,9 +48,12 @@ function RevisionList({ load }: { load: LoadRevisions }) {
         </article>
       ))}
       {nextPage !== null && (
-        <button type="button" onClick={loadMore} className="text-sm text-[var(--color-accent)] hover:underline">
+        <button type="button" onClick={loadMore} className="text-sm text-[var(--color-link)] hover:underline">
           {t('history.loadMore')}
         </button>
+      )}
+      {loadMoreFailed && (
+        <p className="text-sm text-[var(--color-danger)]">{t('history.loadMoreFailed')}</p>
       )}
     </div>
   );

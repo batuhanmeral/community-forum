@@ -164,8 +164,7 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
             )
         )
         sort = self.request.query_params.get("sort", "new")
-        if sort == "top":
-            qs = _apply_time_window(qs, self.request.query_params.get("t"))
+        qs = _apply_time_window(qs, self.request.query_params.get("t"))
         return _apply_sort(qs, sort)
 
     def get_serializer_context(self):
@@ -215,6 +214,9 @@ class UserPostListView(generics.ListAPIView):
     permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
+        # feed.py imports this module, so import it lazily.
+        from .feed import _apply_nsfw_filter
+
         author = get_object_or_404(User, username__iexact=self.kwargs["username"])
         qs = _annotate_score(
             _base_post_qs(
@@ -222,6 +224,8 @@ class UserPostListView(generics.ListAPIView):
                 user=self.request.user,
             )
         )
+        if self.request.user != author:
+            qs = _apply_nsfw_filter(qs, self.request)
         return _apply_sort(qs, self.request.query_params.get("sort", "new"))
 
 

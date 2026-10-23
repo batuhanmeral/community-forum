@@ -88,6 +88,22 @@ class TestSearchCommunities:
         resp = api.get(SEARCH, {"q": "python", "type": "community"})
         assert resp.data["results"][0]["member_count"] == community.memberships.count()
 
+    def test_community_search_hides_nsfw_communities(self, api, community):
+        Community.objects.create(
+            slug="pyadult", name="Python Adult", creator=community.creator, is_nsfw=True
+        )
+        resp = api.get(SEARCH, {"q": "python", "type": "community"})
+        assert [c["slug"] for c in resp.data["results"]] == ["python"]
+
+    def test_community_search_shows_nsfw_with_opt_in(self, community):
+        Community.objects.create(
+            slug="pyadult", name="Python Adult", creator=community.creator, is_nsfw=True
+        )
+        client = APIClient()
+        client.force_authenticate(community.creator)
+        resp = client.get(SEARCH, {"q": "python", "type": "community", "nsfw": "show"})
+        assert {c["slug"] for c in resp.data["results"]} == {"python", "pyadult"}
+
 
 @pytest.mark.django_db
 class TestSearchUsers:

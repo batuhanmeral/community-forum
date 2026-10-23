@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { ModPage } from './ModPage';
 import * as communitiesApi from '@/api/communities';
 import * as moderationApi from '@/api/moderation';
 import * as postsApi from '@/api/posts';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/communities', () => ({
   getCommunity: vi.fn(),
@@ -112,5 +114,56 @@ describe('ModPage', () => {
     await userEvent.type(input, 'spammer');
     await userEvent.click(screen.getByRole('button', { name: 'Ban user' }));
     await waitFor(() => expect(moderationApi.listBans).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('ModPage in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Moderator tools|Community settings|Display name|Description|Change icon|Mark community|Save settings|AutoMod keywords|Save keywords|Post flairs|Flairs help|Flair name|Add flair|Ban a member|Banned members can|Ban user|Manage moderators|Promote a member|Update role|Member|Moderator|Admin|Mod log|Every moderator|No mod actions|Loading|Load more|Cancel)\b/;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue(adminCommunity);
+    vi.mocked(communitiesApi.listFlairs).mockResolvedValue([]);
+    vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
+    vi.mocked(moderationApi.listModReports).mockResolvedValue(empty);
+    vi.mocked(moderationApi.listBans).mockResolvedValue(empty);
+    vi.mocked(postsApi.listApprovalQueue).mockResolvedValue(empty);
+  });
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    vi.mocked(moderationApi.listModLog).mockResolvedValue({
+      ...empty,
+      count: 1,
+      results: [
+        { id: 1, actor_username: null, action: 'automod_hold', target_type: 'post', object_id: 7, detail: '', created_at: '2026-10-01T00:00:00Z' },
+      ],
+    } as never);
+    vi.mocked(moderationApi.banUser).mockRejectedValue(new Error('network'));
+    renderPage();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+    await screen.findByText('Moderatör araçları');
+    await screen.findByText('bir gönderiyi incelemeye aldı');
+    await userEvent.type(document.querySelector<HTMLInputElement>('input[name="ban-username"]')!, 'spammer');
+    await userEvent.click(screen.getByRole('button', { name: 'Kullanıcıyı yasakla' }));
+    expect(await screen.findByText('Bu kullanıcı yasaklanamadı.')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders the access-denied card in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ ...adminCommunity, my_role: 'member' } as Community);
+    renderPage();
+    expect(await screen.findByText('Moderatör erişimi gerekli')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/\b(Moderator access|permissions|Back to community)\b/);
+  });
+
+  it('sets the page title', async () => {
+    vi.mocked(moderationApi.listModLog).mockResolvedValue(empty);
+    renderPage();
+    await waitFor(() => expect(document.title).toBe('Moderator tools · Nexus'));
   });
 });

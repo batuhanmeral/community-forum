@@ -31,7 +31,7 @@ export function RegisterPage() {
     setFieldErrors({});
 
     if (password !== confirm) {
-      setFieldErrors({ password: 'Passwords do not match.' });
+      setFieldErrors({ password: t('auth.passwordsMismatch') });
       return;
     }
 
@@ -53,7 +53,7 @@ export function RegisterPage() {
         else fe.non_field = msg;
       }
       setFieldErrors(fe);
-      dispatch(authFailure(fe.non_field ?? 'Registration failed.'));
+      dispatch(authFailure(fe.non_field ?? t('auth.registerFailed')));
     }
   }
 
@@ -108,7 +108,7 @@ export function RegisterPage() {
       </form>
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
         {t('auth.haveAccount')}{' '}
-        <Link to="/login" className="font-medium text-[var(--color-accent)] hover:underline">
+        <Link to="/login" className="font-medium text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
           {t('auth.loginInstead')}
         </Link>
       </p>

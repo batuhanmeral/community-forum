@@ -11,15 +11,20 @@ import {
 } from '@/api/messaging';
 import type { Conversation, Message } from '@/features/messaging/types';
 import { appendPage, mergeFirstPage } from '@/features/messaging/conversations';
+import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import type { RootState } from '@/app/store';
 import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { PageTitle } from '@/components/ui/PageTitle';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { usePolling } from '@/lib/usePolling';
+import { Check, CheckCheck, ChevronLeft } from 'lucide-react';
 
 const POLL_MS = 10_000;
 const CONVERSATIONS_POLL_MS = 30_000;
@@ -35,6 +40,7 @@ export function MessagesPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const { getState } = useStore<RootState>();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -109,30 +115,31 @@ export function MessagesPage() {
       return null;
     } catch (err) {
       const ax = err as AxiosError<{ username?: string[]; detail?: string }>;
-      return ax.response?.data?.username?.[0] ?? ax.response?.data?.detail ?? 'Could not start conversation.';
+      return ax.response?.data?.username?.[0] ?? ax.response?.data?.detail ?? t('messages.startFailed');
     }
   }
 
   return (
     <div className="grid h-[calc(100vh-128px)] grid-cols-[280px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
+      <PageTitle title={t('titles.messages')} />
       {/* Inbox */}
       <aside className={cn('flex min-h-0 flex-col border-r border-[var(--color-border)]', selected && 'max-[720px]:hidden')}>
         <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3.5">
-          <h2 className="text-[15px] font-semibold tracking-tight">Inbox</h2>
+          <h2 className="text-[15px] font-semibold tracking-tight">{t('messages.inbox')}</h2>
           <button
             type="button"
             onClick={() => setNewOpen(true)}
-            className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[#061218] transition hover:opacity-90"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[var(--color-on-accent)] transition hover:opacity-90"
           >
-            + New
+            {t('messages.newButton')}
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {convsLoading ? (
-            <p className="px-4 py-4 text-[13px] text-[var(--color-text-muted)]">Loading…</p>
+            <p className="px-4 py-4 text-[13px] text-[var(--color-text-muted)]">{t('common.loading')}</p>
           ) : conversations.length === 0 ? (
             <p className="px-4 py-4 text-[13px] text-[var(--color-text-muted)]">
-              No conversations yet.
+              {t('messages.empty')}
             </p>
           ) : (
             conversations.map((c) => (
@@ -178,21 +185,21 @@ export function MessagesPage() {
               setConversations((prev) =>
                 prev.map((c) => (c.id === selected.id ? { ...c, unread_count: 0 } : c)),
               );
-              void syncUnreadCounts(dispatch);
+              void syncUnreadCounts(dispatch, getState);
             }}
           />
         ) : (
           <div className="grid flex-1 place-items-center px-6 text-center">
             <div>
               <p className="text-sm text-[var(--color-text-muted)]">
-                Select a conversation to start chatting.
+                {t('messages.selectPrompt')}
               </p>
               <button
                 type="button"
                 onClick={() => setNewOpen(true)}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[#061218]"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-4 py-2 text-[13px] font-semibold text-[var(--color-on-accent)]"
               >
-                + Start a new conversation
+                {t('messages.startNew')}
               </button>
             </div>
           </div>
@@ -211,10 +218,15 @@ interface ConversationRowProps {
 }
 
 function ConversationRow({ conversation, active, currentUserId }: ConversationRowProps) {
+  const { t } = useTranslation();
   const other = conversation.other;
   const last = conversation.last_message;
   const isOwn = last?.sender === currentUserId;
-  const preview = last ? (isOwn ? `You: ${last.body}` : last.body) : 'No messages yet.';
+  const preview = last
+    ? isOwn
+      ? t('messages.ownPreview', { body: last.body })
+      : last.body
+    : t('messages.noMessagesPreview');
 
   return (
     <Link
@@ -237,7 +249,7 @@ function ConversationRow({ conversation, active, currentUserId }: ConversationRo
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-[12.5px] text-[var(--color-text-muted)]">{preview}</p>
           {conversation.unread_count > 0 && (
-            <span className="font-mono shrink-0 rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-bold text-[#061218]">
+            <span className="font-mono shrink-0 rounded-full bg-[var(--color-link)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-link)]">
               {conversation.unread_count}
             </span>
           )}
@@ -413,17 +425,15 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         <Link
           to="/messages"
           aria-label={t('messages.back')}
-          className="grid h-8 w-8 place-items-center rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-[721px]:hidden"
+          className="grid h-8 w-8 place-items-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-[721px]:hidden"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+          <ChevronLeft className="h-4 w-4" />
         </Link>
         <Avatar alt={other?.username} size="md" />
         <div className="min-w-0 flex-1">
           <Link
-            to={`/u/${other?.username}`}
-            className="text-[14px] font-semibold hover:text-[var(--color-accent)]"
+            to={userPath(other?.username ?? '')}
+            className="text-[14px] font-semibold hover:text-[var(--color-link)]"
           >
             u/{other?.username}
           </Link>
@@ -432,10 +442,10 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
 
       <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {loading ? (
-          <p className="text-sm text-[var(--color-text-muted)]">Loading messages…</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('messages.loadingMessages')}</p>
         ) : messages.length === 0 ? (
           <p className="text-center text-sm text-[var(--color-text-muted)]">
-            No messages yet. Say hi.
+            {t('messages.emptyChat')}
           </p>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -469,7 +479,7 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                     className={cn(
                       'max-w-[70%] rounded-2xl px-3.5 py-2 text-[14px] leading-snug whitespace-pre-wrap',
                       own
-                        ? 'bg-[var(--color-accent)] text-[#061218] rounded-br-md'
+                        ? 'bg-[var(--color-link)] text-[var(--color-on-link)] rounded-br-md'
                         : 'bg-[var(--color-bg-elevated)] text-[var(--color-text)] rounded-bl-md',
                     )}
                   >
@@ -477,13 +487,14 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
                     <div
                       className={cn(
                         'font-mono mt-1 flex items-center gap-1 text-[10px]',
-                        own ? 'justify-end text-[#061218]/60' : 'text-[var(--color-text-dim)]',
+                        own ? 'justify-end text-[var(--color-on-link)]/60' : 'text-[var(--color-text-dim)]',
                       )}
                     >
                       {timeAgo(m.created_at)}
                       {own && (
-                        <span title={m.read_at ? 'Read' : 'Sent'}>
-                          {m.read_at ? '✓✓' : '✓'}
+                        <span title={m.read_at ? t('messages.read') : t('messages.sent')}>
+                          {m.read_at ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                          <span className="sr-only">{m.read_at ? t('messages.read') : t('messages.sent')}</span>
                         </span>
                       )}
                     </div>
@@ -509,11 +520,11 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
-            placeholder={`Message u/${other?.username}…`}
-            className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            placeholder={t('messages.placeholder', { username: other?.username })}
+            className="max-h-32 flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2 text-[14px] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
           />
           <Button type="submit" size="md" loading={sending} disabled={!body.trim()}>
-            Send
+            {t('messages.send')}
           </Button>
         </form>
       )}
@@ -533,6 +544,7 @@ interface NewConvModalProps {
 }
 
 function NewConversationModal({ open, onClose, onSubmit }: NewConvModalProps) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -558,14 +570,14 @@ function NewConversationModal({ open, onClose, onSubmit }: NewConvModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="New conversation"
+      title={t('messages.newConversation')}
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="button" loading={busy} disabled={!username.trim()} onClick={handle}>
-            Start
+            {t('messages.start')}
           </Button>
         </>
       }
@@ -573,8 +585,8 @@ function NewConversationModal({ open, onClose, onSubmit }: NewConvModalProps) {
       <form onSubmit={handle} className="flex flex-col gap-3">
         <Input
           name="username"
-          label="Username"
-          placeholder="someone"
+          label={t('auth.username')}
+          placeholder={t('messages.usernamePlaceholder')}
           value={username}
           onChange={(e) => setUsername(e.target.value.replace(/^@/, ''))}
           error={error}

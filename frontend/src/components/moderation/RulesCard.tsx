@@ -5,6 +5,8 @@ import type { CommunityRule } from '@/features/communities/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
+import { fieldErrors } from '@/lib/apiErrors';
 
 const EMPTY_RULE: RulePayload = { short: '', description: '', order: 0 };
 const MAX_ORDER = 32767;
@@ -23,6 +25,8 @@ export function RulesCard({ slug }: { slug: string }) {
   const [form, setForm] = useState<RulePayload>(EMPTY_RULE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [pendingDelete, setPendingDelete] = useState<CommunityRule | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,12 +52,14 @@ export function RulesCard({ slug }: { slug: string }) {
   function resetForm() {
     setEditingId(null);
     setForm(EMPTY_RULE);
+    setErrors({});
   }
 
   function startEdit(rule: CommunityRule) {
     setEditingId(rule.id);
     setForm({ short: rule.short, description: rule.description, order: rule.order });
     setError(null);
+    setErrors({});
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -62,6 +68,7 @@ export function RulesCard({ slug }: { slug: string }) {
     if (!short || busy) return;
     setBusy(true);
     setError(null);
+    setErrors({});
     try {
       const payload = { ...form, short };
       if (editingId === null) {
@@ -72,8 +79,10 @@ export function RulesCard({ slug }: { slug: string }) {
         setRules((arr) => sortRules(arr.map((r) => (r.id === updated.id ? updated : r))));
       }
       resetForm();
-    } catch {
-      setError(t('mod.ruleSaveFailed'));
+    } catch (err) {
+      const fields = fieldErrors(err);
+      setErrors(fields);
+      if (!fields.short && !fields.description && !fields.order) setError(t('mod.ruleSaveFailed'));
     } finally {
       setBusy(false);
     }
@@ -88,6 +97,13 @@ export function RulesCard({ slug }: { slug: string }) {
     } catch {
       setError(t('mod.ruleSaveFailed'));
     }
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) return;
+    const { id } = pendingDelete;
+    setPendingDelete(null);
+    void handleDelete(id);
   }
 
   return (
@@ -116,10 +132,20 @@ export function RulesCard({ slug }: { slug: string }) {
                 )}
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button variant="secondary" size="sm" onClick={() => startEdit(rule)}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-label={t('mod.editRuleLabel', { rule: rule.short })}
+                  onClick={() => startEdit(rule)}
+                >
                   {t('mod.edit')}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(rule.id)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t('mod.deleteRuleLabel', { rule: rule.short })}
+                  onClick={() => setPendingDelete(rule)}
+                >
                   {t('mod.delete')}
                 </Button>
               </div>
@@ -133,6 +159,7 @@ export function RulesCard({ slug }: { slug: string }) {
           label={t('mod.ruleShort')}
           value={form.short}
           maxLength={100}
+          error={errors.short}
           onChange={(e) => setForm({ ...form, short: e.target.value })}
         />
         <div className="flex flex-col gap-1.5">
@@ -148,14 +175,21 @@ export function RulesCard({ slug }: { slug: string }) {
             maxLength={500}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+            aria-describedby={errors.description ? 'rule-description-error' : undefined}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
           />
+          {errors.description && (
+            <p id="rule-description-error" className="text-xs text-[var(--color-danger)]">
+              {errors.description}
+            </p>
+          )}
         </div>
         <Input
           name="rule-order"
           type="number"
           min={0}
           max={MAX_ORDER}
+          error={errors.order}
           label={t('mod.ruleOrder')}
           value={form.order}
           onChange={(e) => setForm({ ...form, order: Number(e.target.value) || 0 })}
@@ -172,6 +206,23 @@ export function RulesCard({ slug }: { slug: string }) {
         </div>
         {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
       </form>
+      <Modal
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title={pendingDelete?.short}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPendingDelete(null)}>
+              {t('mod.cancel')}
+            </Button>
+            <Button variant="danger" onClick={confirmDelete}>
+              {t('mod.delete')}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-[var(--color-text-muted)]">{t('mod.deleteRuleConfirm')}</p>
+      </Modal>
     </Card>
   );
 }

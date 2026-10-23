@@ -4,6 +4,7 @@ from html import escape
 import nh3
 from markdown_it import MarkdownIt
 from markdown_it.rules_block import table as _table_rule
+from markdown_it.token import Token
 
 # Tables pad short rows with empty cells; one document may only buy this many table tokens.
 MAX_TABLE_TOKENS = 30_000
@@ -14,6 +15,8 @@ MIN_HTML_LIMIT = 10_000
 MAX_RAW_TAGS_WITH_ATTRIBUTES = 32
 # Counts every start tag that is not a bare `<name>` / `<name />` (HTML whitespace only).
 _RAW_TAG_WITH_ATTRIBUTES = re.compile(r"<[A-Za-z](?![A-Za-z0-9]*[\t\n\f\r ]*/?>)")
+# Same charset as usernames; the lookbehind keeps emails like me@example.com out.
+MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([A-Za-z0-9_]{1,150})")
 
 
 def _bounded_table(state, start_line, end_line, silent):
@@ -27,6 +30,44 @@ def _bounded_table(state, start_line, end_line, silent):
     return matched
 
 
+def _text_token(content: str) -> Token:
+    token = Token("text", "", 0)
+    token.content = content
+    return token
+
+
+def _mention_tokens(text: str) -> list[Token]:
+    tokens, pos = [], 0
+    for match in MENTION_RE.finditer(text):
+        if match.start() > pos:
+            tokens.append(_text_token(text[pos : match.start()]))
+        link_open = Token("link_open", "a", 1)
+        link_open.attrSet("href", f"/u/{match.group(1)}")
+        tokens += [link_open, _text_token(match.group(0)), Token("link_close", "a", -1)]
+        pos = match.end()
+    if pos < len(text):
+        tokens.append(_text_token(text[pos:]))
+    return tokens
+
+
+def _link_mentions(state):
+    # Runs after text_join, so each text run is one token; code spans are not text tokens.
+    for block in state.tokens:
+        if block.type != "inline" or not block.children:
+            continue
+        children, link_depth = [], 0
+        for token in block.children:
+            if token.type == "link_open":
+                link_depth += 1
+            elif token.type == "link_close":
+                link_depth -= 1
+            if token.type == "text" and not link_depth and "@" in token.content:
+                children += _mention_tokens(token.content)
+            else:
+                children.append(token)
+        block.children = children
+
+
 def _parser(allow_raw_html: bool) -> MarkdownIt:
     # CommonMark parsing is linear in input size; Python-Markdown backtracked cubically.
     # Typographer stays off: its smart quotes are quadratic on quote runs.
@@ -37,6 +78,7 @@ def _parser(allow_raw_html: bool) -> MarkdownIt:
         .disable("reference")
     )
     md.block.ruler.at("table", _bounded_table, {"alt": ["paragraph", "reference"]})
+    md.core.ruler.push("mentions", _link_mentions)
     return md
 
 

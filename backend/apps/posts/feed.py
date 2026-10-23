@@ -8,12 +8,17 @@ from .serializers import PostSerializer
 from .views import _annotate_score, _apply_sort, _apply_time_window, _base_post_qs
 
 
+def nsfw_allowed(request) -> bool:
+    """True when an authed user opts in via ?nsfw=show or their profile pref."""
+    if not request.user.is_authenticated:
+        return False
+    param = request.query_params.get("nsfw")
+    return param == "show" or (param is None and request.user.show_nsfw)
+
+
 def _apply_nsfw_filter(qs, request):
-    """Hide NSFW unless an authed user opts in via ?nsfw=show or their profile pref."""
-    if request.user.is_authenticated:
-        param = request.query_params.get("nsfw")
-        if param == "show" or (param is None and request.user.show_nsfw):
-            return qs
+    if nsfw_allowed(request):
+        return qs
     return qs.exclude(Q(is_nsfw=True) | Q(community__is_nsfw=True))
 
 
@@ -34,8 +39,7 @@ class FeedView(generics.ListAPIView):
         qs = _annotate_score(_base_post_qs(qs, user=request.user))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new" if request.user.is_authenticated else "top")
-        if sort == "top":
-            qs = _apply_time_window(qs, request.query_params.get("t"))
+        qs = _apply_time_window(qs, request.query_params.get("t"))
         return _apply_sort(qs, sort)
 
 
@@ -55,6 +59,5 @@ class FollowingFeedView(generics.ListAPIView):
         qs = _annotate_score(_base_post_qs(qs, user=request.user))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new")
-        if sort == "top":
-            qs = _apply_time_window(qs, request.query_params.get("t"))
+        qs = _apply_time_window(qs, request.query_params.get("t"))
         return _apply_sort(qs, sort)

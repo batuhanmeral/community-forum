@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notifications';
 import type { Notification } from '@/features/notifications/types';
 import { formatNotification } from '@/features/notifications/format';
@@ -7,12 +8,16 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setUnreadCount } from '@/features/notifications/notificationSlice';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { NotificationIcon } from '@/components/notifications/NotificationIcon';
+import { ArrowRight } from 'lucide-react';
 
 type Filter = 'all' | 'unread';
 
 export function InboxPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const unreadCount = useAppSelector((s) => s.notifications.unreadCount);
@@ -68,7 +73,7 @@ export function InboxPage() {
   }
 
   async function handleClick(n: Notification) {
-    const fmt = formatNotification(n);
+    const fmt = formatNotification(n, t);
     if (n.read_at === null) {
       try {
         await markNotificationRead(n.id);
@@ -83,34 +88,35 @@ export function InboxPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <PageTitle title={t('titles.inbox')} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Inbox</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">{t('titles.inbox')}</h1>
           <p className="font-mono text-[12px] text-[var(--color-text-dim)]">
-            {unreadCount} unread
+            {t('inbox.unread', { count: unreadCount })}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+          <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
             {(['all', 'unread'] as Filter[]).map((f) => (
               <button
                 key={f}
                 type="button"
                 onClick={() => setFilter(f)}
                 className={cn(
-                  'rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
+                  'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
                   filter === f
-                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                 )}
               >
-                {f}
+                {t(`inbox.filter_${f}`)}
               </button>
             ))}
           </div>
           {unreadCount > 0 && (
             <Button variant="secondary" size="sm" onClick={handleMarkAll}>
-              Mark all read
+              {t('notifications.markAllRead')}
             </Button>
           )}
         </div>
@@ -118,21 +124,22 @@ export function InboxPage() {
 
       {loading ? (
         <Card>
-          <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
         </Card>
       ) : items.length === 0 ? (
         <Card>
           <p className="text-sm text-[var(--color-text-muted)]">
-            {filter === 'unread' ? "You're all caught up." : 'No notifications yet.'}{' '}
-            <Link to="/" className="text-[var(--color-accent)] hover:underline">
-              Back to feed →
+            {filter === 'unread' ? t('inbox.caughtUp') : t('notifications.empty')}{' '}
+            <Link to="/" className="inline-flex items-center gap-1 text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
+              {t('inbox.backToFeed')}
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </p>
         </Card>
       ) : (
         <Card padded={false}>
           {items.map((n, i) => {
-            const fmt = formatNotification(n);
+            const fmt = formatNotification(n, t);
             const unread = n.read_at === null;
             return (
               <button
@@ -142,18 +149,18 @@ export function InboxPage() {
                 className={cn(
                   'flex w-full items-start gap-3 px-4 py-3.5 text-left transition',
                   i > 0 && 'border-t border-[var(--color-border)]',
-                  unread ? 'bg-[var(--color-accent-dim)]/30 hover:bg-[var(--color-accent-dim)]/50' : 'hover:bg-[var(--color-surface)]',
+                  unread ? 'bg-[var(--color-link-dim)]/30 hover:bg-[var(--color-link-dim)]/50' : 'hover:bg-[var(--color-surface)]',
                 )}
               >
                 <span
                   className={cn(
-                    'grid h-8 w-8 shrink-0 place-items-center rounded-full text-[15px]',
+                    'grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-avatar)] text-[15px]',
                     unread
-                      ? 'bg-[var(--color-accent)] text-[#061218]'
+                      ? 'bg-[var(--color-link)] text-[var(--color-on-link)]'
                       : 'bg-[var(--color-bg-3)] text-[var(--color-text-muted)]',
                   )}
                 >
-                  {fmt.icon}
+                  <NotificationIcon kind={fmt.kind} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className={cn('text-sm leading-snug', unread ? 'text-[var(--color-text)]' : 'text-[var(--color-text-soft)]')}>
@@ -163,7 +170,7 @@ export function InboxPage() {
                     {timeAgo(n.created_at)}
                   </p>
                 </div>
-                {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />}
+                {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-link)]" />}
               </button>
             );
           })}
@@ -176,9 +183,9 @@ export function InboxPage() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
-            {loadingMore ? 'Loading…' : 'Load more'}
+            {loadingMore ? t('common.loading') : t('common.loadMore')}
           </button>
         </div>
       )}

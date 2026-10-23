@@ -5,6 +5,7 @@ import { listBans, unbanUser, type BannedMember } from '@/api/moderation';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { userPath } from '@/lib/paths';
 import { usePagedList } from '@/lib/usePagedList';
 import { timeAgo } from '@/lib/time';
 
@@ -48,7 +49,7 @@ export function BannedListCard({ slug }: { slug: string }) {
             >
               <Avatar src={m.avatar} alt={m.username} size="sm" />
               <div className="min-w-0 flex-1">
-                <Link to={`/u/${m.username}`} className="text-sm font-medium hover:underline">
+                <Link to={userPath(m.username)} className="text-sm font-medium hover:underline">
                   u/{m.username}
                 </Link>
                 <div className="text-xs text-[var(--color-text-muted)]">
@@ -72,7 +73,7 @@ export function BannedListCard({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={loadMore}
-          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 text-sm text-[var(--color-link)] hover:underline"
         >
           {t('mod.loadMore')}
         </button>

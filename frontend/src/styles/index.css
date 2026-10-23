@@ -1,30 +1,45 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-bg: #08080a;
-  --color-bg-1: #0d0d10;
-  --color-bg-elevated: #131318;
-  --color-bg-3: #1a1a21;
-  --color-bg-4: #22222b;
-  --color-surface: #131318;
-  --color-surface-hover: #1a1a21;
+  --color-bg: #121316;
+  --color-bg-1: #17181c;
+  --color-bg-elevated: #1c1d22;
+  --color-bg-3: #25262c;
+  --color-bg-4: #2e2f36;
+  --color-surface: #1c1d22;
+  --color-surface-hover: #25262c;
   --color-border: rgba(255, 255, 255, 0.06);
   --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-overlay: rgba(0, 0, 0, 0.6);
   --color-text: #f4f4f7;
-  --color-text-muted: #8a8a96;
-  --color-text-dim: #5a5a66;
   --color-text-soft: #c9c9d1;
-  --color-accent: #61dafb;
-  --color-accent-dim: rgba(97, 218, 251, 0.14);
-  --color-accent-glow: rgba(97, 218, 251, 0.35);
-  --color-accent-hover: #4fc3e8;
-  --color-accent-pressed: #3fb0d4;
+  --color-text-muted: #a0a0ac;
+  --color-text-dim: #92929e;
+  /* Primary is monochrome and reserved for filled call-to-action buttons. */
+  --color-accent: #ededf0;
+  --color-accent-hover: #ffffff;
+  --color-accent-pressed: #d4d4da;
+  --color-on-accent: #121316;
+  /* Secondary blue carries links, active/selected states, focus rings and emphasis. */
+  --color-link: #60a5fa;
+  --color-link-hover: #93c5fd;
+  --color-on-link: #0b1220;
+  --color-link-dim: rgba(96, 165, 250, 0.14);
+  --color-link-border: rgba(96, 165, 250, 0.3);
   --color-warn: #ff9b6a;
-  --color-danger: #ff6a8a;
+  --color-warn-dim: rgba(255, 155, 106, 0.08);
+  --color-danger: #f87171;
+  --color-on-danger: #1f0707;
+  --color-danger-dim: rgba(248, 113, 113, 0.08);
   --color-success: #6affc1;
+  --color-success-dim: rgba(106, 255, 193, 0.08);
 
   --radius-card: 14px;
   --radius-pill: 999px;
+  /* Buttons, tabs, chips and avatars are rounded squares; inner sits inside a padded group. */
+  --radius-control: 8px;
+  --radius-control-inner: 6px;
+  --radius-avatar: 28%;
 }
 
 html,
@@ -66,8 +81,18 @@ body {
 }
 
 ::selection {
-  background-color: var(--color-accent-dim);
-  color: var(--color-accent);
+  background-color: var(--color-link-dim);
+  color: var(--color-link);
+}
+
+/* Links inside rendered post/comment markdown read as links within running text. */
+.prose-nexus a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-nexus a:hover {
+  color: var(--color-link-hover);
 }
 
 ::-webkit-scrollbar {
@@ -78,13 +103,13 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-border);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--color-border-strong);
   background-clip: padding-box;
 }
 

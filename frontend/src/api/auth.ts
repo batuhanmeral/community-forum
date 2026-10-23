@@ -1,4 +1,4 @@
-import { api } from './client';
+import { AUTH_REQUEST_TIMEOUT_MS, api } from './client';
 import type { AuthTokens, User } from '@/features/auth/types';
 
 export interface RegisterPayload {
@@ -28,7 +28,7 @@ export async function fetchMe(): Promise<User> {
 }
 
 export async function logoutRequest(refresh: string): Promise<void> {
-  await api.post('/auth/logout/', { refresh }).catch(() => undefined);
+  await api.post('/auth/logout/', { refresh }, { timeout: AUTH_REQUEST_TIMEOUT_MS }).catch(() => undefined);
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {

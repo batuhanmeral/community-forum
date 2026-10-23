@@ -24,10 +24,13 @@ import { RulesCard } from '@/components/moderation/RulesCard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { ArrowLeft, X } from 'lucide-react';
 
 export function ModPage() {
+  const { t } = useTranslation();
   const { slug = '' } = useParams<{ slug: string }>();
   const [community, setCommunity] = useState<Community | null>(null);
   const [denied, setDenied] = useState(false);
@@ -56,16 +59,18 @@ export function ModPage() {
     };
   }, [slug]);
 
-  if (loading) return <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>;
+  if (loading) return <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>;
   if (denied || !community) {
     return (
       <Card>
-        <h2 className="text-lg font-semibold">Moderator access required</h2>
+        <PageTitle title={t('mod.accessRequired')} />
+        <h2 className="text-lg font-semibold">{t('mod.accessRequired')}</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          You don't have moderator permissions for c/{slug}.
+          {t('mod.accessDenied', { slug })}
         </p>
-        <Link to={`/c/${slug}`} className="mt-3 inline-block text-sm text-[var(--color-accent)] hover:underline">
-          ← Back to community
+        <Link to={`/c/${slug}`} className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-link)] hover:underline">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t('mod.backToCommunity')}
         </Link>
       </Card>
     );
@@ -75,10 +80,11 @@ export function ModPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <PageTitle title={t('mod.tools')} />
       <div>
-        <div className="font-mono text-[12px] text-[var(--color-text-dim)]">Moderator tools</div>
+        <div className="font-mono text-[12px] text-[var(--color-text-dim)]">{t('mod.tools')}</div>
         <h1 className="text-[22px] font-semibold tracking-tight">
-          <Link to={`/c/${community.slug}`} className="hover:text-[var(--color-accent)]">
+          <Link to={`/c/${community.slug}`} className="hover:text-[var(--color-link)]">
             c/{community.slug}
           </Link>
         </h1>
@@ -98,22 +104,8 @@ export function ModPage() {
   );
 }
 
-const MOD_LOG_LABELS: Record<ModLogEntry['action'], string> = {
-  post_pin: 'pinned a post',
-  post_unpin: 'unpinned a post',
-  post_approve: 'approved a post',
-  post_reject: 'rejected a post',
-  post_remove: 'removed a post',
-  comment_remove: 'removed a comment',
-  user_ban: 'banned a user',
-  user_unban: 'unbanned a user',
-  role_change: 'changed a member role',
-  report_resolve: 'resolved a report',
-  report_dismiss: 'dismissed a report',
-  automod_hold: 'held a post for review',
-};
-
 function ModLogCard({ slug }: { slug: string }) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<ModLogEntry[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -149,15 +141,15 @@ function ModLogCard({ slug }: { slug: string }) {
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Mod log</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('mod.logTitle')}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Every moderator action in this community, newest first.
+        {t('mod.logHint')}
       </p>
       <div className="mt-3 flex flex-col gap-1.5">
         {loading ? (
-          <p className="text-sm text-[var(--color-text-muted)]">Loading log…</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('mod.logLoading')}</p>
         ) : entries.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)]">No mod actions recorded yet.</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('mod.logEmpty')}</p>
         ) : (
           entries.map((e) => (
             <div
@@ -165,11 +157,11 @@ function ModLogCard({ slug }: { slug: string }) {
               className="flex flex-wrap items-baseline gap-x-2 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-[13px]"
             >
               <span className="font-medium text-[var(--color-text)]">
-                {e.actor_username ? `u/${e.actor_username}` : 'AutoMod'}
+                {e.actor_username ? `u/${e.actor_username}` : t('mod.automodActor')}
               </span>
-              <span className="text-[var(--color-text-soft)]">{MOD_LOG_LABELS[e.action]}</span>
+              <span className="text-[var(--color-text-soft)]">{t(`mod.log_${e.action}`)}</span>
               {e.target_type === 'post' && e.object_id && (
-                <Link to={`/posts/${e.object_id}`} className="text-[var(--color-accent)] hover:underline">
+                <Link to={`/posts/${e.object_id}`} className="text-[var(--color-link)] hover:underline">
                   #{e.object_id}
                 </Link>
               )}
@@ -187,9 +179,9 @@ function ModLogCard({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={loadMore}
-          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 text-sm text-[var(--color-link)] hover:underline"
         >
-          Load more
+          {t('mod.loadMore')}
         </button>
       )}
     </Card>
@@ -203,6 +195,7 @@ function AutoModCard({
   community: Community;
   onUpdated: (c: Community) => void;
 }) {
+  const { t } = useTranslation();
   const [keywords, setKeywords] = useState(community.banned_keywords ?? '');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -217,9 +210,9 @@ function AutoModCard({
     try {
       const updated = await updateCommunity(community.slug, { banned_keywords: keywords });
       onUpdated(updated);
-      setMsg({ ok: true, text: 'AutoMod keywords saved.' });
+      setMsg({ ok: true, text: t('mod.keywordsSaved') });
     } catch {
-      setMsg({ ok: false, text: 'Could not save keywords.' });
+      setMsg({ ok: false, text: t('mod.keywordsFailed') });
     } finally {
       setBusy(false);
     }
@@ -227,10 +220,9 @@ function AutoModCard({
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">AutoMod</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('mod.automodTitle')}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Posts containing any of these keywords are held for moderator approval. One keyword or
-        phrase per line. Moderators bypass the filter.
+        {t('mod.automodHint')}
       </p>
       <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
         <textarea
@@ -238,12 +230,12 @@ function AutoModCard({
           maxLength={2000}
           rows={4}
           onChange={(e) => setKeywords(e.target.value)}
-          placeholder={'crypto scam\nbuy followers'}
-          className="font-mono w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none"
+          placeholder={t('mod.keywordsPlaceholder')}
+          className="font-mono w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-link)] focus:outline-none"
         />
         <div className="flex items-center gap-3">
           <Button type="submit" loading={busy} disabled={!dirty}>
-            Save keywords
+            {t('mod.saveKeywords')}
           </Button>
           {msg && (
             <p className={cn('text-sm', msg.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>
@@ -305,14 +297,14 @@ function CommunitySettingsCard({
       });
       onUpdated(updated);
       setAvatarFile(null);
-      setMsg({ ok: true, text: 'Community settings saved.' });
+      setMsg({ ok: true, text: t('mod.settingsSaved') });
     } catch (err) {
       const data = (err as { response?: { data?: Record<string, string[] | string> } })?.response
         ?.data;
       const first = data && Object.values(data)[0];
       setMsg({
         ok: false,
-        text: Array.isArray(first) ? first[0] : (first ?? 'Could not save settings.'),
+        text: Array.isArray(first) ? first[0] : (first ?? t('mod.settingsFailed')),
       });
     } finally {
       setBusy(false);
@@ -321,15 +313,15 @@ function CommunitySettingsCard({
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Community settings</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('mod.settingsTitle')}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Update the icon, display name, and description of c/{community.slug}.
+        {t('mod.settingsHint', { slug: community.slug })}
       </p>
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <Avatar src={preview ?? community.avatar} alt={community.name} size="lg" />
-          <label className="cursor-pointer rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
-            {avatarFile ? avatarFile.name : 'Change icon…'}
+          <label className="cursor-pointer rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]">
+            {avatarFile ? avatarFile.name : t('mod.changeIcon')}
             <input
               type="file"
               accept="image/*"
@@ -343,28 +335,28 @@ function CommunitySettingsCard({
               onClick={() => setAvatarFile(null)}
               className="text-[13px] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
             >
-              Cancel
+              {t('mod.cancel')}
             </button>
           )}
         </div>
         <Input
           name="community-name"
-          label="Display name"
+          label={t('communityForm.displayName')}
           value={name}
           maxLength={100}
           onChange={(e) => setName(e.target.value)}
         />
         <div>
           <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-soft)]">
-            Description
+            {t('communityForm.description')}
           </label>
           <textarea
             value={description}
             maxLength={500}
             rows={3}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-accent)] focus:outline-none"
-            placeholder="What is this community about?"
+            className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-link)] focus:outline-none"
+            placeholder={t('mod.descriptionPlaceholder')}
           />
         </div>
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--color-text-soft)]">
@@ -372,22 +364,22 @@ function CommunitySettingsCard({
             type="checkbox"
             checked={isNsfw}
             onChange={(e) => setIsNsfw(e.target.checked)}
-            className="h-4 w-4 accent-[var(--color-accent)]"
+            className="h-4 w-4 accent-[var(--color-link)]"
           />
-          Mark community as NSFW (18+)
+          {t('mod.markNsfw')}
         </label>
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--color-text-soft)]">
           <input
             type="checkbox"
             checked={requiresApproval}
             onChange={(e) => setRequiresApproval(e.target.checked)}
-            className="h-4 w-4 accent-[var(--color-accent)]"
+            className="h-4 w-4 accent-[var(--color-link)]"
           />
           {t('mod.requiresApproval')}
         </label>
         <div className="flex items-center gap-3">
           <Button type="submit" loading={busy} disabled={!dirty || !name.trim()}>
-            Save settings
+            {t('mod.saveSettings')}
           </Button>
           {msg && (
             <p className={cn('text-sm', msg.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>
@@ -401,9 +393,12 @@ function CommunitySettingsCard({
 }
 
 function FlairCard({ slug }: { slug: string }) {
+  const { t } = useTranslation();
   const [flairs, setFlairs] = useState<Flair[]>([]);
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#61dafb');
+  // Flair colours are user data, not theme colours; the picker needs a hex default.
+  // eslint-disable-next-line no-restricted-syntax
+  const [color, setColor] = useState('#60a5fa');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -427,7 +422,7 @@ function FlairCard({ slug }: { slug: string }) {
       const data = (err as { response?: { data?: Record<string, string[] | string> } })?.response
         ?.data;
       const first = data && Object.values(data)[0];
-      setError(Array.isArray(first) ? first[0] : (first ?? 'Could not create flair.'));
+      setError(Array.isArray(first) ? first[0] : (first ?? t('mod.flairFailed')));
     } finally {
       setBusy(false);
     }
@@ -444,9 +439,9 @@ function FlairCard({ slug }: { slug: string }) {
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Post flairs</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('mod.flairsTitle')}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Flairs help members categorize their posts.
+        {t('mod.flairsHint')}
       </p>
       {flairs.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -460,12 +455,10 @@ function FlairCard({ slug }: { slug: string }) {
               <button
                 type="button"
                 onClick={() => handleDelete(f.id)}
-                aria-label={`Delete flair ${f.name}`}
+                aria-label={t('mod.deleteFlair', { name: f.name })}
                 className="opacity-60 transition hover:opacity-100"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
-                  <path d="M6 6l12 12M6 18 18 6" />
-                </svg>
+                <X className="h-3 w-3" />
               </button>
             </span>
           ))}
@@ -475,7 +468,7 @@ function FlairCard({ slug }: { slug: string }) {
         <div className="min-w-[180px] flex-1">
           <Input
             name="flair-name"
-            placeholder="Flair name"
+            placeholder={t('mod.flairName')}
             value={name}
             maxLength={50}
             onChange={(e) => setName(e.target.value)}
@@ -485,11 +478,11 @@ function FlairCard({ slug }: { slug: string }) {
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
-          aria-label="Flair color"
+          aria-label={t('mod.flairColor')}
           className="h-10 w-12 cursor-pointer rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1"
         />
         <Button type="submit" loading={busy} disabled={!name.trim()}>
-          Add flair
+          {t('mod.addFlair')}
         </Button>
       </form>
       {error && <p className="mt-2 text-sm text-[var(--color-danger)]">{error}</p>}
@@ -498,6 +491,7 @@ function FlairCard({ slug }: { slug: string }) {
 }
 
 function BanUserCard({ slug, onBanned }: { slug: string; onBanned: () => void }) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -510,13 +504,13 @@ function BanUserCard({ slug, onBanned }: { slug: string; onBanned: () => void })
     setMsg(null);
     try {
       await banUser(slug, u);
-      setMsg({ ok: true, text: `u/${u} has been banned from this community.` });
+      setMsg({ ok: true, text: t('mod.banned', { username: u }) });
       setUsername('');
       onBanned();
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        'Could not ban this user.';
+        t('mod.banFailed');
       setMsg({ ok: false, text: detail });
     } finally {
       setBusy(false);
@@ -525,21 +519,21 @@ function BanUserCard({ slug, onBanned }: { slug: string; onBanned: () => void })
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Ban a member</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('mod.banTitle')}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Banned members can no longer post or comment in this community.
+        {t('mod.banHint')}
       </p>
       <form onSubmit={handleSubmit} className="mt-3 flex flex-wrap items-end gap-2">
         <div className="min-w-[220px] flex-1">
           <Input
             name="ban-username"
-            placeholder="username"
+            placeholder={t('mod.usernamePlaceholder')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
         </div>
         <Button type="submit" variant="danger" loading={busy} disabled={!username.trim()}>
-          Ban user
+          {t('mod.banUser')}
         </Button>
       </form>
       {msg && (
@@ -552,6 +546,7 @@ function BanUserCard({ slug, onBanned }: { slug: string; onBanned: () => void })
 }
 
 function RoleCard({ slug }: { slug: string }) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<CommunityRole>('moderator');
   const [busy, setBusy] = useState(false);
@@ -565,14 +560,14 @@ function RoleCard({ slug }: { slug: string }) {
     setMsg(null);
     try {
       await setMemberRole(slug, u, role);
-      setMsg({ ok: true, text: `u/${u} is now a ${role}.` });
+      setMsg({ ok: true, text: t(`mod.roleSet_${role}`, { username: u }) });
       setUsername('');
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string; role?: string } } })?.response?.data;
       setMsg({
         ok: false,
-        text: detail?.detail ?? detail?.role ?? 'Could not update this member’s role.',
+        text: detail?.detail ?? detail?.role ?? t('mod.roleFailed'),
       });
     } finally {
       setBusy(false);
@@ -581,15 +576,15 @@ function RoleCard({ slug }: { slug: string }) {
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Manage moderators</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('mod.rolesTitle')}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Promote a member to moderator or admin, or demote them back to member.
+        {t('mod.rolesHint')}
       </p>
       <form onSubmit={handleSubmit} className="mt-3 flex flex-wrap items-end gap-2">
         <div className="min-w-[180px] flex-1">
           <Input
             name="role-username"
-            placeholder="username"
+            placeholder={t('mod.usernamePlaceholder')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
@@ -597,14 +592,14 @@ function RoleCard({ slug }: { slug: string }) {
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as CommunityRole)}
-          className="h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+          className="h-10 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
         >
-          <option value="member">Member</option>
-          <option value="moderator">Moderator</option>
-          <option value="admin">Admin</option>
+          <option value="member">{t('mod.role_member')}</option>
+          <option value="moderator">{t('mod.role_moderator')}</option>
+          <option value="admin">{t('mod.role_admin')}</option>
         </select>
         <Button type="submit" loading={busy} disabled={!username.trim()}>
-          Update role
+          {t('mod.updateRole')}
         </Button>
       </form>
       {msg && (

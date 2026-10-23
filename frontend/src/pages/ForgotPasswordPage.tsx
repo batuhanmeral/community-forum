@@ -47,7 +47,7 @@ export function ForgotPasswordPage() {
         </form>
       )}
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
-        <Link to="/login" className="font-medium text-[var(--color-accent)] hover:underline">
+        <Link to="/login" className="font-medium text-[var(--color-link)] hover:underline">
           {t('auth.backToLogin')}
         </Link>
       </p>

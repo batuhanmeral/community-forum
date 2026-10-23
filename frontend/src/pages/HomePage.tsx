@@ -1,55 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listFeed, listFollowingFeed, type SortOption } from '@/api/posts';
+import { useTranslation } from 'react-i18next';
+import { listFeed, listFollowingFeed, type SortOption, type TimeWindow } from '@/api/posts';
 import { listCommunities } from '@/api/communities';
 import { updatePreferences } from '@/api/users';
 import type { Post } from '@/features/posts/types';
 import { setUser } from '@/features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
+import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
 import { cn } from '@/lib/cn';
+import { ArrowRight, ArrowUpToLine, BarChart3, Clock, Flame, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
 interface SortTab {
   id: SortOption;
-  label: string;
   icon: React.ReactNode;
 }
 
 const hotIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-    <path d="M13 3s4 4 4 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 0 0 2 2 2 0-4 2-7 2-7z" />
-  </svg>
+  <Flame className="h-[13px] w-[13px]" />
 );
 const newIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </svg>
+  <Clock className="h-[13px] w-[13px]" />
 );
 const topIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-    <path d="M7 14l5-7 5 7M5 21h14" />
-  </svg>
+  <ArrowUpToLine className="h-[13px] w-[13px]" />
 );
 
 const SORT_TABS: SortTab[] = [
-  { id: 'hot', label: 'Hot', icon: hotIcon },
-  { id: 'new', label: 'New', icon: newIcon },
-  { id: 'top', label: 'Top', icon: topIcon },
+  { id: 'hot', icon: hotIcon },
+  { id: 'new', icon: newIcon },
+  { id: 'top', icon: topIcon },
 ];
 
 type FeedKind = 'home' | 'following';
 
 type KindFilter = 'all' | 'text' | 'image' | 'link' | 'poll';
 
-const KIND_FILTERS: Array<{ id: KindFilter; label: string }> = [
-  { id: 'all', label: 'All posts' },
-  { id: 'text', label: 'Discussion' },
-  { id: 'image', label: 'Media' },
-  { id: 'link', label: 'Links' },
-  { id: 'poll', label: 'Polls' },
-];
+const KIND_FILTERS: KindFilter[] = ['all', 'text', 'image', 'link', 'poll'];
 
 export type FeedVariant = 'home' | 'popular' | 'all';
 
@@ -60,6 +50,7 @@ const VARIANT_DEFAULT_SORT: Record<FeedVariant, SortOption> = {
 };
 
 export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
+  const { t } = useTranslation();
   const user = useAppSelector((s) => s.auth.user);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const dispatch = useAppDispatch();
@@ -67,10 +58,12 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
   const [memberCount, setMemberCount] = useState<number>(0);
   const [feedKind, setFeedKind] = useState<FeedKind>('home');
   const [sort, setSort] = useState<SortOption>(VARIANT_DEFAULT_SORT[variant]);
+  const [timeRange, setTimeRange] = useState<TimeWindow>('all');
 
   // Reset feed state when navigating between /, /popular and /all
   useEffect(() => {
     setSort(VARIANT_DEFAULT_SORT[variant]);
+    setTimeRange('all');
     setFeedKind('home');
   }, [variant]);
   const [kind, setKind] = useState<KindFilter>('all');
@@ -102,6 +95,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     const fetcher = feedKind === 'following' ? listFollowingFeed : listFeed;
     fetcher({
       sort,
+      t: timeRange,
       nsfw: isAuthed ? (nsfwShown ? 'show' : 'hide') : undefined,
       page: 1,
       scope: variant !== 'home' ? 'all' : undefined,
@@ -118,7 +112,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     return () => {
       cancelled = true;
     };
-  }, [feedKind, sort, nsfwShown, variant, isAuthed]);
+  }, [feedKind, sort, timeRange, nsfwShown, variant, isAuthed]);
 
   useEffect(() => {
     if (!isAuthed) {
@@ -150,6 +144,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     try {
       const d = await fetcher({
         sort,
+        t: timeRange,
         nsfw: isAuthed ? (nsfwShown ? 'show' : 'hide') : undefined,
         page: next,
         scope: variant !== 'home' ? 'all' : undefined,
@@ -162,66 +157,72 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     }
   }
 
+  const headerTitle =
+    variant === 'popular'
+      ? t('feed.title_popular')
+      : variant === 'all'
+        ? t('feed.title_all')
+        : feedKind === 'following'
+          ? t('feed.title_following')
+          : isAuthed
+            ? t('feed.title_home')
+            : t('feed.title_anon');
+  // The plain home feed keeps the bare app name as its title.
+  const pageTitle = variant === 'popular' ? t('feed.title_popular') : variant === 'all' ? t('feed.title_all') : undefined;
+
   return (
     <div className="min-w-0">
+      <PageTitle title={pageTitle} />
       {/* Feed header */}
       <div className="mb-[18px] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
-          <span>
-            {variant === 'popular'
-              ? 'Popular'
-              : variant === 'all'
-                ? 'All posts'
-                : feedKind === 'following'
-                  ? 'Following'
-                  : isAuthed
-                    ? 'Your feed'
-                    : 'Popular feed'}
-          </span>
-          <span className="font-mono text-[14px] font-normal text-[var(--color-text-dim)]">
-            / {variant === 'home' ? feedKind : variant}
-            {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0
-              ? ` · ${memberCount} ${memberCount === 1 ? 'community' : 'communities'}`
-              : ''}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
+            <span>{headerTitle}</span>
+            {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0 && (
+              <span className="text-[14px] font-normal text-[var(--color-text-dim)]">
+                {t('feed.communityCount', { count: memberCount })}
+              </span>
+            )}
+          </div>
           {isAuthed && variant === 'home' && (
-            <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+            <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
               {(['home', 'following'] as FeedKind[]).map((k) => (
                 <button
                   key={k}
                   type="button"
                   onClick={() => setFeedKind(k)}
                   className={cn(
-                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition',
+                    'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
                     feedKind === k
-                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                   )}
                 >
-                  {k}
+                  {t(`feed.tab_${k}`)}
                 </button>
               ))}
             </div>
           )}
+        </div>
 
-          <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
-            {SORT_TABS.map((t) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
+
+          <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+            {SORT_TABS.map((tab) => (
               <button
-                key={t.id}
+                key={tab.id}
                 type="button"
-                onClick={() => setSort(t.id)}
+                onClick={() => setSort(tab.id)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
-                  sort === t.id
-                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                  'inline-flex items-center gap-1.5 rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
+                  sort === tab.id
+                    ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                 )}
               >
-                {t.icon}
-                {t.label}
+                {tab.icon}
+                {t(`sort.${tab.id}`)}
               </button>
             ))}
           </div>
@@ -232,18 +233,18 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
       <div className="mb-3.5 flex items-center gap-1.5 overflow-x-auto pb-1">
         {KIND_FILTERS.map((f) => (
           <button
-            key={f.id}
+            key={f}
             type="button"
-            onClick={() => setKind(f.id)}
+            onClick={() => setKind(f)}
             className={cn(
-              'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-[7px] text-[12.5px] font-normal transition',
-              kind === f.id
-                ? 'border-[rgba(97,218,251,0.3)] bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+              'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-control)] border px-3.5 py-[7px] text-[12.5px] font-normal transition',
+              kind === f
+                ? 'border-[var(--color-link)]/30 bg-[var(--color-link-dim)] text-[var(--color-link)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]',
             )}
           >
-            {f.label}
-            <span className="font-mono text-[11px] opacity-80">{counts[f.id]}</span>
+            {t(`feed.kind_${f}`)}
+            <span className="font-mono text-[11px] opacity-80">{counts[f]}</span>
           </button>
         ))}
 
@@ -253,11 +254,11 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             type="button"
             onClick={toggleNsfw}
             disabled={nsfwBusy}
-            title={nsfwShown ? 'Hide NSFW' : 'Show NSFW'}
+            title={nsfwShown ? t('feed.nsfwHide') : t('feed.nsfwShow')}
             className={cn(
-              'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-[7px] text-[12px] font-medium transition',
+              'inline-flex items-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] border px-3 py-[7px] text-[12px] font-medium transition',
               nsfwShown
-                ? 'border-[rgba(255,106,138,0.3)] bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)]'
+                ? 'border-[var(--color-danger)]/30 bg-[var(--color-danger-dim)] text-[var(--color-danger)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
             )}
           >
@@ -269,12 +270,12 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             >
               <span
                 className={cn(
-                  'absolute top-0.5 h-2 w-2 rounded-full bg-white transition-all',
+                  'absolute top-0.5 h-2 w-2 rounded-full bg-[var(--color-text)] transition-all',
                   nsfwShown ? 'left-2.5' : 'left-0.5',
                 )}
               />
             </span>
-            NSFW
+            {t('post.nsfw')}
           </button>
           )}
         </div>
@@ -282,43 +283,36 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
 
       {/* Compose */}
       {isAuthed && (
-        <Link
-          to="/submit"
-          className="mb-[18px] flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-3.5 py-3 transition hover:border-[var(--color-border-strong)]"
-        >
+        <div className="relative mb-[18px] flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-3.5 py-3 transition hover:border-[var(--color-border-strong)]">
           <Avatar src={user?.avatar} alt={user?.username} size="md" />
           <div className="flex-1 cursor-text rounded-[10px] border border-transparent bg-[var(--color-bg-elevated)] px-2.5 py-2 text-[14px] text-[var(--color-text-muted)] transition hover:border-[var(--color-border)] hover:bg-[var(--color-bg-3)]">
-            What's on your mind{user ? `, ${user.username}` : ''}?
+            {/* The ::after overlay makes the whole box clickable without nesting links */}
+            <Link
+              to="/submit"
+              className="outline-none after:absolute after:inset-0 after:rounded-[14px] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-link)]"
+            >
+              {user ? t('feed.composePromptNamed', { name: user.username }) : t('feed.composePrompt')}
+            </Link>
           </div>
-          <div className="flex gap-1">
-            <ComposeTool title="Image" kind="image">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <circle cx="9" cy="10" r="1.5" />
-                <path d="M21 16l-5-5-9 8" />
-              </svg>
+          <div className="relative z-10 flex gap-1">
+            <ComposeTool title={t('post.kind_image')} kind="image">
+              <ImageIcon className="h-[17px] w-[17px]" />
             </ComposeTool>
-            <ComposeTool title="Link" kind="link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11 7M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7L13 17" />
-              </svg>
+            <ComposeTool title={t('post.kind_link')} kind="link">
+              <LinkIcon className="h-[17px] w-[17px]" />
             </ComposeTool>
-            <ComposeTool title="Poll" kind="poll">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-                <rect x="3" y="11" width="4" height="9" rx="1" />
-                <rect x="10" y="6" width="4" height="14" rx="1" />
-                <rect x="17" y="13" width="4" height="7" rx="1" />
-              </svg>
+            <ComposeTool title={t('post.kind_poll')} kind="poll">
+              <BarChart3 className="h-[17px] w-[17px]" />
             </ComposeTool>
           </div>
-        </Link>
+        </div>
       )}
 
       {/* Posts */}
       {loading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-1)]" />
+            <div key={i} className="h-28 animate-pulse rounded-[var(--radius-card)] border border-[var(--color-border-strong)] bg-[var(--color-bg-1)]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -326,23 +320,25 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
           {kind === 'all' ? (
             feedKind === 'following' ? (
               <>
-                You aren't following anyone yet.{' '}
-                <Link to="/search?type=user" className="text-[var(--color-accent)] hover:underline">
-                  Discover users →
+                {t('feed.followingEmpty')}{' '}
+                <Link to="/search?type=user" className="inline-flex items-center gap-1 text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
+                  {t('feed.discoverUsers')}
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : isAuthed ? (
               <>
-                Your feed is empty.{' '}
-                <Link to="/c" className="text-[var(--color-accent)] hover:underline">
-                  Browse communities →
+                {t('feed.feedEmpty')}{' '}
+                <Link to="/c" className="inline-flex items-center gap-1 text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
+                  {t('composer.browseCommunities')}
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : (
-              'No posts yet. Be the first to contribute!'
+              t('feed.anonEmpty')
             )
           ) : (
-            'No posts match this filter.'
+            t('feed.filterEmpty')
           )}
         </div>
       ) : (
@@ -355,9 +351,9 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
-            {loadingMore ? 'Loading…' : 'Load more posts'}
+            {loadingMore ? t('common.loading') : t('community.loadMore')}
           </button>
         </div>
       )}
@@ -370,7 +366,7 @@ function ComposeTool({ title, kind, children }: { title: string; kind: string; c
     <Link
       to={`/submit?kind=${kind}`}
       title={title}
-      className="grid h-9 w-9 place-items-center rounded-[10px] text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-accent)]"
+      className="grid h-9 w-9 place-items-center rounded-[10px] text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-link)]"
     >
       {children}
     </Link>

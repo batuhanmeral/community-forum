@@ -1,10 +1,16 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { Post } from '@/features/posts/types';
 import type { VoteValue } from '@/api/votes';
+import { NsfwReveal } from '@/components/posts/NsfwReveal';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import { SaveButton } from '@/components/saves/SaveButton';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { deletedBodyKey } from '@/lib/deletedBody';
+import { Check, MessageSquare, Pin, Share } from 'lucide-react';
 
 interface PostCardProps {
   post: Post;
@@ -12,30 +18,32 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, hideCommunity }: PostCardProps) {
+  // Subscribes to language changes so timeAgo() re-renders in the new language.
+  const { t } = useTranslation();
   const isPinned = post.is_pinned;
+  // Saved deleted posts still reach the card; the API's English body marker is swapped for the reader's language.
+  const body = post.is_deleted ? t(deletedBodyKey(post.body)) : post.body;
+  const image = post.image && (
+    <img src={post.image} alt={post.title} className="max-h-[420px] w-full object-contain" loading="lazy" />
+  );
 
   return (
     <article
       className={cn(
-        'group relative mb-2 rounded-2xl border border-transparent px-3 py-2.5 transition-colors duration-150 hover:border-[var(--color-border)] hover:bg-[var(--color-bg-1)]',
-        isPinned && 'border-[rgba(97,218,251,0.16)] bg-[rgba(97,218,251,0.025)]',
+        'group relative mb-3 rounded-[var(--radius-card)] border bg-[var(--color-bg-1)] px-4 py-3 transition-colors duration-150 hover:border-[var(--color-link)]',
+        isPinned ? 'border-[var(--color-link-border)]' : 'border-[var(--color-border-strong)]',
       )}
     >
-      <Link to={`/posts/${post.id}`} className="block">
+      <div>
         {/* Meta row */}
-        <div className="mb-1.5 flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]">
+        <div className="mb-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] text-[var(--color-text-muted)]">
           {!hideCommunity && (
             <Link
               to={`/c/${post.community}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
+              className="relative z-10 inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:text-[var(--color-link)]"
             >
               <span
-                className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-[var(--color-accent)]"
-                style={{
-                  background: 'linear-gradient(135deg, #1d2a35, #0d1418)',
-                  border: '1px solid rgba(97, 218, 251, 0.2)',
-                }}
+                className="grid h-5 w-5 place-items-center rounded-[var(--radius-avatar)] border border-[var(--color-link-border)] bg-[var(--color-bg-3)] text-[10px] font-bold text-[var(--color-link)]"
               >
                 {post.community[0]?.toUpperCase()}
               </span>
@@ -44,14 +52,13 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           )}
           {post.author_username ? (
             <Link
-              to={`/u/${post.author_username}`}
-              onClick={(e) => e.stopPropagation()}
-              className="text-[var(--color-text-soft)] hover:text-[var(--color-accent)]"
+              to={userPath(post.author_username)}
+              className="relative z-10 text-[var(--color-text-soft)] hover:text-[var(--color-link)]"
             >
               u/{post.author_username}
             </Link>
           ) : (
-            <span className="text-[var(--color-text-soft)]">u/[deleted]</span>
+            <span className="text-[var(--color-text-soft)]">u/{t('common.deleted')}</span>
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span className="font-mono text-[11.5px] text-[var(--color-text-dim)]">{timeAgo(post.created_at)}</span>
@@ -67,29 +74,33 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               {post.flair_detail.name}
             </span>
           )}
-          {post.kind === 'poll' && <Flair kind="discussion">Poll</Flair>}
-          {post.kind === 'image' && <Flair kind="showcase">Image</Flair>}
-          {post.kind === 'link' && <Flair kind="news">Link</Flair>}
-          {post.is_nsfw && <Flair kind="news">NSFW</Flair>}
+          {post.kind === 'poll' && <Flair kind="discussion">{t('post.kind_poll')}</Flair>}
+          {post.kind === 'image' && <Flair kind="showcase">{t('post.kind_image')}</Flair>}
+          {post.kind === 'link' && <Flair kind="news">{t('post.kind_link')}</Flair>}
+          {post.is_nsfw && <Flair kind="news">{t('post.nsfw')}</Flair>}
           {isPinned && (
-            <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-accent)]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
-                <path d="M12 17v5m4-12V4H8v6L5 13v2h14v-2z" />
-              </svg>
-              Pinned
+            <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-link)]">
+              <Pin className="h-3 w-3" />
+              {t('post.pinned')}
             </span>
           )}
         </div>
 
         {/* Title */}
         <h2 className="mb-1.5 text-[17px] font-semibold leading-snug tracking-tight text-[var(--color-text)]">
-          {post.title}
+          {/* The ::after overlay makes the whole card clickable without nesting links */}
+          <Link
+            to={`/posts/${post.id}`}
+            className="outline-none after:absolute after:inset-0 after:rounded-[var(--radius-card)] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-link)]"
+          >
+            {post.title}
+          </Link>
         </h2>
 
         {/* Body / content */}
-        {post.kind === 'text' && post.body && (
+        {post.kind === 'text' && body && (
           <p className="mb-2 line-clamp-3 max-w-[70ch] text-[14px] leading-relaxed text-[var(--color-text-soft)] whitespace-pre-wrap">
-            {post.body}
+            {body}
           </p>
         )}
 
@@ -98,31 +109,25 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
             href={post.url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="mb-2 flex gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2.5 transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-3)]"
+            className="relative z-10 mb-2 flex gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2.5 transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-3)]"
           >
             <div
-              className="h-[72px] w-[96px] shrink-0 rounded-lg border border-[var(--color-border)]"
-              style={{
-                background: `repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 8px, transparent 8px 16px),
-                             linear-gradient(135deg, #1a2530, #0e1518)`,
-              }}
+              className="h-[72px] w-[96px] shrink-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-3)]"
             />
             <div className="min-w-0 flex-1">
               <div className="font-mono mb-1.5 flex items-center gap-2 text-[11px] text-[var(--color-text-dim)]">
                 <span
-                  className="block h-[12px] w-[12px] rounded-sm"
-                  style={{ background: 'linear-gradient(135deg, var(--color-accent), #2faed0)' }}
+                  className="block h-[12px] w-[12px] rounded-sm bg-[var(--color-link)]"
                 />
                 <span>{tryHostname(post.url)}</span>
                 <span>·</span>
-                <span>External link</span>
+                <span>{t('post.externalLink')}</span>
               </div>
               <div className="mb-1 line-clamp-1 text-[14px] font-medium leading-snug text-[var(--color-text)]">
                 {post.title}
               </div>
               <div className="line-clamp-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
-                {post.body || post.url}
+                {body || post.url}
               </div>
             </div>
           </a>
@@ -131,16 +136,8 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         {post.kind === 'image' && post.image && (
           <div
             className="mb-2 grid max-h-[420px] place-items-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)]"
-            style={{
-              background: `repeating-linear-gradient(135deg, rgba(255,255,255,0.018) 0 12px, transparent 12px 24px), var(--color-bg-elevated)`,
-            }}
           >
-            <img
-              src={post.image}
-              alt={post.title}
-              className={cn('max-h-[420px] w-full object-contain', post.is_nsfw && 'blur-2xl transition hover:blur-0')}
-              loading="lazy"
-            />
+            {post.is_nsfw ? <NsfwReveal>{image}</NsfwReveal> : image}
           </div>
         )}
 
@@ -154,29 +151,30 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
                   className="relative flex items-center justify-between overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3.5 py-3 text-[13.5px]"
                 >
                   <div
-                    className="absolute inset-y-0 left-0 z-0"
-                    style={{
-                      width: `${opt.percent}%`,
-                      background: leading ? 'rgba(97, 218, 251, 0.14)' : 'rgba(97, 218, 251, 0.08)',
-                      borderRight: `1px solid ${leading ? 'rgba(97, 218, 251, 0.4)' : 'rgba(97, 218, 251, 0.18)'}`,
-                    }}
+                    className={cn(
+                      'absolute inset-y-0 left-0 z-0 border-r',
+                      leading
+                        ? 'border-[var(--color-link)]/40 bg-[var(--color-link-dim)]'
+                        : 'border-[var(--color-link-border)] bg-[var(--color-link)]/8',
+                    )}
+                    style={{ width: `${opt.percent}%` }}
                   />
                   <span className="relative z-10">{opt.text}</span>
-                  <span className={cn('font-mono relative z-10 text-[12px]', leading ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]')}>
+                  <span className={cn('font-mono relative z-10 text-[12px]', leading ? 'text-[var(--color-link)]' : 'text-[var(--color-text-muted)]')}>
                     {opt.percent.toFixed(0)}%
                   </span>
                 </div>
               );
             })}
             <div className="font-mono text-[12px] text-[var(--color-text-dim)]">
-              {post.poll.total_votes} votes · {post.poll.is_closed ? 'closed' : `closes ${timeAgo(post.poll.closes_at)}`}
+              {t('poll.votes', { count: post.poll.total_votes })} · {post.poll.is_closed ? t('poll.closedInline') : t('poll.closes', { time: timeAgo(post.poll.closes_at) })}
             </div>
           </div>
         )}
-      </Link>
+      </div>
 
-      {/* Actions bar */}
-      <div className="mt-2 flex items-center gap-1.5">
+      {/* Actions bar; z-10 keeps it above the title's stretched link */}
+      <div className="relative z-10 mt-2 flex w-fit items-center gap-1.5">
         <VoteCluster
           target="post"
           objectId={post.id}
@@ -186,20 +184,12 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         />
 
         <ActionBtn href={`/posts/${post.id}`} icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-            <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.5-8.5 8.4 8.4 0 0 1 8.5 8.5z" />
-          </svg>
+          <MessageSquare className="h-[15px] w-[15px]" />
         }>
           <span className="font-mono text-[12px]">{post.comment_count}</span>
         </ActionBtn>
 
-        <ActionBtn icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-            <path d="M4 12v8h16v-8M16 6l-4-4-4 4m4-4v14" />
-          </svg>
-        }>
-          <span className="max-[480px]:hidden">Share</span>
-        </ActionBtn>
+        <ShareButton postId={post.id} title={post.title} />
 
         <SaveButton target="post" objectId={post.id} initialSaved={post.is_saved} />
       </div>
@@ -207,30 +197,72 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
   );
 }
 
-function ActionBtn({ href, icon, children }: { href?: string; icon: React.ReactNode; children?: React.ReactNode }) {
-  const cls = 'inline-flex items-center gap-1.5 rounded-full bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]';
-  if (href) {
-    return (
-      <Link to={href} onClick={(e) => e.stopPropagation()} className={cls}>
-        {icon}
-        {children}
-      </Link>
-    );
-  }
+const ACTION_BTN_CLASSES = 'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]';
+
+function ActionBtn({ href, icon, children }: { href: string; icon: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <button type="button" className={cls} onClick={(e) => e.preventDefault()}>
+    <Link to={href} className={ACTION_BTN_CLASSES}>
       {icon}
       {children}
+    </Link>
+  );
+}
+
+const SHARE_STATUS_RESET_MS = 2000;
+
+type ShareStatus = 'idle' | 'copied' | 'failed';
+
+const SHARE_LABEL_KEYS: Record<ShareStatus, string> = {
+  idle: 'post.share',
+  copied: 'post.shareCopied',
+  failed: 'post.shareFailed',
+};
+
+function ShareButton({ postId, title }: { postId: number; title: string }) {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<ShareStatus>('idle');
+
+  useEffect(() => {
+    if (status === 'idle') return;
+    const timer = setTimeout(() => setStatus('idle'), SHARE_STATUS_RESET_MS);
+    return () => clearTimeout(timer);
+  }, [status]);
+
+  async function share() {
+    const url = `${window.location.origin}/posts/${postId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (e) {
+        // Dismissing the share sheet is not a failure; anything else falls back to copying.
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setStatus('copied');
+    } catch {
+      setStatus('failed');
+    }
+  }
+
+  const label = t(SHARE_LABEL_KEYS[status]);
+  const Icon = status === 'copied' ? Check : Share;
+  return (
+    <button type="button" className={ACTION_BTN_CLASSES} onClick={share} aria-label={label}>
+      <Icon className="h-[15px] w-[15px]" />
+      <span aria-live="polite" className="max-[480px]:hidden">{label}</span>
     </button>
   );
 }
 
 function Flair({ kind, children }: { kind: 'discussion' | 'showcase' | 'question' | 'news'; children: React.ReactNode }) {
   const palette: Record<typeof kind, string> = {
-    discussion: 'bg-[rgba(97,218,251,0.08)] text-[var(--color-accent)] border-[rgba(97,218,251,0.2)]',
-    showcase: 'bg-[rgba(106,255,193,0.08)] text-[var(--color-success)] border-[rgba(106,255,193,0.2)]',
-    question: 'bg-[rgba(255,155,106,0.08)] text-[var(--color-warn)] border-[rgba(255,155,106,0.2)]',
-    news: 'bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)] border-[rgba(255,106,138,0.2)]',
+    discussion: 'bg-[var(--color-link)]/8 text-[var(--color-link)] border-[var(--color-link-border)]',
+    showcase: 'bg-[var(--color-success-dim)] text-[var(--color-success)] border-[var(--color-success)]/20',
+    question: 'bg-[var(--color-warn-dim)] text-[var(--color-warn)] border-[var(--color-warn)]/20',
+    news: 'bg-[var(--color-danger-dim)] text-[var(--color-danger)] border-[var(--color-danger)]/20',
   };
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium', palette[kind])}>

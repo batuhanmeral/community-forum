@@ -1,10 +1,12 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { votePoll } from '@/api/polls';
 import type { Poll } from '@/features/posts/types';
 import { useAppSelector } from '@/app/hooks';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { Check } from 'lucide-react';
 
 interface PollCardProps {
   poll: Poll;
@@ -12,6 +14,7 @@ interface PollCardProps {
 }
 
 export function PollCard({ poll, onUpdate }: PollCardProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [local, setLocal] = useState<Poll>(poll);
@@ -54,31 +57,28 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
             className={cn(
               'relative flex items-center justify-between overflow-hidden rounded-[10px] border px-3.5 py-3 text-left text-[13.5px] transition',
               voted
-                ? 'border-[var(--color-accent)] bg-[var(--color-bg-elevated)]'
+                ? 'border-[var(--color-link)] bg-[var(--color-bg-elevated)]'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)]',
-              canVote && 'hover:border-[var(--color-accent)] cursor-pointer',
+              canVote && 'hover:border-[var(--color-link)] cursor-pointer',
               !canVote && 'cursor-default',
             )}
           >
             {revealed && (
               <div
-                className="absolute inset-y-0 left-0 z-0 transition-all"
-                style={{
-                  width: `${opt.percent}%`,
-                  background: voted
-                    ? 'rgba(97, 218, 251, 0.22)'
+                className={cn(
+                  'absolute inset-y-0 left-0 z-0 border-r transition-all',
+                  voted
+                    ? 'border-[var(--color-link)]/50 bg-[var(--color-link)]/20'
                     : leading
-                      ? 'rgba(97, 218, 251, 0.14)'
-                      : 'rgba(97, 218, 251, 0.07)',
-                  borderRight: `1px solid ${voted ? 'rgba(97,218,251,0.55)' : leading ? 'rgba(97,218,251,0.4)' : 'rgba(97,218,251,0.18)'}`,
-                }}
+                      ? 'border-[var(--color-link)]/40 bg-[var(--color-link-dim)]'
+                      : 'border-[var(--color-link-border)] bg-[var(--color-link)]/8',
+                )}
+                style={{ width: `${opt.percent}%` }}
               />
             )}
             <span className="relative z-10 flex items-center gap-2">
               {voted && (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-[var(--color-accent)]">
-                  <path d="M5 12l5 5L20 7" />
-                </svg>
+                <Check strokeWidth={2.4} className="h-3.5 w-3.5 text-[var(--color-link)]" />
               )}
               <span>{opt.text}</span>
             </span>
@@ -87,9 +87,9 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
                 className={cn(
                   'font-mono relative z-10 text-[12px]',
                   voted
-                    ? 'text-[var(--color-accent)] font-semibold'
+                    ? 'text-[var(--color-link)] font-semibold'
                     : leading
-                      ? 'text-[var(--color-accent)]'
+                      ? 'text-[var(--color-link)]'
                       : 'text-[var(--color-text-muted)]',
                 )}
               >
@@ -101,10 +101,10 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
       })}
 
       <div className="font-mono mt-1 flex items-center gap-2 text-[12px] text-[var(--color-text-dim)]">
-        <span>{local.total_votes.toLocaleString()} {local.total_votes === 1 ? 'vote' : 'votes'}</span>
+        <span>{t('poll.votes', { count: local.total_votes })}</span>
         <span>·</span>
         <span>
-          {local.is_closed ? 'Closed' : `closes ${timeAgo(local.closes_at)}`}
+          {local.is_closed ? t('poll.closed') : t('poll.closes', { time: timeAgo(local.closes_at) })}
         </span>
         {!isAuthed && !local.is_closed && (
           <>
@@ -115,9 +115,9 @@ export function PollCard({ poll, onUpdate }: PollCardProps) {
                 e.preventDefault();
                 navigate('/login');
               }}
-              className="text-[var(--color-accent)] hover:underline"
+              className="text-[var(--color-link)] hover:underline"
             >
-              Log in to vote
+              {t('poll.loginToVote')}
             </button>
           </>
         )}

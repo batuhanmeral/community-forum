@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { reportContent, type ReportTarget } from '@/api/moderation';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -12,17 +13,19 @@ interface ReportModalProps {
   label?: string;
 }
 
+// The value is what moderators receive (the backend and queue are English); the key is what the reporter reads.
 const REASONS = [
-  'Spam',
-  'Harassment or bullying',
-  'Hate speech',
-  'Violence or threats',
-  'Misinformation',
-  'NSFW content not tagged',
-  'Other',
+  { value: 'Spam', key: 'report.reason_spam' },
+  { value: 'Harassment or bullying', key: 'report.reason_harassment' },
+  { value: 'Hate speech', key: 'report.reason_hate' },
+  { value: 'Violence or threats', key: 'report.reason_violence' },
+  { value: 'Misinformation', key: 'report.reason_misinformation' },
+  { value: 'NSFW content not tagged', key: 'report.reason_nsfw' },
+  { value: 'Other', key: 'report.reason_other' },
 ];
 
 export function ReportModal({ open, onClose, target, objectId, label }: ReportModalProps) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [detail, setDetail] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -51,32 +54,32 @@ export function ReportModal({ open, onClose, target, objectId, label }: ReportMo
     } catch (e) {
       const msg =
         (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        'Could not submit report. You may have already reported this recently.';
+        t('report.failed');
       setError(msg);
     } finally {
       setSubmitting(false);
     }
   }
 
-  const targetLabel = label ?? target;
+  const targetLabel = label ?? t(`report.target_${target}`);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={done ? 'Report submitted' : `Report ${targetLabel}`}
+      title={done ? t('report.submitted') : t('report.title', { target: targetLabel })}
       footer={
         done ? (
           <Button variant="secondary" onClick={onClose}>
-            Close
+            {t('common.close')}
           </Button>
         ) : (
           <>
             <Button variant="secondary" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button variant="danger" onClick={handleSubmit} loading={submitting} disabled={!reason}>
-              Submit report
+              {t('report.submit')}
             </Button>
           </>
         )
@@ -84,27 +87,27 @@ export function ReportModal({ open, onClose, target, objectId, label }: ReportMo
     >
       {done ? (
         <p className="text-sm text-[var(--color-text-muted)]">
-          Thanks for keeping the community safe. Moderators will review this report.
+          {t('report.thanks')}
         </p>
       ) : (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-[var(--color-text-muted)]">
-            Why are you reporting this {targetLabel}?
+            {t('report.question', { target: targetLabel })}
           </p>
           <div className="flex flex-col gap-1.5">
             {REASONS.map((r) => (
               <button
-                key={r}
+                key={r.value}
                 type="button"
-                onClick={() => setReason(r)}
+                onClick={() => setReason(r.value)}
                 className={cn(
                   'rounded-[10px] border px-3 py-2 text-left text-sm transition',
-                  reason === r
-                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-dim)] text-[var(--color-text)]'
+                  reason === r.value
+                    ? 'border-[var(--color-link)] bg-[var(--color-link-dim)] text-[var(--color-text)]'
                     : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-soft)] hover:border-[var(--color-border-strong)]',
                 )}
               >
-                {r}
+                {t(r.key)}
               </button>
             ))}
           </div>
@@ -112,8 +115,8 @@ export function ReportModal({ open, onClose, target, objectId, label }: ReportMo
             rows={3}
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
-            placeholder="Add more context (optional)…"
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            placeholder={t('report.contextPlaceholder')}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
           />
           {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
         </div>

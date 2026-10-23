@@ -1,8 +1,10 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { castVote, type VoteTarget, type VoteValue } from '@/api/votes';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
+import { ArrowBigDown, ArrowBigUp } from 'lucide-react';
 
 interface VoteClusterProps {
   target: VoteTarget;
@@ -92,7 +94,7 @@ export function VoteCluster({
           className={cn(
             'font-mono font-medium tracking-tight',
             fontSize,
-            localVote === 1 && 'text-[var(--color-accent)]',
+            localVote === 1 && 'text-[var(--color-link)]',
             localVote === -1 && 'text-[var(--color-danger)]',
             localVote === null && 'text-[var(--color-text)]',
           )}
@@ -111,7 +113,7 @@ export function VoteCluster({
   }
 
   return (
-    <div className="font-mono inline-flex items-center gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
+    <div className="font-mono inline-flex items-center gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
       <ArrowBtn
         direction="up"
         active={localVote === 1}
@@ -123,7 +125,7 @@ export function VoteCluster({
         className={cn(
           'min-w-[36px] text-center font-medium tracking-tight',
           fontSize,
-          localVote === 1 && 'text-[var(--color-accent)]',
+          localVote === 1 && 'text-[var(--color-link)]',
           localVote === -1 && 'text-[var(--color-danger)]',
           localVote === null && 'text-[var(--color-text)]',
         )}
@@ -150,30 +152,22 @@ interface ArrowBtnProps {
 }
 
 function ArrowBtn({ direction, active, size, btnSize, onClick }: ArrowBtnProps) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={direction === 'up' ? 'Upvote' : 'Downvote'}
+      aria-label={direction === 'up' ? t('votes.upvote') : t('votes.downvote')}
       className={cn(
-        'grid place-items-center rounded-full text-[var(--color-text-muted)] transition',
+        'grid place-items-center rounded-[var(--radius-control-inner)] transition',
         btnSize,
-        'hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
-        active && direction === 'up' && 'bg-[var(--color-accent-dim)] text-[var(--color-accent)] hover:bg-[var(--color-accent-dim)] hover:text-[var(--color-accent)]',
-        active && direction === 'down' && 'bg-[rgba(255,106,138,0.12)] text-[var(--color-danger)] hover:bg-[rgba(255,106,138,0.12)] hover:text-[var(--color-danger)]',
+        // cn() does not merge, so the idle colours must be absent when active or they win by CSS order.
+        !active && 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
+        active && direction === 'up' && 'bg-[var(--color-link-dim)] text-[var(--color-link)]',
+        active && direction === 'down' && 'bg-[var(--color-danger)]/12 text-[var(--color-danger)]',
       )}
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ width: size, height: size }}
-      >
-        {direction === 'up' ? <path d="M12 19V5m-6 6l6-6 6 6" /> : <path d="M12 5v14m6-6l-6 6-6-6" />}
-      </svg>
+      {direction === 'up' ? <ArrowBigUp size={size} /> : <ArrowBigDown size={size} />}
     </button>
   );
 }

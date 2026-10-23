@@ -6,10 +6,13 @@ import type { Community } from '@/features/communities/types';
 import type { Post } from '@/features/posts/types';
 import type { UserProfile } from '@/api/users';
 import { Card } from '@/components/ui/Card';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { Avatar } from '@/components/ui/Avatar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FollowButton } from '@/components/follow/FollowButton';
+import { userPath } from '@/lib/paths';
 import { cn } from '@/lib/cn';
+import { ArrowBigUp } from 'lucide-react';
 
 const TABS: { type: SearchType; label: string }[] = [
   { type: 'post', label: 'search.posts' },
@@ -81,18 +84,19 @@ export function SearchPage() {
     }
   }
 
-  function selectTab(t: SearchType) {
-    setParams({ q, type: t }, { replace: true });
+  function selectTab(next: SearchType) {
+    setParams({ q, type: next }, { replace: true });
   }
 
   return (
     <div className="flex flex-col gap-4">
+      <PageTitle title={t('titles.search')} />
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight">
           {q ? (
             <>
               {t('search.resultsFor')}{' '}
-              <span className="text-[var(--color-accent)]">“{q}”</span>
+              <span className="text-[var(--color-link)]">“{q}”</span>
             </>
           ) : (
             t('search.title')
@@ -105,16 +109,16 @@ export function SearchPage() {
         )}
       </div>
 
-      <div className="flex gap-0.5 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+      <div className="flex gap-0.5 self-start rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
         {TABS.map((tab) => (
           <button
             key={tab.type}
             type="button"
             onClick={() => selectTab(tab.type)}
             className={cn(
-              'rounded-full px-4 py-1.5 text-[13px] font-medium transition',
+              'rounded-[var(--radius-control-inner)] px-4 py-1.5 text-[13px] font-medium transition',
               type === tab.type
-                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
             )}
           >
@@ -157,7 +161,7 @@ export function SearchPage() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)] disabled:opacity-60"
           >
             {loadingMore ? t('search.loading') : t('search.loadMore')}
           </button>
@@ -181,13 +185,13 @@ function CommunityResult({ community }: { community: Community }) {
             c/{community.slug}
           </h3>
           {community.is_nsfw && (
-            <span className="rounded-full border border-[rgba(255,106,138,0.2)] bg-[rgba(255,106,138,0.08)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-danger)]">
-              NSFW
+            <span className="rounded-full border border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-danger)]">
+              {t('post.nsfw')}
             </span>
           )}
           {community.is_member && (
-            <span className="rounded-full border border-[rgba(97,218,251,0.2)] bg-[rgba(97,218,251,0.08)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-accent)]">
-              Joined
+            <span className="rounded-full border border-[var(--color-link-border)] bg-[var(--color-link)]/8 px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-link)]">
+              {t('rightbar.joined')}
             </span>
           )}
         </div>
@@ -209,15 +213,15 @@ function UserResult({ user }: { user: UserProfile }) {
   const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-4 py-3.5 transition hover:border-[var(--color-border-strong)]">
-      <Link to={`/u/${user.username}`} className="shrink-0">
+      <Link to={userPath(user.username)} className="shrink-0">
         <Avatar src={user.avatar} alt={user.username} size="md" />
       </Link>
-      <Link to={`/u/${user.username}`} className="min-w-0 flex-1">
-        <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]">
+      <Link to={userPath(user.username)} className="min-w-0 flex-1">
+        <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)] hover:text-[var(--color-link)]">
           u/{user.username}
         </h3>
         <p className="font-mono mt-0.5 text-[11.5px] text-[var(--color-text-dim)]">
-          ↑ {user.total_karma.toLocaleString()} karma · {user.followers_count.toLocaleString()}{' '}
+          <ArrowBigUp className="inline h-3.5 w-3.5 align-text-bottom" /> {user.total_karma.toLocaleString()} {t('nav.karma')} · {user.followers_count.toLocaleString()}{' '}
           {user.followers_count === 1 ? t('search.follower') : t('search.followers')}
         </p>
         {user.bio && (

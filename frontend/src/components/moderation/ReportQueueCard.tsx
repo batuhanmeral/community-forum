@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { usePagedList } from '@/lib/usePagedList';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { deletedBodyKey } from '@/lib/deletedBody';
 
 const STATUSES: ReportStatus[] = ['open', 'resolved', 'dismissed'];
 
@@ -45,15 +46,18 @@ export function ReportQueueCard({ slug }: { slug: string }) {
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold tracking-tight">{t('mod.reportsTitle')}</h2>
-        <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+        <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
           {STATUSES.map((s) => (
             <button
               key={s}
               type="button"
               aria-pressed={status === s}
-              onClick={() => setStatus(s)}
+              onClick={() => {
+                setStatus(s);
+                setError(null);
+              }}
               className={cn(
-                'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
+                'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
                 status === s
                   ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
@@ -82,7 +86,7 @@ export function ReportQueueCard({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={loadMore}
-          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 text-sm text-[var(--color-link)] hover:underline"
         >
           {t('mod.loadMore')}
         </button>
@@ -116,9 +120,10 @@ function ReportRow({ report: r, busy, onAct }: ReportRowProps) {
           <p className="flex min-w-0 items-baseline gap-1 text-sm">
             <Link
               to={preview.link}
-              className="truncate text-[var(--color-accent)] hover:underline"
+              className="truncate text-[var(--color-link)] hover:underline"
             >
-              {preview.text}
+              {/* A deleted comment's preview is the API's English body marker; post previews are titles. */}
+              {preview.is_deleted && r.target_type === 'comment' ? t(deletedBodyKey(preview.text)) : preview.text}
             </Link>
             {preview.is_deleted && (
               <span className="shrink-0 text-[var(--color-text-muted)]">

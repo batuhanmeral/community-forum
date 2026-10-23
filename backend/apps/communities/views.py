@@ -7,6 +7,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from apps.common.throttling import WriteThrottleMixin
+from apps.posts.feed import nsfw_allowed
 
 from .models import Community, Membership
 from .permissions import IsCreatorOrReadOnly
@@ -45,6 +46,9 @@ class CommunityViewSet(WriteThrottleMixin, viewsets.ModelViewSet):
                 return qs.none()
             # Subquery instead of a join so member_count is not affected.
             qs = qs.filter(pk__in=joined_community_ids(self.request.user))
+        searching = self.request.query_params.get("search", "").strip()
+        if self.action == "list" and searching and not nsfw_allowed(self.request):
+            qs = qs.filter(is_nsfw=False)
         return qs
 
     def perform_create(self, serializer):

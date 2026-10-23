@@ -2,10 +2,11 @@ import re
 
 from django.contrib.auth import get_user_model
 
+from apps.common.markdown import MENTION_RE
+
 User = get_user_model()
 
 MAX_MENTIONS = 10
-MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([A-Za-z0-9_]{1,150})")
 
 
 def extract_mention_usernames(body: str) -> list[str]:

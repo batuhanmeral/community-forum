@@ -8,7 +8,7 @@ import {
   listRules,
   updateNotifyLevel,
 } from '@/api/communities';
-import { listCommunityPosts, type SortOption } from '@/api/posts';
+import { listCommunityPosts, type SortOption, type TimeWindow } from '@/api/posts';
 import type {
   Community,
   CommunityRule,
@@ -21,15 +21,12 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { PostSortTabs } from '@/components/posts/PostSortTabs';
+import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
 import { cn } from '@/lib/cn';
-
-const notifyLabels: Record<NotifyLevel, string> = {
-  all: 'All updates',
-  posts_only: 'Posts only',
-  off: 'Muted',
-};
+import { ArrowLeft, Bell, ChevronDown, ShieldCheck } from 'lucide-react';
 
 export function CommunityDetailPage() {
   const { t } = useTranslation();
@@ -42,6 +39,7 @@ export function CommunityDetailPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [sort, setSort] = useState<SortOption>('hot');
+  const [timeRange, setTimeRange] = useState<TimeWindow>('all');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState<NotifyLevel>('all');
@@ -82,7 +80,7 @@ export function CommunityDetailPage() {
     setNextPage(null);
     setLoadMoreFailed(false);
     setLoadingMore(false);
-    listCommunityPosts(slug, { sort })
+    listCommunityPosts(slug, { sort, t: timeRange })
       .then((d) => {
         if (cancelled) return;
         setPosts(d.results);
@@ -95,7 +93,7 @@ export function CommunityDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, sort]);
+  }, [slug, sort, timeRange]);
 
   useEffect(
     () => () => {
@@ -110,7 +108,7 @@ export function CommunityDetailPage() {
     setLoadingMore(true);
     setLoadMoreFailed(false);
     try {
-      const d = await listCommunityPosts(slug, { sort, page: nextPage });
+      const d = await listCommunityPosts(slug, { sort, t: timeRange, page: nextPage });
       if (version !== listVersion.current) return;
       setPosts((ps) => [...ps, ...d.results.filter((p) => !ps.some((x) => x.id === p.id))]);
       setNextPage(d.next ? nextPage + 1 : null);
@@ -162,17 +160,24 @@ export function CommunityDetailPage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--color-text-muted)]">Loading…</div>;
+    return (
+      <>
+        <PageTitle />
+        <div className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</div>
+      </>
+    );
   }
   if (notFound || !community) {
     return (
       <Card>
-        <h2 className="text-lg font-semibold">Community not found</h2>
+        <PageTitle title={t('communityPage.notFound')} />
+        <h2 className="text-lg font-semibold">{t('communityPage.notFound')}</h2>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          The community c/{slug} doesn't exist.
+          {t('communityPage.notFoundBody', { slug })}
         </p>
-        <Link to="/c" className="mt-3 inline-block text-sm text-[var(--color-accent)] hover:underline">
-          ← Browse communities
+        <Link to="/c" className="mt-3 inline-flex items-center gap-1 text-sm text-[var(--color-link)] hover:underline">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t('composer.browseCommunities')}
         </Link>
       </Card>
     );
@@ -180,29 +185,39 @@ export function CommunityDetailPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <PageTitle title={`c/${community.slug}`} />
       <Card padded={false} className="overflow-hidden">
-        <div className="h-24 w-full bg-gradient-to-r from-[var(--color-accent)]/30 via-[var(--color-surface-hover)] to-[var(--color-surface)]" />
+        <div className="h-24 w-full bg-[var(--color-bg-3)]" />
         <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="-mt-12">
-              <Avatar
-                src={community.avatar}
-                alt={community.name}
-                size="lg"
-                className="ring-4 ring-[var(--color-surface)]"
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight">{community.name}</h1>
-                {community.is_nsfw && <Badge tone="danger">NSFW</Badge>}
+          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:gap-6">
+            <div className="flex shrink-0 items-start gap-4">
+              <div className="-mt-12">
+                <Avatar
+                  src={community.avatar}
+                  alt={community.name}
+                  size="lg"
+                  className="ring-4 ring-[var(--color-surface)]"
+                />
               </div>
-              <p className="text-sm text-[var(--color-text-muted)]">c/{community.slug}</p>
-              <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
-                {community.member_count.toLocaleString()} member
-                {community.member_count === 1 ? '' : 's'}
-              </p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-bold tracking-tight">{community.name}</h1>
+                  {community.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
+                </div>
+                <p className="text-sm text-[var(--color-text-muted)]">c/{community.slug}</p>
+                <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
+                  {t('rightbar.members', {
+                    count: community.member_count,
+                    formatted: community.member_count.toLocaleString(),
+                  })}
+                </p>
+              </div>
             </div>
+            {community.description && (
+              <p className="min-w-0 flex-1 text-sm text-[var(--color-text-muted)] whitespace-pre-wrap sm:border-l sm:border-[var(--color-border)] sm:pl-6">
+                {community.description}
+              </p>
+            )}
           </div>
 
           {isAuthed && (
@@ -210,10 +225,8 @@ export function CommunityDetailPage() {
               {(community.my_role === 'admin' || community.my_role === 'moderator') && (
                 <Link to={`/c/${community.slug}/mod`}>
                   <Button variant="secondary" size="md">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                      <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
-                    </svg>
-                    Mod tools
+                    <ShieldCheck className="h-4 w-4" />
+                    {t('communityPage.modTools')}
                   </Button>
                 </Link>
               )}
@@ -228,7 +241,7 @@ export function CommunityDetailPage() {
                   onClick={handleJoinLeave}
                   loading={actionLoading}
                 >
-                  {community.is_member ? 'Joined' : 'Join'}
+                  {community.is_member ? t('rightbar.joined') : t('rightbar.join')}
                 </Button>
               )}
             </div>
@@ -237,18 +250,10 @@ export function CommunityDetailPage() {
       </Card>
 
       <div className="flex flex-col gap-3">
-        {community.description && (
-          <Card>
-            <p className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap">
-              {community.description}
-            </p>
-          </Card>
-        )}
-
         {rules.length > 0 && (
           <Card>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Community rules
+              {t('communityPage.rules')}
             </h2>
             <ol className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
               {rules.map((r, i) => (
@@ -262,11 +267,14 @@ export function CommunityDetailPage() {
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <PostSortTabs value={sort} onChange={setSort} />
+          <div className="flex flex-wrap items-center gap-2">
+            <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
+            <PostSortTabs value={sort} onChange={setSort} />
+          </div>
           {isAuthed && (
             <Link to={`/c/${community.slug}/submit`}>
               <Button variant="primary" size="sm">
-                Create post
+                {t('communityPage.createPost')}
               </Button>
             </Link>
           )}
@@ -281,7 +289,7 @@ export function CommunityDetailPage() {
         ) : posts.length === 0 ? (
           <Card>
             <p className="text-sm text-[var(--color-text-muted)]">
-              No posts in this community yet.
+              {t('communityPage.noPosts')}
             </p>
           </Card>
         ) : (
@@ -308,6 +316,7 @@ interface NotifyDropdownProps {
 }
 
 function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -325,20 +334,15 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
-        aria-label="Notification level"
+        className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
+        aria-label={t('communityPage.notifyLevel')}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-          <path d="M6 8a6 6 0 1 1 12 0v4l1.5 3h-15L6 12V8Z" />
-          <path d="M10 19a2 2 0 0 0 4 0" />
-        </svg>
-        <span className="hidden sm:inline">{notifyLabels[value]}</span>
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-[var(--color-text-muted)]">
-          <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" />
-        </svg>
+        <Bell className="h-4 w-4" />
+        <span className="hidden sm:inline">{t(`communityPage.notify_${value}`)}</span>
+        <ChevronDown className="h-4 w-4 text-[var(--color-text-muted)]" />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-2xl">
+        <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-md">
           {(['all', 'posts_only', 'off'] as NotifyLevel[]).map((level) => (
             <button
               key={level}
@@ -349,10 +353,10 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
               }}
               className={cn(
                 'block w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--color-surface-hover)]',
-                level === value && 'text-[var(--color-accent)]',
+                level === value && 'text-[var(--color-link)]',
               )}
             >
-              {notifyLabels[level]}
+              {t(`communityPage.notify_${level}`)}
             </button>
           ))}
         </div>

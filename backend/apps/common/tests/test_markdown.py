@@ -123,3 +123,30 @@ def test_links_carry_noreferrer():
 def test_safe_href_rejects_schemes_outside_the_allowlist():
     # nh3 does not re-check url_schemes on the value the attribute filter returns.
     assert _safe_href("java\tscript:alert(1)") is None
+
+
+class TestMentionLinks:
+    def test_mention_links_to_profile(self):
+        out = render_markdown("thanks @alice_1!")
+        assert '<a href="/u/alice_1" rel="nofollow noopener noreferrer ugc">@alice_1</a>!' in out
+
+    def test_several_mentions_in_one_line(self):
+        out = render_markdown("@bob and @carol")
+        assert 'href="/u/bob"' in out
+        assert 'href="/u/carol"' in out
+
+    def test_email_is_not_a_mention(self):
+        assert "href" not in render_markdown("mail me at me@example.com")
+
+    def test_code_is_left_alone(self):
+        out = render_markdown("`@alice`\n\n```\n@bob\n```")
+        assert "href" not in out
+
+    def test_existing_link_is_not_nested(self):
+        out = render_markdown("[ask @alice](https://example.com)")
+        assert out.count("<a ") == 1
+        assert 'href="https://example.com"' in out
+
+    def test_mention_inside_emphasis(self):
+        out = render_markdown("**@alice**")
+        assert '<strong><a href="/u/alice"' in out

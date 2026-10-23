@@ -9,49 +9,36 @@ import type { Community, Flair } from '@/features/communities/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { MarkdownEditor } from '@/components/posts/MarkdownEditor';
 import { clearDraft, loadDraft, saveDraft } from '@/lib/draft';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { AlignLeft, BarChart3, Image as ImageIcon, Link as LinkIcon, X } from 'lucide-react';
 
-const KIND_TABS: Array<{ value: PostKind; label: string; icon: React.ReactNode }> = [
+const KIND_TABS: Array<{ value: PostKind; icon: React.ReactNode }> = [
   {
     value: 'text',
-    label: 'Text',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <path d="M4 6h16M4 12h16M4 18h10" />
-      </svg>
+      <AlignLeft className="h-4 w-4" />
     ),
   },
   {
     value: 'image',
-    label: 'Image',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <circle cx="9" cy="10" r="2" />
-        <path d="m3 18 6-5 5 4 4-3 3 3" />
-      </svg>
+      <ImageIcon className="h-4 w-4" />
     ),
   },
   {
     value: 'link',
-    label: 'Link',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66L11 7" />
-        <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66L13 17" />
-      </svg>
+      <LinkIcon className="h-4 w-4" />
     ),
   },
   {
     value: 'poll',
-    label: 'Poll',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-        <path d="M4 20V8M10 20V4M16 20v-8M22 20H2" />
-      </svg>
+      <BarChart3 className="h-4 w-4" />
     ),
   },
 ];
@@ -86,9 +73,7 @@ export function PostCreatePage() {
   const [title, setTitle] = useState(draft?.title ?? '');
   const [body, setBody] = useState(draft?.body ?? '');
   const [url, setUrl] = useState(draft?.url ?? '');
-  const [draftNotice, setDraftNotice] = useState<string | null>(
-    draft ? `Draft restored (saved ${timeAgo(draft.savedAt)})` : null,
-  );
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(draft?.savedAt ?? null);
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isNsfw, setIsNsfw] = useState(false);
@@ -123,7 +108,7 @@ export function PostCreatePage() {
     setTitle('');
     setBody('');
     setUrl('');
-    setDraftNotice(null);
+    setDraftSavedAt(null);
   }
 
   useEffect(() => {
@@ -151,7 +136,7 @@ export function PostCreatePage() {
     e.preventDefault();
     setErrors({});
     if (!communitySlug) {
-      setErrors({ community: 'Please pick a community.' });
+      setErrors({ community: t('postForm.pickCommunity') });
       return;
     }
     setLoading(true);
@@ -188,12 +173,13 @@ export function PostCreatePage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
-      <h1 className="text-2xl font-bold tracking-tight">Create a post</h1>
+      <PageTitle title={t('titles.createPost')} />
+      <h1 className="text-2xl font-bold tracking-tight">{t('titles.createPost')}</h1>
 
       <Card>
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-            Community
+            {t('postForm.community')}
           </label>
           {params.slug ? (
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5 text-sm">
@@ -204,10 +190,10 @@ export function PostCreatePage() {
               <select
                 value={communitySlug}
                 onChange={(e) => setCommunitySlug(e.target.value)}
-                className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
               >
                 <option value="" disabled>
-                  Choose a community
+                  {t('postForm.chooseCommunity')}
                 </option>
                 {communities.map((c) => (
                   <option key={c.id} value={c.slug}>
@@ -218,7 +204,7 @@ export function PostCreatePage() {
               {communitiesLoaded && communities.length === 0 && (
                 <p className="text-xs text-[var(--color-text-muted)]">
                   {t('composer.joinFirst')}{' '}
-                  <Link to="/c" className="text-[var(--color-accent)] hover:underline">
+                  <Link to="/c" className="text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
                     {t('composer.browseCommunities')}
                   </Link>
                 </p>
@@ -239,34 +225,35 @@ export function PostCreatePage() {
               type="button"
               onClick={() => setKind(tab.value)}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors',
+                // Below 480 px the icon stacks over the label so all four tabs fit a 360 px screen.
+                'flex min-w-0 flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors max-[480px]:flex-col max-[480px]:gap-1 max-[480px]:px-1 max-[480px]:py-2.5',
                 kind === tab.value
-                  ? 'border-b-2 border-[var(--color-accent)] text-[var(--color-text)]'
+                  ? 'border-b-2 border-[var(--color-link)] text-[var(--color-text)]'
                   : 'border-b-2 border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
               )}
             >
               {tab.icon}
-              <span>{tab.label}</span>
+              <span>{t(`post.kind_${tab.value}`)}</span>
             </button>
           ))}
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
-          {draftNotice && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(97,218,251,0.25)] bg-[var(--color-accent-dim)] px-3 py-2 text-[13px] text-[var(--color-accent)]">
-              <span>{draftNotice}</span>
+          {draftSavedAt && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-link-border)] bg-[var(--color-link-dim)] px-3 py-2 text-[13px] text-[var(--color-link)]">
+              <span>{t('postForm.draftRestored', { time: timeAgo(draftSavedAt) })}</span>
               <button
                 type="button"
                 onClick={discardDraft}
                 className="font-medium underline-offset-2 hover:underline"
               >
-                Discard draft
+                {t('postForm.discardDraft')}
               </button>
             </div>
           )}
           <Input
             name="title"
-            label="Title"
+            label={t('postForm.title')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             error={errors.title}
@@ -282,8 +269,8 @@ export function PostCreatePage() {
             <Input
               name="url"
               type="url"
-              label="URL"
-              placeholder="https://..."
+              label={t('postForm.url')}
+              placeholder={t('postForm.urlPlaceholder')}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               error={errors.url}
@@ -294,13 +281,13 @@ export function PostCreatePage() {
           {kind === 'image' && (
             <div className="flex flex-col gap-2">
               <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-                Image
+                {t('post.kind_image')}
               </label>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-                className="text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-surface-hover)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-[var(--color-border)]"
+                className="text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-[var(--radius-control)] file:border-0 file:bg-[var(--color-surface-hover)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-[var(--color-border)]"
               />
               {imagePreview && (
                 <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
@@ -308,7 +295,7 @@ export function PostCreatePage() {
                 </div>
               )}
               {errors.image && <p className="text-xs text-[var(--color-danger)]">{errors.image}</p>}
-              <p className="text-xs text-[var(--color-text-dim)]">JPEG, PNG or WEBP. Max 5 MB.</p>
+              <p className="text-xs text-[var(--color-text-dim)]">{t('postForm.imageHint')}</p>
             </div>
           )}
 
@@ -316,7 +303,7 @@ export function PostCreatePage() {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Options
+                  {t('postForm.options')}
                 </label>
                 {pollOptions.map((opt, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -328,20 +315,18 @@ export function PostCreatePage() {
                         next[i] = e.target.value;
                         setPollOptions(next);
                       }}
-                      placeholder={`Option ${i + 1}`}
-                      className="h-10 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                      placeholder={t('postForm.optionPlaceholder', { number: i + 1 })}
+                      className="h-10 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
                       maxLength={120}
                     />
                     {pollOptions.length > 2 && (
                       <button
                         type="button"
                         onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
-                        className="rounded-full p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)]"
-                        aria-label="Remove option"
+                        className="rounded-[var(--radius-control)] p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)]"
+                        aria-label={t('postForm.removeOption')}
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                          <path d="M6 6l12 12M6 18 18 6" />
-                        </svg>
+                        <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>
@@ -350,21 +335,21 @@ export function PostCreatePage() {
                   <button
                     type="button"
                     onClick={() => setPollOptions([...pollOptions, ''])}
-                    className="self-start text-sm text-[var(--color-accent)] hover:underline"
+                    className="self-start text-sm text-[var(--color-link)] hover:underline"
                   >
-                    + Add option
+                    {t('postForm.addOption')}
                   </button>
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Closes at
+                  {t('postForm.closesAt')}
                 </label>
                 <input
                   type="datetime-local"
                   value={pollClosesAt}
                   onChange={(e) => setPollClosesAt(e.target.value)}
-                  className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                  className="h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
                 />
               </div>
               {errors.poll_input && (
@@ -376,7 +361,7 @@ export function PostCreatePage() {
           {flairs.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-                Flair (optional)
+                {t('postForm.flair')}
               </label>
               <div className="flex flex-wrap items-center gap-1.5">
                 {flairs.map((f) => (
@@ -385,8 +370,8 @@ export function PostCreatePage() {
                     type="button"
                     onClick={() => setFlairId(flairId === f.id ? '' : f.id)}
                     className={cn(
-                      'inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium transition',
-                      flairId === f.id ? 'ring-2 ring-[var(--color-accent)]/40' : 'opacity-75 hover:opacity-100',
+                      'inline-flex items-center rounded-[var(--radius-control)] border px-3 py-1 text-[12px] font-medium transition',
+                      flairId === f.id ? 'ring-2 ring-[var(--color-link)]/40' : 'opacity-75 hover:opacity-100',
                     )}
                     style={{
                       color: f.color,
@@ -406,12 +391,12 @@ export function PostCreatePage() {
               type="checkbox"
               checked={isNsfw}
               onChange={(e) => setIsNsfw(e.target.checked)}
-              className="h-4 w-4 accent-[var(--color-accent)]"
+              className="h-4 w-4 accent-[var(--color-link)]"
             />
             <span className="text-sm">
-              <span className="font-medium">NSFW</span>
+              <span className="font-medium">{t('post.nsfw')}</span>
               <span className="ml-2 text-[var(--color-text-muted)]">
-                Mark this post as Not Safe For Work.
+                {t('postForm.nsfwHint')}
               </span>
             </span>
           </label>
@@ -422,10 +407,10 @@ export function PostCreatePage() {
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={loading}>
-              Post
+              {t('postForm.submit')}
             </Button>
           </div>
         </form>

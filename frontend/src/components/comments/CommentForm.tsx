@@ -34,11 +34,11 @@ const emptyMention: MentionState = {
 
 export function CommentForm({
   initialValue = '',
-  placeholder = 'Write a comment...',
+  placeholder,
   autoFocus,
   onSubmit,
   onCancel,
-  submitLabel = 'Comment',
+  submitLabel,
 }: CommentFormProps) {
   const { t } = useTranslation();
   const [body, setBody] = useState(initialValue);
@@ -167,7 +167,7 @@ export function CommentForm({
         rows={3}
         value={body}
         autoFocus={autoFocus}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('comments.placeholder')}
         onChange={(e) => {
           setBody(e.target.value);
           detectMention(e.target.value, e.target.selectionStart ?? e.target.value.length);
@@ -181,11 +181,11 @@ export function CommentForm({
           if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
           blurTimerRef.current = window.setTimeout(() => setMention(emptyMention), 150);
         }}
-        className="resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+        className="resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
       />
 
       {mention.active && mention.results.length > 0 && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-2xl">
+        <div className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-md">
           {mention.results.map((u, i) => (
             <button
               key={u.id}
@@ -213,11 +213,11 @@ export function CommentForm({
       <div className="flex justify-end gap-2">
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         )}
         <Button type="button" size="sm" loading={submitting} onClick={handleSubmit}>
-          {submitLabel}
+          {submitLabel ?? t('comments.submit')}
         </Button>
       </div>
     </div>

@@ -1,8 +1,13 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { AuthTokens, User } from './types';
+import { jwtUserId } from './jwt';
 
-const ACCESS_KEY = 'nexus.access';
-const REFRESH_KEY = 'nexus.refresh';
+export const ACCESS_KEY = 'nexus.access';
+export const REFRESH_KEY = 'nexus.refresh';
+
+export function readStoredTokens(): { access: string | null; refresh: string | null } {
+  return { access: localStorage.getItem(ACCESS_KEY), refresh: localStorage.getItem(REFRESH_KEY) };
+}
 
 interface AuthState {
   user: User | null;
@@ -42,6 +47,14 @@ const authSlice = createSlice({
       state.accessToken = action.payload;
       localStorage.setItem(ACCESS_KEY, action.payload);
     },
+    // State only: the tokens are already in localStorage, written by another tab.
+    syncFromStorage(state, action: PayloadAction<AuthTokens>) {
+      if (state.user && jwtUserId(action.payload.access) !== String(state.user.id)) {
+        state.user = null;
+      }
+      state.accessToken = action.payload.access;
+      state.refreshToken = action.payload.refresh;
+    },
     setUser(state, action: PayloadAction<User>) {
       state.user = action.payload;
       state.status = 'authenticated';
@@ -59,6 +72,13 @@ const authSlice = createSlice({
   },
 });
 
-export const { authStart, authFailure, setTokens, setAccessToken, setUser, logout } =
-  authSlice.actions;
+export const {
+  authStart,
+  authFailure,
+  setTokens,
+  setAccessToken,
+  syncFromStorage,
+  setUser,
+  logout,
+} = authSlice.actions;
 export default authSlice.reducer;

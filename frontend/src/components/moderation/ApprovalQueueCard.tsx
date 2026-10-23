@@ -54,7 +54,7 @@ export function ApprovalQueueCard({ slug }: { slug: string }) {
                   {post.title}
                 </Link>
                 <div className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-                  u/{post.author_username ?? '[deleted]'} · {timeAgo(post.created_at)}
+                  u/{post.author_username ?? t('common.deleted')} · {timeAgo(post.created_at)}
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
@@ -78,7 +78,7 @@ export function ApprovalQueueCard({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={loadMore}
-          className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 text-sm text-[var(--color-link)] hover:underline"
         >
           {t('mod.loadMore')}
         </button>

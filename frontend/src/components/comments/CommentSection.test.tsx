@@ -1,13 +1,16 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/authSlice';
 import type { Comment } from '@/features/comments/types';
 import { CommentSection } from './CommentSection';
 import * as commentsApi from '@/api/comments';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
+import { setUser } from '@/features/auth/authSlice';
 
 vi.mock('@/api/comments', () => ({
   listComments: vi.fn(),
@@ -157,5 +160,145 @@ describe('CommentSection', () => {
     renderSection('/posts/1', true);
     expect(await screen.findByText('(edited)')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
+  });
+});
+
+describe('CommentSection layout', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // jsdom cannot measure layout; nested replies at 360 px are checked in the smoke run.
+  it('lets a comment action row wrap on narrow screens', async () => {
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [comment(1)] });
+    renderSection();
+    const actions = (await screen.findByRole('button', { name: 'Reply' })).parentElement!;
+    expect(actions).toHaveClass('flex-wrap');
+  });
+});
+
+describe('CommentSection in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Best|Top|New|Old|Controversial|Log in|Add a comment|Reply|Report|Edit|Delete|Save|Saved|Cancel|Comment|Loading|No comments|more repl(?:y|ies)|Collapse|Expand|Upvote|Downvote)\b/;
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(resetLanguage);
+
+  function renderAs(userId: number | null) {
+    const store = configureStore({ reducer: { auth: authReducer } });
+    if (userId !== null) {
+      store.dispatch(
+        setUser({
+          id: userId,
+          username: 'bob',
+          email: 'b@x.com',
+          email_verified: true,
+          avatar: null,
+          bio: '',
+          show_nsfw: false,
+          post_karma: 0,
+          comment_karma: 0,
+        }),
+      );
+    }
+    return render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/posts/1']}>
+          <CommentSection postId={1} />
+        </MemoryRouter>
+      </Provider>,
+    );
+  }
+
+  it('renders no English in Turkish while loading and when empty', async () => {
+    await i18n.changeLanguage('tr');
+    listComments.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    renderAs(null);
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+    await screen.findByText(/Henüz yorum yok/);
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders no English in Turkish for a signed-out reader', async () => {
+    await i18n.changeLanguage('tr');
+    listComments.mockResolvedValue({ count: 2, next: null, previous: null, results: [comment(1), comment(2, 1)] });
+    renderAs(null);
+    await screen.findByText('body 1');
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('renders no English in Turkish for the author with the reply and edit forms open', async () => {
+    await i18n.changeLanguage('tr');
+    listComments.mockResolvedValue({ count: 2, next: null, previous: null, results: [comment(1), comment(2, 1)] });
+    renderAs(2);
+    await screen.findByText('body 1');
+    const buttons = (name: string) => screen.getAllByRole('button', { name: i18n.t(name) });
+    await userEvent.click(buttons('common.reply')[0]);
+    await userEvent.click(buttons('common.edit')[0]);
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+    await userEvent.click(screen.getAllByRole('button', { name: i18n.t('comments.collapse') })[0]);
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  // The backend masks deleted bodies with English markers; the reader's language must win.
+  it('shows deleted and removed comment bodies in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    const gone = { author: null, author_username: null, is_deleted: true };
+    listComments.mockResolvedValue({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [
+        { ...comment(1), ...gone, body: '[deleted]', body_html: '<p>[deleted]</p>' },
+        { ...comment(2), ...gone, body: '[removed]', body_html: '<p>[removed]</p>' },
+      ],
+    });
+    renderAs(null);
+    expect(await screen.findByText('[kaldırıldı]')).toBeInTheDocument();
+    expect(screen.getAllByText('[silindi]')).toHaveLength(3);
+    expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
+  });
+
+  it('asks for a reply in a full sentence when the author is unknown', async () => {
+    await i18n.changeLanguage('tr');
+    listComments.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ ...comment(1), author_username: null }],
+    });
+    renderAs(5);
+    await userEvent.click(await screen.findByRole('button', { name: 'Yanıtla' }));
+    expect(screen.getByPlaceholderText('Yoruma yanıt ver…')).toBeInTheDocument();
+  });
+});
+
+
+function ProfileStub() {
+  const { username } = useParams();
+  return <p>profile of {username}</p>;
+}
+
+describe('CommentSection mention links', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('opens a mentioned profile inside the app', async () => {
+    listComments.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ ...comment(1), body_html: '<p><a href="/u/tim">@tim</a> hi</p>' }],
+    });
+    const store = configureStore({ reducer: { auth: authReducer } });
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/posts/1']}>
+          <Routes>
+            <Route path="/posts/:id" element={<CommentSection postId={1} isModerator={false} />} />
+            <Route path="/u/:username" element={<ProfileStub />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>,
+    );
+    await userEvent.click(await screen.findByRole('link', { name: '@tim' }));
+    expect(await screen.findByText('profile of tim')).toBeInTheDocument();
   });
 });

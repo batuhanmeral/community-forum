@@ -12,7 +12,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Communities with membership roles (admin / moderator / member), icons, and NSFW flags
 - Four post kinds: text, link, image (with upload validation), and poll
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
-- Nested comment trees with inline replies and `@username` mention autocomplete
+- Nested comment trees with inline replies, `@username` mention autocomplete and mentions rendered as profile links
 - Markdown editor with server-rendered, sanitized preview; links keep only absolute `http(s)`/`mailto`, site-root (`/…`) and `#…` targets (anything else renders as plain text) and always carry `rel="nofollow noopener noreferrer ugc"`
 - Post drafts — debounced autosave to localStorage with restore/discard
 
@@ -20,7 +20,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Up/down voting on posts and comments with optimistic UI and rollback
 - User karma (post + comment) kept in sync via signals, plus a `recalculate_karma` management command
 - Home feed (joined communities), Following feed, Popular/All feeds for anonymous visitors
-- `new` / `top` / `hot` sorting, NSFW filtering, pagination
+- `new` / `top` / `hot` sorting with a time range (past hour … all time), NSFW filtering, pagination
 
 **Social**
 - Follow system with followers/following lists
@@ -47,7 +47,9 @@ The project is split into two independent applications: a Django REST Framework 
 - JWT auth (SimpleJWT) with refresh rotation and blacklist, register/login/logout
 - Password reset and email verification flows (console backend in dev, SMTP via env)
 - Account settings: NSFW preference, password change, account deactivation
-- Interface language picker (EN/TR via i18next); Turkish coverage is partial, full coverage is tracked for M6
+- Interface language picker (EN/TR via i18next) with full Turkish coverage, `<html lang>` and per-page titles; an ESLint rule blocks hard-coded English in JSX
+- Responsive from 360 px: mobile navigation drawer below 960 px, tap-to-reveal for NSFW images
+- Sessions survive refresh hiccups (429/network) and stay in sync across tabs; stale-chunk errors reload once
 - Uploaded images are automatically downscaled (avatars 512px, post images 1920px)
 - Rate throttling per scope (auth, write, vote), pagination, and permission classes throughout
 
@@ -57,7 +59,7 @@ The project is split into two independent applications: a Django REST Framework 
 |----------|------------|
 | Backend  | Python, Django, Django REST Framework, SimpleJWT |
 | Database | PostgreSQL (full-text search, GIN indexes) |
-| Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4 |
+| Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4, Lucide icons |
 | Testing  | pytest + pytest-cov (backend), Vitest + React Testing Library (frontend) |
 | Tooling  | ruff (lint + format), ESLint |
 | Deploy   | Docker (gunicorn + WhiteNoise, nginx SPA + API proxy), docker-compose |

@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { formatNotification } from './format';
+import i18n from '@/i18n';
+import { formatNotification as format } from './format';
 import type { Notification } from './types';
+
+const en = i18n.getFixedT('en');
+const tr = i18n.getFixedT('tr');
+
+function formatNotification(n: Notification, t = en) {
+  return format(n, t);
+}
 
 function make(overrides: Partial<Notification>): Notification {
   return {
@@ -57,7 +65,42 @@ describe('formatNotification', () => {
 
   it('has a default branch for unknown verbs', () => {
     const f = formatNotification(make({ verb: 'unknown' as Notification['verb'] }));
-    expect(f.icon).toBe('•');
+    expect(f.kind).toBe('other');
     expect(f.to).toBe('/posts/42#comment-7');
+  });
+
+  it('maps each verb to its kind and never returns an icon field', () => {
+    const kinds = {
+      comment: 'comment',
+      reply: 'reply',
+      mention: 'mention',
+      follow: 'follow',
+      dm: 'message',
+      mod_action: 'mod',
+    } as const;
+    for (const [verb, kind] of Object.entries(kinds)) {
+      const f = formatNotification(make({ verb: verb as Notification['verb'] }));
+      expect(f.kind).toBe(kind);
+      expect(f).not.toHaveProperty('icon');
+    }
+  });
+
+  it('notification texts are translated', () => {
+    const verbs = ['comment', 'reply', 'mention', 'follow', 'dm', 'mod_action', 'unknown'];
+    for (const verb of verbs) {
+      const f = formatNotification(make({ verb: verb as Notification['verb'] }), tr);
+      expect(f.text).not.toMatch(/commented|replied|followed|mentioned|sent you|moderator|interacted/);
+      expect(f.text).not.toBe('');
+    }
+  });
+
+  it('names the actor and the target in the translated text', () => {
+    expect(formatNotification(make({ verb: 'reply' }), tr).text).toContain('u/alice');
+    expect(formatNotification(make({ verb: 'mod_action', target_type: 'post' })).text).toBe(
+      'A moderator acted on your post',
+    );
+    expect(formatNotification(make({ verb: 'mod_action', target_type: null })).text).toBe(
+      'A moderator acted on your content',
+    );
   });
 });

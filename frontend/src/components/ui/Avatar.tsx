@@ -23,7 +23,7 @@ function initials(name?: string): string {
 
 export function Avatar({ src, alt, size = 'md', className }: AvatarProps) {
   const base = cn(
-    'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full',
+    'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-avatar)]',
     'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] font-medium',
     'ring-1 ring-[var(--color-border)]',
     sizeClasses[size],

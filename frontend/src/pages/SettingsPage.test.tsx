@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -8,6 +8,8 @@ import authReducer, { setUser } from '@/features/auth/authSlice';
 import { SettingsPage } from './SettingsPage';
 import * as usersApi from '@/api/users';
 import * as followApi from '@/api/follow';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/users', () => ({
   changePassword: vi.fn(),
@@ -126,5 +128,38 @@ describe('SettingsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /deactivate account/i }));
     expect(screen.getByRole('button', { name: /yes, deactivate/i })).toBeInTheDocument();
     expect(vi.mocked(usersApi.deactivateAccount)).not.toHaveBeenCalled();
+  });
+});
+
+describe('SettingsPage in Turkish', () => {
+  const ENGLISH_PROBE =
+    /\b(Show NSFW|Applies everywhere|Change password|Current password|New password|Confirm new|Update password|Blocked users|Unblock|blocked anyone|Danger zone|Deactivat\w*|Cancel|Loading|do not match)\b/;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    listBlocked.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish', async () => {
+    await i18n.changeLanguage('tr');
+    renderPage();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+    await screen.findByText(/engellemedin/);
+    await userEvent.click(screen.getByRole('button', { name: /hesabı devre dışı bırak/i }));
+    await userEvent.type(screen.getByLabelText('Mevcut parola'), 'old-pass-1');
+    await userEvent.type(screen.getByLabelText('Yeni parola'), 'new-pass-1');
+    await userEvent.type(screen.getByLabelText('Yeni parolayı doğrula'), 'new-pass-2');
+    await userEvent.click(screen.getByRole('button', { name: 'Parolayı güncelle' }));
+    expect(await screen.findByText('Yeni parolalar eşleşmiyor.')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+  });
+
+  it('sets the page title', async () => {
+    renderPage();
+    await waitFor(() => expect(document.title).toBe('Settings · Nexus'));
+    await act(() => i18n.changeLanguage('tr'));
+    await waitFor(() => expect(document.title).toBe('Ayarlar · Nexus'));
   });
 });

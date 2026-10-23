@@ -11,8 +11,11 @@ import { ReportModal } from '@/components/moderation/ReportModal';
 import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
 import { CommentForm } from './CommentForm';
 import type { CommentWithChildren } from './tree';
+import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { deletedBodyKey } from '@/lib/deletedBody';
+import { useInternalLinkClick } from '@/lib/useInternalLinkClick';
 
 interface CommentNodeProps {
   node: CommentWithChildren;
@@ -44,6 +47,7 @@ export function CommentNode({
   const canModify = isAuthor && !node.is_deleted;
   const canReport = isAuthed && !isAuthor && !node.is_deleted;
   const { t } = useTranslation();
+  const onBodyClick = useInternalLinkClick();
   const [historyOpen, setHistoryOpen] = useState(false);
   const loadRevisions = useCallback(
     (page: number) => listCommentRevisions(node.id, page),
@@ -68,7 +72,7 @@ export function CommentNode({
         type="button"
         onClick={() => setCollapsed((c) => !c)}
         className="mt-1 flex w-3 shrink-0 cursor-pointer items-stretch rounded transition-colors hover:bg-[var(--color-surface-hover)]"
-        aria-label={collapsed ? 'Expand' : 'Collapse'}
+        aria-label={collapsed ? t('comments.expand') : t('comments.collapse')}
       >
         <span className="m-auto block h-full w-px bg-[var(--color-border)]" />
       </button>
@@ -77,13 +81,13 @@ export function CommentNode({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--color-text-muted)]">
           {node.author_username ? (
             <Link
-              to={`/u/${node.author_username}`}
+              to={userPath(node.author_username)}
               className="font-semibold text-[var(--color-text)] hover:underline"
             >
               {node.author_username}
             </Link>
           ) : (
-            <span className="italic">[deleted]</span>
+            <span className="italic">{t('common.deleted')}</span>
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(node.created_at)}</span>
@@ -103,21 +107,25 @@ export function CommentNode({
               <div className="mt-2">
                 <CommentForm
                   initialValue={node.body}
-                  submitLabel="Save"
+                  submitLabel={t('common.save')}
                   autoFocus
                   onSubmit={handleEdit}
                   onCancel={() => setEditing(false)}
                 />
               </div>
+            ) : node.is_deleted ? (
+              // The API's English body marker is swapped for the reader's language.
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t(deletedBodyKey(node.body))}</p>
             ) : (
               <div
                 className="prose-nexus mt-1 text-sm text-[var(--color-text)]"
+                onClick={onBodyClick}
                 dangerouslySetInnerHTML={{ __html: node.body_html }}
               />
             )}
 
             {!editing && !node.is_deleted && (
-              <div className="mt-1.5 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--color-text-muted)]">
                 <VoteCluster
                   target="comment"
                   objectId={node.id}
@@ -130,7 +138,7 @@ export function CommentNode({
                   onClick={() => setReplying((r) => !r)}
                   className="hover:text-[var(--color-text)]"
                 >
-                  Reply
+                  {t('common.reply')}
                 </button>
                 <CommentSaveLink commentId={node.id} initialSaved={node.is_saved} />
                 {canReport && (
@@ -139,7 +147,7 @@ export function CommentNode({
                     onClick={() => setReporting(true)}
                     className="hover:text-[var(--color-danger)]"
                   >
-                    Report
+                    {t('common.report')}
                   </button>
                 )}
                 {canModify && (
@@ -149,14 +157,14 @@ export function CommentNode({
                       onClick={() => setEditing(true)}
                       className="hover:text-[var(--color-text)]"
                     >
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button
                       type="button"
                       onClick={handleDelete}
                       className="hover:text-[var(--color-danger)]"
                     >
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </>
                 )}
@@ -167,8 +175,12 @@ export function CommentNode({
               <div className="mt-2">
                 <CommentForm
                   autoFocus
-                  placeholder={`Reply to ${node.author_username ?? 'comment'}...`}
-                  submitLabel="Reply"
+                  placeholder={
+                    node.author_username
+                      ? t('comments.replyPlaceholder', { name: node.author_username })
+                      : t('comments.replyPlaceholderNoAuthor')
+                  }
+                  submitLabel={t('common.reply')}
                   onCancel={() => setReplying(false)}
                   onSubmit={async (body) => {
                     const created = await createComment(postId, body, node.id);
@@ -204,7 +216,7 @@ export function CommentNode({
             onClick={() => setCollapsed(false)}
             className="mt-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           >
-            [+] {node.children.length} more {node.children.length === 1 ? 'reply' : 'replies'}
+            {t('comments.moreReplies', { count: node.children.length })}
           </button>
         )}
       </div>
@@ -214,7 +226,6 @@ export function CommentNode({
         onClose={() => setReporting(false)}
         target="comment"
         objectId={node.id}
-        label="comment"
       />
       <EditHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} load={loadRevisions} />
     </div>
@@ -222,6 +233,7 @@ export function CommentNode({
 }
 
 function CommentSaveLink({ commentId, initialSaved }: { commentId: number; initialSaved: boolean }) {
+  const { t } = useTranslation();
   const [saved, setSaved] = useState(initialSaved);
   const [busy, setBusy] = useState(false);
   async function handleClick() {
@@ -243,9 +255,9 @@ function CommentSaveLink({ commentId, initialSaved }: { commentId: number; initi
       type="button"
       onClick={handleClick}
       disabled={busy}
-      className={saved ? 'text-[var(--color-accent)] hover:opacity-80' : 'hover:text-[var(--color-text)]'}
+      className={saved ? 'text-[var(--color-link)] hover:opacity-80' : 'hover:text-[var(--color-text)]'}
     >
-      {saved ? 'Saved' : 'Save'}
+      {saved ? t('common.saved') : t('common.save')}
     </button>
   );
 }

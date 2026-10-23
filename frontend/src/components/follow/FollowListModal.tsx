@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listFollowers, listFollowing, type FollowUser } from '@/api/follow';
 import { Avatar } from '@/components/ui/Avatar';
 import { Modal } from '@/components/ui/Modal';
+import { userPath } from '@/lib/paths';
 import { FollowButton } from './FollowButton';
 
 type Mode = 'followers' | 'following';
@@ -15,6 +17,8 @@ interface FollowListModalProps {
 }
 
 export function FollowListModal({ open, onClose, username, mode }: FollowListModalProps) {
+  const { t } = useTranslation();
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -23,6 +27,7 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
   useEffect(() => {
     if (!open) return;
     setLoading(true);
+    setLoadMoreFailed(false);
     setPage(1);
     const fetcher = mode === 'followers' ? listFollowers : listFollowing;
     fetcher(username, 1)
@@ -38,11 +43,14 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
     const next = page + 1;
     const fetcher = mode === 'followers' ? listFollowers : listFollowing;
     setLoading(true);
+    setLoadMoreFailed(false);
     try {
       const d = await fetcher(username, next);
       setUsers((u) => [...u, ...d.results]);
       setHasMore(Boolean(d.next));
       setPage(next);
+    } catch {
+      setLoadMoreFailed(true);
     } finally {
       setLoading(false);
     }
@@ -52,14 +60,14 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === 'followers' ? `u/${username}'s followers` : `u/${username} is following`}
+      title={t(mode === 'followers' ? 'follow.followersTitle' : 'follow.followingTitle', { username })}
     >
       <div className="-mx-1 max-h-[60vh] overflow-y-auto">
         {loading && users.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">Loading…</p>
+          <p className="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
         ) : users.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">
-            {mode === 'followers' ? 'No followers yet.' : 'Not following anyone.'}
+            {mode === 'followers' ? t('follow.noFollowers') : t('follow.noFollowing')}
           </p>
         ) : (
           <ul className="flex flex-col">
@@ -68,7 +76,7 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
                 key={u.id}
                 className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[var(--color-surface)]"
               >
-                <Link to={`/u/${u.username}`} onClick={onClose} className="flex flex-1 items-center gap-3">
+                <Link to={userPath(u.username)} onClick={onClose} className="flex flex-1 items-center gap-3">
                   <Avatar src={u.avatar} alt={u.username} size="sm" />
                   <span className="text-sm font-medium">u/{u.username}</span>
                 </Link>
@@ -83,11 +91,16 @@ export function FollowListModal({ open, onClose, username, mode }: FollowListMod
               type="button"
               onClick={loadMore}
               disabled={loading}
-              className="text-[12px] font-medium text-[var(--color-accent)] hover:underline disabled:opacity-60"
+              className="text-[12px] font-medium text-[var(--color-link)] hover:underline disabled:opacity-60"
             >
-              {loading ? 'Loading…' : 'Load more'}
+              {loading ? t('common.loading') : t('common.loadMore')}
             </button>
           </div>
+        )}
+        {loadMoreFailed && (
+          <p className="pb-3 text-center text-sm text-[var(--color-danger)]">
+            {t('follow.loadMoreFailed')}
+          </p>
         )}
       </div>
     </Modal>

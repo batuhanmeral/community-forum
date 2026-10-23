@@ -21,9 +21,26 @@ if (!globalThis.localStorage) {
   Object.defineProperty(globalThis, 'localStorage', { value: mock, configurable: true });
 }
 
+// jsdom has no modal <dialog> API; emulate the open attribute and the close event.
+// Skipped under the node environment (lint-rule tests have no DOM).
+const hasDom = typeof HTMLDialogElement !== 'undefined';
+if (hasDom && !HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+}
+if (hasDom && !HTMLDialogElement.prototype.close) {
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    if (!this.open) return;
+    this.open = false;
+    this.dispatchEvent(new Event('close'));
+  };
+}
+
 afterEach(() => {
   cleanup();
 });
 
 // Initialize the i18n singleton (English default) for components using useTranslation.
-await import('@/i18n');
+// It sets <html lang> on import, so the DOM-less lint-rule tests skip it.
+if (hasDom) await import('@/i18n');

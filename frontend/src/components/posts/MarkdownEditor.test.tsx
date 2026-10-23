@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MarkdownEditor } from './MarkdownEditor';
 import * as markdownApi from '@/api/markdown';
+import i18n from '@/i18n';
+import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/markdown', () => ({
   previewMarkdown: vi.fn(),
@@ -43,5 +45,27 @@ describe('MarkdownEditor', () => {
     render(<MarkdownEditor value="   " onChange={() => {}} />);
     await userEvent.click(screen.getByRole('button', { name: /preview/i }));
     expect(await screen.findByText(/nothing to preview/i)).toBeInTheDocument();
+  });
+});
+
+describe('MarkdownEditor in Turkish', () => {
+  const ENGLISH_PROBE = /\b(Body|Write|Preview|Rendering|Nothing to preview)\b/;
+
+  afterEach(resetLanguage);
+
+  it('renders no English in Turkish in write, loading and empty preview states', async () => {
+    await i18n.changeLanguage('tr');
+    previewMarkdown.mockReset();
+    previewMarkdown.mockReturnValue(new Promise(() => undefined));
+    const { rerender } = render(<MarkdownEditor value="x" onChange={() => {}} />);
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('editor.preview') }));
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
+
+    rerender(<MarkdownEditor value=" " onChange={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('editor.write') }));
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('editor.preview') }));
+    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 });

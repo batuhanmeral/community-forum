@@ -75,6 +75,22 @@ class TestTimeTop:
 
 
 @pytest.mark.django_db
+class TestTimeWindowAnySort:
+    @pytest.mark.parametrize("sort", ["hot", "new", "top"])
+    @pytest.mark.parametrize("url", [COMMUNITY_POSTS, FEED, FOLLOWING_FEED])
+    def test_t_day_excludes_older_posts(self, api, alice, bob, community, url, sort):
+        Follow.objects.create(follower=bob, followed=alice)
+        api.force_authenticate(bob)
+        fresh = Post.objects.create(author=alice, community=community, kind="text", title="fresh")
+        stale = Post.objects.create(author=alice, community=community, kind="text", title="stale")
+        Post.objects.filter(pk=stale.pk).update(created_at=timezone.now() - timedelta(days=3))
+        params = {"sort": sort, "t": "day", "scope": "all"}
+        ids = [p["id"] for p in api.get(url, params).data["results"]]
+        assert fresh.id in ids
+        assert stale.id not in ids
+
+
+@pytest.mark.django_db
 class TestHotSort:
     def test_hot_returns_results(self, api, alice, bob, community):
         a = Post.objects.create(author=alice, community=community, kind="text", title="a")

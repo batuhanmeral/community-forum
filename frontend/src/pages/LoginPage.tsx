@@ -7,6 +7,7 @@ import { authFailure, authStart, setTokens, setUser } from '@/features/auth/auth
 import { fetchMe, login } from '@/api/auth';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PageTitle } from '@/components/ui/PageTitle';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -66,14 +67,14 @@ export function LoginPage() {
         </Button>
         <Link
           to="/forgot-password"
-          className="text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+          className="text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-link)]"
         >
           {t('auth.forgotPassword')}
         </Link>
       </form>
       <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
         {t('auth.newToNexus')}{' '}
-        <Link to="/register" className="font-medium text-[var(--color-accent)] hover:underline">
+        <Link to="/register" className="font-medium text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)]">
           {t('auth.createAccount')}
         </Link>
       </p>
@@ -90,14 +91,9 @@ interface ShellProps {
 export function AuthShell({ title, subtitle, children }: ShellProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-12">
+      <PageTitle title={title} />
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--color-accent)] text-[#0b1418] font-black">
-            N
-          </span>
-          <span className="text-xl font-bold tracking-tight">nexus</span>
-        </Link>
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xl">
+        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7">
           <h1 className="text-2xl font-bold">{title}</h1>
           {subtitle && (
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">{subtitle}</p>

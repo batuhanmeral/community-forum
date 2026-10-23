@@ -1,8 +1,10 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { toggleSave, type SaveTarget } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
+import { Bookmark } from 'lucide-react';
 
 interface SaveButtonProps {
   target: SaveTarget;
@@ -14,17 +16,7 @@ interface SaveButtonProps {
 }
 
 const bookmarkIcon = (filled: boolean) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill={filled ? 'currentColor' : 'none'}
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-[15px] w-[15px]"
-  >
-    <path d="M6 4h12v17l-6-4-6 4z" />
-  </svg>
+  <Bookmark fill={filled ? 'currentColor' : 'none'} className="h-[15px] w-[15px]" />
 );
 
 export function SaveButton({
@@ -35,6 +27,7 @@ export function SaveButton({
   variant = 'inline',
   onChange,
 }: SaveButtonProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [saved, setSaved] = useState(initialSaved);
@@ -74,14 +67,14 @@ export function SaveButton({
         onClick={handleClick}
         disabled={busy}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium transition disabled:opacity-60',
+          'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-3 py-1.5 text-[12.5px] font-medium transition disabled:opacity-60',
           saved
-            ? 'bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+            ? 'bg-[var(--color-link-dim)] text-[var(--color-link)]'
             : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-3)] hover:text-[var(--color-text)]',
         )}
       >
         {bookmarkIcon(saved)}
-        <span className="max-[480px]:hidden">{saved ? 'Saved' : 'Save'}</span>
+        <span className="max-[480px]:hidden">{saved ? t('common.saved') : t('common.save')}</span>
       </button>
     );
   }
@@ -93,15 +86,15 @@ export function SaveButton({
       onClick={handleClick}
       disabled={busy}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-60',
+        'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border font-medium transition disabled:opacity-60',
         heightCls,
         saved
-          ? 'border-[var(--color-accent)] bg-[var(--color-accent-dim)] text-[var(--color-accent)]'
+          ? 'border-[var(--color-link)] bg-[var(--color-link-dim)] text-[var(--color-link)]'
           : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
       )}
     >
       {bookmarkIcon(saved)}
-      {saved ? 'Saved' : 'Save'}
+      {saved ? t('common.saved') : t('common.save')}
     </button>
   );
 }

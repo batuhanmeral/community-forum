@@ -11,6 +11,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { cn } from '@/lib/cn';
 import { LANGUAGES, type Language } from '@/i18n';
 
@@ -20,6 +21,7 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
+      <PageTitle title={t('titles.settings')} />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
         {user && (
@@ -60,10 +62,8 @@ function PreferencesCard() {
       <h2 className="text-base font-semibold tracking-tight">{t('settings.preferences')}</h2>
       <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
         <span className="text-sm">
-          <span className="font-medium">Show NSFW content</span>
-          <span className="ml-2 text-[var(--color-text-muted)]">
-            Applies everywhere you're signed in.
-          </span>
+          <span className="font-medium">{t('nsfw.reveal')}</span>
+          <span className="ml-2 text-[var(--color-text-muted)]">{t('settings.showNsfwHint')}</span>
         </span>
         <button
           type="button"
@@ -78,7 +78,7 @@ function PreferencesCard() {
         >
           <span
             className={cn(
-              'absolute top-1 h-3 w-3 rounded-full bg-white transition-all',
+              'absolute top-1 h-3 w-3 rounded-full bg-[var(--color-text)] transition-all',
               showNsfw ? 'left-5' : 'left-1',
             )}
           />
@@ -92,7 +92,7 @@ function PreferencesCard() {
         <select
           value={i18n.language}
           onChange={(e) => i18n.changeLanguage(e.target.value as Language)}
-          className="h-9 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+          className="h-9 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
         >
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
@@ -131,8 +131,8 @@ function EmailVerificationRow({ verified, email }: { verified: boolean; email: s
           className={cn(
             'ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium',
             verified
-              ? 'border-[rgba(97,218,251,0.2)] bg-[rgba(97,218,251,0.08)] text-[var(--color-accent)]'
-              : 'border-[rgba(255,106,138,0.2)] bg-[rgba(255,106,138,0.08)] text-[var(--color-danger)]',
+              ? 'border-[var(--color-link-border)] bg-[var(--color-link)]/8 text-[var(--color-link)]'
+              : 'border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] text-[var(--color-danger)]',
           )}
         >
           {verified ? t('settings.emailVerified') : t('settings.emailUnverified')}
@@ -148,7 +148,7 @@ function EmailVerificationRow({ verified, email }: { verified: boolean; email: s
             type="button"
             onClick={resend}
             disabled={busy}
-            className="text-sm text-[var(--color-accent)] hover:underline disabled:opacity-60"
+            className="text-sm text-[var(--color-link)] underline underline-offset-2 hover:text-[var(--color-link-hover)] disabled:opacity-60"
           >
             {t('settings.resendVerification')}
           </button>
@@ -158,6 +158,7 @@ function EmailVerificationRow({ verified, email }: { verified: boolean; email: s
 }
 
 function PasswordCard() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -169,7 +170,7 @@ function PasswordCard() {
     e.preventDefault();
     if (busy) return;
     if (next !== confirm) {
-      setMsg({ ok: false, text: 'New passwords do not match.' });
+      setMsg({ ok: false, text: t('settings.passwordMismatch') });
       return;
     }
     setBusy(true);
@@ -177,7 +178,7 @@ function PasswordCard() {
     try {
       const tokens = await changePassword(current, next);
       dispatch(setTokens(tokens));
-      setMsg({ ok: true, text: 'Password updated.' });
+      setMsg({ ok: true, text: t('settings.passwordUpdated') });
       setCurrent('');
       setNext('');
       setConfirm('');
@@ -187,7 +188,7 @@ function PasswordCard() {
       const first = Object.values(data)[0];
       setMsg({
         ok: false,
-        text: Array.isArray(first) ? first[0] : (String(first ?? '') || 'Could not update password.'),
+        text: Array.isArray(first) ? first[0] : (String(first ?? '') || t('settings.passwordUpdateFailed')),
       });
     } finally {
       setBusy(false);
@@ -196,12 +197,12 @@ function PasswordCard() {
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Change password</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t('settings.passwordTitle')}</h2>
       <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
         <Input
           name="current-password"
           type="password"
-          label="Current password"
+          label={t('settings.currentPassword')}
           value={current}
           onChange={(e) => setCurrent(e.target.value)}
           autoComplete="current-password"
@@ -210,7 +211,7 @@ function PasswordCard() {
         <Input
           name="new-password"
           type="password"
-          label="New password"
+          label={t('auth.newPassword')}
           value={next}
           onChange={(e) => setNext(e.target.value)}
           autoComplete="new-password"
@@ -219,7 +220,7 @@ function PasswordCard() {
         <Input
           name="confirm-password"
           type="password"
-          label="Confirm new password"
+          label={t('settings.confirmNewPassword')}
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           autoComplete="new-password"
@@ -234,7 +235,7 @@ function PasswordCard() {
             <span />
           )}
           <Button type="submit" loading={busy} disabled={!current || !next || !confirm}>
-            Update password
+            {t('settings.updatePassword')}
           </Button>
         </div>
       </form>
@@ -243,6 +244,7 @@ function PasswordCard() {
 }
 
 function BlockedUsersCard() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -266,15 +268,13 @@ function BlockedUsersCard() {
 
   return (
     <Card>
-      <h2 className="text-base font-semibold tracking-tight">Blocked users</h2>
-      <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Blocked users can't message you, follow you, or trigger notifications.
-      </p>
+      <h2 className="text-base font-semibold tracking-tight">{t('settings.blockedTitle')}</h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('settings.blockedHint')}</p>
       <div className="mt-3 flex flex-col gap-2">
         {loading ? (
-          <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
         ) : users.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-dim)]">You haven't blocked anyone.</p>
+          <p className="text-sm text-[var(--color-text-dim)]">{t('settings.blockedEmpty')}</p>
         ) : (
           users.map((u) => (
             <div
@@ -291,7 +291,7 @@ function BlockedUsersCard() {
                 loading={busyId === u.id}
                 onClick={() => handleUnblock(u)}
               >
-                Unblock
+                {t('follow.unblock')}
               </Button>
             </div>
           ))
@@ -302,6 +302,7 @@ function BlockedUsersCard() {
 }
 
 function DangerZoneCard() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
@@ -322,24 +323,22 @@ function DangerZoneCard() {
   return (
     <Card>
       <h2 className="text-base font-semibold tracking-tight text-[var(--color-danger)]">
-        Danger zone
+        {t('settings.dangerTitle')}
       </h2>
-      <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        Deactivating disables your account and sign-in. Your posts and comments stay up.
-      </p>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('settings.dangerHint')}</p>
       <div className="mt-3 flex items-center gap-2">
         {confirming ? (
           <>
             <Button variant="danger" size="sm" loading={busy} onClick={handleDeactivate}>
-              Yes, deactivate my account
+              {t('settings.deactivateConfirm')}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setConfirming(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           </>
         ) : (
           <Button variant="danger" size="sm" onClick={() => setConfirming(true)}>
-            Deactivate account
+            {t('settings.deactivate')}
           </Button>
         )}
       </div>
