@@ -8,7 +8,7 @@ import {
   listRules,
   updateNotifyLevel,
 } from '@/api/communities';
-import { listCommunityPosts, type SortOption } from '@/api/posts';
+import { listCommunityPosts, type SortOption, type TimeWindow } from '@/api/posts';
 import type {
   Community,
   CommunityRule,
@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/Card';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { PostSortTabs } from '@/components/posts/PostSortTabs';
+import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
 import { cn } from '@/lib/cn';
 import { ArrowLeft, Bell, ChevronDown, ShieldCheck } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export function CommunityDetailPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [sort, setSort] = useState<SortOption>('hot');
+  const [timeRange, setTimeRange] = useState<TimeWindow>('all');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState<NotifyLevel>('all');
@@ -78,7 +80,7 @@ export function CommunityDetailPage() {
     setNextPage(null);
     setLoadMoreFailed(false);
     setLoadingMore(false);
-    listCommunityPosts(slug, { sort })
+    listCommunityPosts(slug, { sort, t: timeRange })
       .then((d) => {
         if (cancelled) return;
         setPosts(d.results);
@@ -91,7 +93,7 @@ export function CommunityDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, sort]);
+  }, [slug, sort, timeRange]);
 
   useEffect(
     () => () => {
@@ -106,7 +108,7 @@ export function CommunityDetailPage() {
     setLoadingMore(true);
     setLoadMoreFailed(false);
     try {
-      const d = await listCommunityPosts(slug, { sort, page: nextPage });
+      const d = await listCommunityPosts(slug, { sort, t: timeRange, page: nextPage });
       if (version !== listVersion.current) return;
       setPosts((ps) => [...ps, ...d.results.filter((p) => !ps.some((x) => x.id === p.id))]);
       setNextPage(d.next ? nextPage + 1 : null);
@@ -266,7 +268,10 @@ export function CommunityDetailPage() {
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <PostSortTabs value={sort} onChange={setSort} />
+          <div className="flex flex-wrap items-center gap-2">
+            <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
+            <PostSortTabs value={sort} onChange={setSort} />
+          </div>
           {isAuthed && (
             <Link to={`/c/${community.slug}/submit`}>
               <Button variant="primary" size="sm">

@@ -449,6 +449,15 @@ export const tr: Translation = {
     new: 'Yeni',
     top: 'En iyi',
   },
+  timeRange: {
+    label: 'Zaman aralığı',
+    hour: 'Son 1 saat',
+    day: 'Son 24 saat',
+    week: 'Son 1 hafta',
+    month: 'Son 1 ay',
+    year: 'Son 1 yıl',
+    all: 'Tüm zamanlar',
+  },
   feed: {
     title_home: 'Akışın',
     title_anon: 'Popüler akış',

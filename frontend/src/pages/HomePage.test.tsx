@@ -215,3 +215,23 @@ describe('HomePage heading', () => {
     }
   });
 });
+
+describe('HomePage time range', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    communities.listCommunities.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    posts.listFeed.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+
+  it('refetches the feed for the chosen time range', async () => {
+    renderHome({ authed: false });
+    await waitFor(() => expect(posts.listFeed).toHaveBeenCalledWith(expect.objectContaining({ t: 'all' })));
+    await userEvent.click(screen.getByRole('button', { name: 'Time range: All time' }));
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Past week' }));
+    await waitFor(() =>
+      expect(posts.listFeed).toHaveBeenLastCalledWith(expect.objectContaining({ t: 'week', page: 1 })),
+    );
+    expect(screen.getByRole('button', { name: 'Time range: Past week' })).toBeInTheDocument();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+});

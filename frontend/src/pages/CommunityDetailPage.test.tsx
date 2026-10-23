@@ -141,7 +141,7 @@ describe('CommunityDetailPage membership state', () => {
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: 'Load more posts' }));
     expect(await screen.findByText('post 2')).toBeInTheDocument();
-    expect(postsApi.listCommunityPosts).toHaveBeenLastCalledWith('py', { sort: 'hot', page: 2 });
+    expect(postsApi.listCommunityPosts).toHaveBeenLastCalledWith('py', { sort: 'hot', t: 'all', page: 2 });
   });
 
   it('keeps the button and shows an error when loading more fails', async () => {
@@ -229,5 +229,23 @@ describe('CommunityDetailPage title', () => {
     vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
     renderPage();
     await waitFor(() => expect(document.title).toBe('c/py · Nexus'));
+  });
+});
+
+describe('CommunityDetailPage time range', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue(baseCommunity);
+    vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+
+  it('refetches posts for the chosen time range', async () => {
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Time range: All time' }));
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Past 24 hours' }));
+    await waitFor(() =>
+      expect(postsApi.listCommunityPosts).toHaveBeenLastCalledWith('py', { sort: 'hot', t: 'day' }),
+    );
   });
 });

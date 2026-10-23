@@ -445,6 +445,15 @@ export const en = {
     new: 'New',
     top: 'Top',
   },
+  timeRange: {
+    label: 'Time range',
+    hour: 'Past hour',
+    day: 'Past 24 hours',
+    week: 'Past week',
+    month: 'Past month',
+    year: 'Past year',
+    all: 'All time',
+  },
   feed: {
     title_home: 'Your feed',
     title_anon: 'Popular feed',

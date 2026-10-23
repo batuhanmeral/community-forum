@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { listFeed, listFollowingFeed, type SortOption } from '@/api/posts';
+import { listFeed, listFollowingFeed, type SortOption, type TimeWindow } from '@/api/posts';
 import { listCommunities } from '@/api/communities';
 import { updatePreferences } from '@/api/users';
 import type { Post } from '@/features/posts/types';
@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
+import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
 import { cn } from '@/lib/cn';
 import { ArrowRight, ArrowUpToLine, BarChart3, Clock, Flame, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
@@ -57,10 +58,12 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
   const [memberCount, setMemberCount] = useState<number>(0);
   const [feedKind, setFeedKind] = useState<FeedKind>('home');
   const [sort, setSort] = useState<SortOption>(VARIANT_DEFAULT_SORT[variant]);
+  const [timeRange, setTimeRange] = useState<TimeWindow>('all');
 
   // Reset feed state when navigating between /, /popular and /all
   useEffect(() => {
     setSort(VARIANT_DEFAULT_SORT[variant]);
+    setTimeRange('all');
     setFeedKind('home');
   }, [variant]);
   const [kind, setKind] = useState<KindFilter>('all');
@@ -92,6 +95,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     const fetcher = feedKind === 'following' ? listFollowingFeed : listFeed;
     fetcher({
       sort,
+      t: timeRange,
       nsfw: isAuthed ? (nsfwShown ? 'show' : 'hide') : undefined,
       page: 1,
       scope: variant !== 'home' ? 'all' : undefined,
@@ -108,7 +112,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     return () => {
       cancelled = true;
     };
-  }, [feedKind, sort, nsfwShown, variant, isAuthed]);
+  }, [feedKind, sort, timeRange, nsfwShown, variant, isAuthed]);
 
   useEffect(() => {
     if (!isAuthed) {
@@ -140,6 +144,7 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     try {
       const d = await fetcher({
         sort,
+        t: timeRange,
         nsfw: isAuthed ? (nsfwShown ? 'show' : 'hide') : undefined,
         page: next,
         scope: variant !== 'home' ? 'all' : undefined,
@@ -181,14 +186,14 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
 
         <div className="flex flex-wrap items-center gap-2">
           {isAuthed && variant === 'home' && (
-            <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+            <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
               {(['home', 'following'] as FeedKind[]).map((k) => (
                 <button
                   key={k}
                   type="button"
                   onClick={() => setFeedKind(k)}
                   className={cn(
-                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
+                    'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
                     feedKind === k
                       ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
@@ -200,14 +205,16 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
             </div>
           )}
 
-          <div className="flex gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
+          <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
+
+          <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
             {SORT_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setSort(tab.id)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition',
+                  'inline-flex items-center gap-1.5 rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
                   sort === tab.id
                     ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',

@@ -36,6 +36,9 @@
 
   --radius-card: 14px;
   --radius-pill: 999px;
+  /* Buttons, tabs and chips are rounded squares; inner sits inside a padded group. */
+  --radius-control: 8px;
+  --radius-control-inner: 6px;
 }
 
 html,
