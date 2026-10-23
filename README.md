@@ -12,7 +12,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Communities with membership roles (admin / moderator / member), icons, and NSFW flags
 - Four post kinds: text, link, image (with upload validation), and poll
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
-- Nested comment trees with inline replies and `@username` mention autocomplete
+- Nested comment trees with inline replies, `@username` mention autocomplete and mentions rendered as profile links
 - Markdown editor with server-rendered, sanitized preview; links keep only absolute `http(s)`/`mailto`, site-root (`/…`) and `#…` targets (anything else renders as plain text) and always carry `rel="nofollow noopener noreferrer ugc"`
 - Post drafts — debounced autosave to localStorage with restore/discard
 
@@ -20,7 +20,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Up/down voting on posts and comments with optimistic UI and rollback
 - User karma (post + comment) kept in sync via signals, plus a `recalculate_karma` management command
 - Home feed (joined communities), Following feed, Popular/All feeds for anonymous visitors
-- `new` / `top` / `hot` sorting, NSFW filtering, pagination
+- `new` / `top` / `hot` sorting with a time range (past hour … all time), NSFW filtering, pagination
 
 **Social**
 - Follow system with followers/following lists
