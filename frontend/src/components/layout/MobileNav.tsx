@@ -16,6 +16,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const pressedOnBackdrop = useRef(false);
 
   // showModal() gives inert background, Escape and focus return without custom code.
   useEffect(() => {
@@ -25,9 +26,20 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
     else if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  // A modal <dialog> doesn't stop the page behind it from scrolling on touch devices.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   // The panel fills the dialog box, so only a click on the ::backdrop targets the dialog itself.
+  // A drag that starts in the panel and ends on the backdrop is not a backdrop click.
   function handleClick(e: MouseEvent<HTMLDialogElement>) {
-    if (e.target === e.currentTarget) onClose();
+    if (e.target === e.currentTarget && pressedOnBackdrop.current) onClose();
   }
 
   return (
@@ -35,6 +47,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
       ref={dialogRef}
       aria-labelledby={titleId}
       onClose={onClose}
+      onPointerDown={(e) => (pressedOnBackdrop.current = e.target === e.currentTarget)}
       onClick={handleClick}
       className="m-0 h-dvh max-h-none w-[280px] max-w-[85vw] border-r border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] p-0 text-[var(--color-text)] backdrop:bg-[var(--color-overlay)]"
     >

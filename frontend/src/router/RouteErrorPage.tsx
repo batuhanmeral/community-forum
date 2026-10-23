@@ -16,6 +16,8 @@ export function isChunkLoadError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   return (
     error.name === 'ChunkLoadError' ||
+    // Vite's preload helper reports a missing route stylesheet this way after a redeploy.
+    error.message.startsWith('Unable to preload CSS') ||
     (error instanceof TypeError && CHUNK_ERROR_PATTERN.test(error.message))
   );
 }

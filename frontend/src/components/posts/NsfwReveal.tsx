@@ -17,7 +17,8 @@ export function NsfwReveal({ children }: { children: ReactNode }) {
     <div
       ref={wrapperRef}
       tabIndex={-1}
-      className="relative w-full outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-link)]"
+      // An outline, unlike an inset ring, is drawn outside the box and stays visible over the revealed image.
+      className="relative w-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-link)]"
     >
       <div aria-hidden={revealed ? undefined : true} className={cn(!revealed && 'pointer-events-none blur-2xl')}>
         {children}

@@ -7,7 +7,7 @@ import authReducer from '@/features/auth/authSlice';
 import membershipsReducer from '@/features/communities/membershipsSlice';
 import messagingReducer from '@/features/messaging/messagingSlice';
 import notificationReducer from '@/features/notifications/notificationSlice';
-import { CHUNK_RELOAD_KEY, RouteErrorPage } from './RouteErrorPage';
+import { CHUNK_RELOAD_KEY, RouteErrorPage, isChunkLoadError } from './RouteErrorPage';
 import { routes } from './index';
 
 vi.mock('@/api/users', () => ({
@@ -121,3 +121,10 @@ describe('RouteErrorPage', () => {
   });
 });
 
+
+describe('isChunkLoadError for stylesheets', () => {
+  it('treats a failed route stylesheet preload as a stale chunk', () => {
+    expect(isChunkLoadError(new Error('Unable to preload CSS for /assets/Page-abc.css'))).toBe(true);
+    expect(isChunkLoadError(new Error('Something else'))).toBe(false);
+  });
+});

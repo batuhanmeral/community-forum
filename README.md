@@ -2,14 +2,14 @@
 
 > A community-driven forum / Q&A platform.
 
-Nexus lets people create and join communities, share text, link, image, and poll posts, and discuss them in nested comment threads. Voting drives both content ranking (hot/top feeds) and user karma, while follows, direct messages, and notifications keep members connected. Communities are self-governed: creators appoint moderators who manage flairs, handle reports, ban users, and pin posts.
+Nexus lets people create and join communities, share text, link, image, and poll posts, and discuss them in nested comment threads. Voting drives both content ranking (hot/top feeds) and user karma, while follows, direct messages, and notifications keep members connected. Communities are self-governed: creators appoint moderators who manage rules and flairs, review held posts and reports, ban users, and pin posts.
 
 The project is split into two independent applications: a Django REST Framework backend exposing a versioned JSON API (`/api/v1/`) secured with JWT, and a React single-page app that consumes it. Everything runs on PostgreSQL — including full-text search — and ships with Docker images and a production compose stack.
 
 ## Features
 
 **Content & Communities**
-- Communities with membership roles (admin / moderator / member), icons, and NSFW flags
+- Communities with membership roles (admin / moderator / member), icons, rules, and NSFW flags
 - Four post kinds: text, link, image (with upload validation), and poll
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
 - Nested comment trees with inline replies, `@username` mention autocomplete and mentions rendered as profile links
@@ -20,7 +20,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Up/down voting on posts and comments with optimistic UI and rollback
 - User karma (post + comment) kept in sync via signals, plus a `recalculate_karma` management command
 - Home feed (joined communities), Following feed, Popular/All feeds for anonymous visitors
-- `new` / `top` / `hot` sorting with a time range (past hour … all time), NSFW filtering, pagination
+- `new` / `top` / `hot` sorting with a time range (past hour … all time), post-kind filters, NSFW filtering, pagination
 
 **Social**
 - Follow system with followers/following lists
@@ -38,15 +38,22 @@ The project is split into two independent applications: a Django REST Framework 
 
 **Moderation**
 - Generic reporting (posts, comments, users) with a 24h per-target rate limit
-- Mod panel: report queue (resolve/dismiss), community bans, moderator assignment, pin/remove actions
-- Community settings editable by admins: icon, description, NSFW flag
-- AutoMod: per-community keyword list that holds matching posts for approval
+- Mod panel: approval queue, report queue (resolve/dismiss), rules, flairs, community bans, moderator assignment, pin/remove actions
+- Community settings editable by admins: icon, display name, description, NSFW flag, and "hold new posts for approval"
+- Approvals are pinned to the version the moderator saw: a post edited while it waits in the queue must be reviewed again, and in approval-required communities an edit to an approved post's title, body, link, or image (or dropping its NSFW flag) sends it back to the queue
+- AutoMod: a per-community keyword list that holds matching posts for approval. Matching folds case, accents, invisible characters, and punctuation (`b.a.d` matches `bad`) and also checks rendered markdown text, link targets (percent-decoded, punycode hosts decoded), and keywords added on later edits
 - Mod action audit log — every pin, ban, approval, and report decision is recorded
 
-**Platform**
+**Accounts & Privacy**
 - JWT auth (SimpleJWT) with refresh rotation and blacklist, register/login/logout
+- The refresh token lives in an `HttpOnly`, `SameSite=Strict` cookie scoped to `/api/v1/auth/`; the access token is kept in memory only, so scripts on the page can't read either from storage
 - Password reset and email verification flows (console backend in dev, SMTP via env)
-- Account settings: NSFW preference, password change, account deactivation
+- Account settings: theme, interface language, NSFW preference, password change
+- Data export: download everything you wrote or chose (profile, posts, comments, sent messages, votes, saves, follows, blocks, memberships) as JSON
+- Account deletion: personal data is erased while content stays attributed to a `deleted-<id>` placeholder; communities you created are handed to their highest-ranked active member, and every outstanding token is revoked
+
+**Interface**
+- Light, dark, and system themes; Inter and JetBrains Mono are self-hosted, so the app loads no third-party resources
 - Interface language picker (EN/TR via i18next) with full Turkish coverage, `<html lang>` and per-page titles; an ESLint rule blocks hard-coded English in JSX
 - Responsive from 360 px: mobile navigation drawer below 960 px, tap-to-reveal for NSFW images
 - Sessions survive refresh hiccups (429/network) and stay in sync across tabs; stale-chunk errors reload once
@@ -57,35 +64,68 @@ The project is split into two independent applications: a Django REST Framework 
 
 | Layer    | Technology |
 |----------|------------|
-| Backend  | Python, Django, Django REST Framework, SimpleJWT |
-| Database | PostgreSQL (full-text search, GIN indexes) |
+| Backend  | Python 3.12, Django 5.2, Django REST Framework, SimpleJWT, markdown-it-py + nh3 |
+| Database | PostgreSQL 16 (full-text search, GIN indexes) |
 | Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4, Lucide icons |
 | Testing  | pytest + pytest-cov (backend), Vitest + React Testing Library (frontend) |
 | Tooling  | ruff (lint + format), ESLint |
-| Deploy   | Docker (gunicorn + WhiteNoise, nginx SPA + API proxy), docker-compose |
+| Deploy   | Docker (gunicorn + WhiteNoise, nginx SPA + API proxy), Redis, docker-compose |
 
 ## Project Structure
 
 ```
-backend/    Django project — config/ (settings, urls) + apps/ (users, communities,
-            posts, comments, votes, messaging, notifications, social, polls,
-            saves, moderation, search, seo, common)
-frontend/   React SPA — src/ (api, app, components, features, i18n, lib, pages, router)
+community-hub/
+├── backend/                    Django + DRF API
+│   ├── config/                 settings (base / dev / prod), root URLs, pagination, WSGI/ASGI
+│   ├── apps/
+│   │   ├── users/              accounts, JWT auth and refresh cookie, profiles, data export, account deletion
+│   │   ├── communities/        communities, memberships and roles, rules, flairs, bans
+│   │   ├── posts/              text/link/image/poll posts, feeds and sorting, approvals, AutoMod, edit history
+│   │   ├── comments/           nested comment threads, mentions, edit history
+│   │   ├── votes/              up/down votes and karma
+│   │   ├── polls/              poll options and votes
+│   │   ├── messaging/          direct-message conversations and read receipts
+│   │   ├── notifications/      notification inbox and unread counts
+│   │   ├── social/             follows and blocks
+│   │   ├── saves/              saved posts and comments
+│   │   ├── moderation/         reports and the mod action log
+│   │   ├── search/             full-text search and trending widgets
+│   │   ├── seo/                Open Graph pages for link previews
+│   │   └── common/             markdown rendering, image handling, throttling, health check
+│   ├── Dockerfile              gunicorn image; entrypoint.sh runs migrations on start
+│   └── requirements*.txt       runtime and dev dependencies
+├── frontend/                   React SPA
+│   ├── src/
+│   │   ├── api/                axios client (token refresh, cross-tab lock) and endpoint wrappers
+│   │   ├── app/                Redux store and typed hooks
+│   │   ├── features/           Redux slices and types per domain (auth, posts, comments, …)
+│   │   ├── components/         UI kit (ui/), layout (navbar, sidebars, drawer) and domain components
+│   │   ├── pages/              route-level screens
+│   │   ├── router/             routes, protected routes, error page
+│   │   ├── i18n/               English and Turkish strings
+│   │   ├── lib/                shared helpers (theme, time, paths, paging, polling, drafts)
+│   │   └── styles/             design tokens (dark and light) and self-hosted font faces
+│   ├── public/                 logo, fonts, theme-init script
+│   ├── nginx.conf, nginx/      SPA serving, API/media proxy, security headers
+│   └── Dockerfile              build with Node, serve with nginx
+├── docs/screenshots/           README images
+├── docker-compose.yml          local PostgreSQL for development
+└── docker-compose.prod.yml     production stack: PostgreSQL, Redis, backend, nginx frontend
 ```
 
-## Getting Started
+## Installation
 
 Requirements: Python 3.12+, Node 22+, Docker (or a local PostgreSQL 16).
 
 ```bash
 # Database
-docker compose up -d          # starts PostgreSQL on :5432
+docker compose up -d          # starts PostgreSQL on :5432 (DB_PORT=5433 docker compose up -d if 5432 is taken)
 
 # Backend — http://localhost:8000
 cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements-dev.txt   # runtime deps + pytest/ruff; the Docker image installs requirements.txt only
-cp .env.example .env          # fill in values
+cp .env.example .env          # fill in values (match DB_PORT if you changed it)
 python manage.py migrate
 python manage.py seed              # optional: demo users/communities/posts (login: any user / password123)
 python manage.py runserver
@@ -97,36 +137,16 @@ cp .env.example .env          # VITE_API_URL
 npm run dev
 ```
 
-## Tests & Linting
+## Screenshots
 
-```bash
-# Backend
-cd backend
-pytest                        # full suite with coverage
-ruff check . && ruff format --check .
+![Home feed in the dark theme: poll post, hot/new/top sorting, post-kind filters and the trending sidebar](docs/screenshots/feed.png)
+*Home feed — sorting, time range, post-kind filters, inline polls and trending widgets.*
 
-# Frontend
-cd frontend
-npm run test                  # vitest
-npm run lint                  # eslint
-npm run build                 # tsc -b && vite build
-```
+![Post page in the light theme with a nested comment thread and moderator actions](docs/screenshots/post-thread.png)
+*Post page in the light theme — nested comments, votes, and pin/remove actions for moderators.*
 
-## Production
-
-A production-ish stack (Postgres + Redis + gunicorn backend + nginx frontend with API/media proxy) is provided. Redis backs the shared cache and throttle counters, Sentry activates when `SENTRY_DSN` is set, and nginx routes crawler user-agents to the OG endpoints:
-
-```bash
-cp .env.prod.example .env     # set real secrets
-docker compose -f docker-compose.prod.yml --env-file .env up -d --build
-```
-
-- **`SECRET_KEY`** must be at least 50 characters; the backend refuses to start otherwise. Generate one with `python -c "import secrets; print(secrets.token_urlsafe(50))"`.
-- **Logging:** the backend logs to stdout at `LOG_LEVEL` (default `INFO`).
-- **Health:** `GET /api/v1/health/` returns `200 {"status":"ok"}` or `503 {"status":"unavailable"}` (no auth, exempt from the HTTPS redirect). The compose backend healthcheck uses it with `Host: backend`, so keep `backend` in `ALLOWED_HOSTS`; the frontend container waits for a healthy backend. Redis is capped at 128 MB with LRU eviction. The check runs `SELECT 1` against the database, so a 503 also means the DB is unreachable.
-- **DB connections:** `DB_CONN_MAX_AGE` (default `60` seconds; `0` disables persistent connections) sets Django's `CONN_MAX_AGE`, with `CONN_HEALTH_CHECKS` on. Each gunicorn worker keeps one idle connection, so size Postgres `max_connections` accordingly.
-- **Security headers:** nginx sends a CSP (Google Fonts allowed), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy` and `Permissions-Policy` (`frontend/nginx/security-headers.conf`). A split deploy with a different API origin must extend `connect-src`.
-- **TLS and proxies:** TLS is expected to be terminated by an edge proxy in front of nginx (`SECURE_SSL_REDIRECT` env). The edge proxy must overwrite (not append to) `X-Forwarded-Proto`, and `NUM_PROXIES` must equal the number of proxies in front of Django: nginx (1) plus every proxy before it.
+![Moderator tools with the approval queue, report queue and AutoMod keyword list](docs/screenshots/mod-panel.png)
+*Moderator tools — approval queue, report queue, and AutoMod keywords.*
 
 ## License
 

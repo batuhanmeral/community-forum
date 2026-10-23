@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/Input';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { cn } from '@/lib/cn';
 import { LANGUAGES, type Language } from '@/i18n';
+import { readThemeChoice, setThemeChoice, type ThemeChoice } from '@/lib/theme';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -46,7 +47,13 @@ function PreferencesCard() {
   const user = useAppSelector((s) => s.auth.user);
   const dispatch = useAppDispatch();
   const [busy, setBusy] = useState(false);
+  const [theme, setTheme] = useState<ThemeChoice>(readThemeChoice);
   const showNsfw = user?.show_nsfw ?? false;
+
+  function changeTheme(choice: ThemeChoice) {
+    setThemeChoice(choice);
+    setTheme(choice);
+  }
 
   async function toggleNsfw() {
     if (busy || !user) return;
@@ -101,6 +108,21 @@ function PreferencesCard() {
               {l.label}
             </option>
           ))}
+        </select>
+      </label>
+      <label className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
+        <span className="text-sm">
+          <span className="font-medium">{t('settings.theme')}</span>
+          <span className="ml-2 text-[var(--color-text-muted)]">{t('settings.themeHint')}</span>
+        </span>
+        <select
+          value={theme}
+          onChange={(e) => changeTheme(e.target.value as ThemeChoice)}
+          className="h-9 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-3)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-link)] focus:outline-none"
+        >
+          <option value="system">{t('settings.themeSystem')}</option>
+          <option value="light">{t('settings.themeLight')}</option>
+          <option value="dark">{t('settings.themeDark')}</option>
         </select>
       </label>
       {user && <EmailVerificationRow verified={user.email_verified} email={user.email} />}

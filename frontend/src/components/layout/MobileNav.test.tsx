@@ -75,9 +75,25 @@ describe('MobileNav', () => {
   it('closes on a backdrop click but not on a click inside the panel', async () => {
     const onClose = renderDrawer();
     const dialog = await screen.findByRole('dialog', { name: 'Menu' });
+    fireEvent.pointerDown(screen.getByText('Communities'));
     fireEvent.click(screen.getByText('Communities'));
     expect(onClose).not.toHaveBeenCalled();
+    fireEvent.pointerDown(dialog);
     fireEvent.click(dialog);
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('stays open when a drag starts in the panel and ends on the backdrop', async () => {
+    const onClose = renderDrawer();
+    const dialog = await screen.findByRole('dialog', { name: 'Menu' });
+    fireEvent.pointerDown(screen.getByText('Communities'));
+    fireEvent.click(dialog);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('stops the page behind from scrolling while open', async () => {
+    renderDrawer();
+    await screen.findByRole('dialog', { name: 'Menu' });
+    expect(document.body.style.overflow).toBe('hidden');
   });
 });

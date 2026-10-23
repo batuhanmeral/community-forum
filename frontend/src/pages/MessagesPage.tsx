@@ -431,12 +431,16 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
         </Link>
         <Avatar alt={other?.username} size="md" />
         <div className="min-w-0 flex-1">
-          <Link
-            to={userPath(other?.username ?? '')}
-            className="text-[14px] font-semibold hover:text-[var(--color-link)]"
-          >
-            u/{other?.username}
-          </Link>
+          {other ? (
+            <Link
+              to={userPath(other.username)}
+              className="text-[14px] font-semibold hover:text-[var(--color-link)]"
+            >
+              u/{other.username}
+            </Link>
+          ) : (
+            <span className="text-[14px] font-semibold">u/?</span>
+          )}
         </div>
       </header>
 

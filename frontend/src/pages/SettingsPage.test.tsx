@@ -231,3 +231,21 @@ describe('SettingsPage in Turkish', () => {
     await waitFor(() => expect(document.title).toBe('Ayarlar · Nexus'));
   });
 });
+
+describe('SettingsPage theme', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    listBlocked.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('switches to the light theme and remembers it', async () => {
+    renderPage();
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /theme/i }), 'light');
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem('nexus.theme')).toBe('light');
+  });
+});
