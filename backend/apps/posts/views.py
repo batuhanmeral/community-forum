@@ -164,8 +164,7 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
             )
         )
         sort = self.request.query_params.get("sort", "new")
-        if sort == "top":
-            qs = _apply_time_window(qs, self.request.query_params.get("t"))
+        qs = _apply_time_window(qs, self.request.query_params.get("t"))
         return _apply_sort(qs, sort)
 
     def get_serializer_context(self):

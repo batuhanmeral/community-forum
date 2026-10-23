@@ -39,8 +39,7 @@ class FeedView(generics.ListAPIView):
         qs = _annotate_score(_base_post_qs(qs, user=request.user))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new" if request.user.is_authenticated else "top")
-        if sort == "top":
-            qs = _apply_time_window(qs, request.query_params.get("t"))
+        qs = _apply_time_window(qs, request.query_params.get("t"))
         return _apply_sort(qs, sort)
 
 
@@ -60,6 +59,5 @@ class FollowingFeedView(generics.ListAPIView):
         qs = _annotate_score(_base_post_qs(qs, user=request.user))
         qs = _apply_nsfw_filter(qs, request)
         sort = request.query_params.get("sort", "new")
-        if sort == "top":
-            qs = _apply_time_window(qs, request.query_params.get("t"))
+        qs = _apply_time_window(qs, request.query_params.get("t"))
         return _apply_sort(qs, sort)
