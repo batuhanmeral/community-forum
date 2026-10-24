@@ -1,5 +1,7 @@
 # Nexus
 
+[![CI](https://github.com/batuhanmeral/community-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/batuhanmeral/community-hub/actions/workflows/ci.yml)
+
 > A community-driven forum / Q&A platform.
 
 Nexus lets people create and join communities, share text, link, image, and poll posts, and discuss them in nested comment threads. Voting drives both content ranking (hot/top feeds) and user karma, while follows, direct messages, and notifications keep members connected. Communities are self-governed: creators appoint moderators who manage rules and flairs, review held posts and reports, ban users, and pin posts.
@@ -76,6 +78,7 @@ The project is split into two independent applications: a Django REST Framework 
 
 ```
 community-hub/
+├── .github/workflows/ci.yml    CI: backend lint + tests on PostgreSQL, frontend lint, build and tests
 ├── backend/                    Django + DRF API
 │   ├── config/                 settings (base / dev / prod), root URLs, pagination, WSGI/ASGI
 │   ├── apps/
