@@ -102,3 +102,30 @@ class TestNsfwPreference:
         # explicit param overrides the stored preference
         ids = [p["id"] for p in api.get(feed, {"nsfw": "hide"}).data["results"]]
         assert nsfw.id not in ids
+
+
+@pytest.mark.django_db
+class TestCountry:
+    def test_patch_sets_country_and_public_profile_shows_it(self, api, alice):
+        api.force_authenticate(alice)
+        resp = api.patch(ME, {"country": "TR"}, format="json")
+        assert resp.status_code == 200
+        assert resp.data["country"] == "TR"
+        public = APIClient().get(reverse("api_v1:users:users-profile", args=["alice"]))
+        assert public.data["country"] == "TR"
+
+    @pytest.mark.parametrize("code", ["XX", "tr", "TUR", "EU"])
+    def test_unknown_code_rejected(self, api, alice, code):
+        api.force_authenticate(alice)
+        resp = api.patch(ME, {"country": code}, format="json")
+        assert resp.status_code == 400
+        assert "country" in resp.data
+
+    def test_blank_clears_country(self, api, alice):
+        alice.country = "DE"
+        alice.save(update_fields=["country"])
+        api.force_authenticate(alice)
+        resp = api.patch(ME, {"country": ""}, format="json")
+        assert resp.status_code == 200
+        alice.refresh_from_db()
+        assert alice.country == ""

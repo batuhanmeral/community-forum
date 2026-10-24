@@ -29,6 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
             "email_verified",
             "avatar",
             "bio",
+            "country",
             "show_nsfw",
             "post_karma",
             "comment_karma",

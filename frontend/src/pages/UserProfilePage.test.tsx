@@ -34,6 +34,7 @@ const me = {
   email_verified: true,
   avatar: null,
   bio: 'hi',
+  country: '',
   show_nsfw: false,
   post_karma: 0,
   comment_karma: 0,
@@ -86,11 +87,22 @@ describe('ProfileEditModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/Could not save your profile/)).toBeInTheDocument();
   });
+
+  it('saves the chosen country with the profile', async () => {
+    api.updateProfile.mockResolvedValue({ ...me, country: 'TR' });
+    await openEditModal();
+    await userEvent.selectOptions(screen.getByLabelText('Country'), 'TR');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(api.updateProfile).toHaveBeenCalledWith({ bio: 'hi', country: 'TR', avatar: null }),
+    );
+    expect(await screen.findByText('Türkiye')).toBeInTheDocument();
+  });
 });
 
 describe('UserProfilePage', () => {
   const ENGLISH_PROBE =
-    /\b(Joined|Edit profile|Block|Unblock|Report user|Total karma|Post karma|Comment karma|Followers|Following|posts|comments|Loading|has no|User not found|No user named|Upload avatar|Tell the community|Cancel|Save|Bio)\b/;
+    /\b(Joined|Edit profile|Block|Unblock|Report user|Total karma|Post karma|Comment karma|Followers|Following|posts|comments|Loading|has no|User not found|No user named|Upload avatar|Tell the community|Cancel|Save|Bio|Country|Not shown|Germany)\b/;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -128,8 +140,10 @@ describe('UserProfilePage', () => {
 
   it('renders no English in Turkish', async () => {
     await i18n.changeLanguage('tr');
-    api.getUserProfile.mockResolvedValue(bob);
+    api.getUserProfile.mockResolvedValue({ ...bob, country: 'DE' });
     renderProfile(me);
+    expect(await screen.findByText('Almanya')).toBeInTheDocument();
+    expect(screen.getByText('🇩🇪')).toHaveAttribute('aria-hidden', 'true');
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
     await screen.findByText(/henüz gönderi paylaşmadı/);
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
@@ -165,6 +179,7 @@ describe('UserProfilePage', () => {
           post: 3,
           author: null,
           author_username: null,
+          author_avatar: null,
           parent: null,
           body: '[deleted]',
           body_html: '<p>[deleted]</p>',

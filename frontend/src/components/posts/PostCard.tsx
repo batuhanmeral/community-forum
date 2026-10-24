@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Post } from '@/features/posts/types';
@@ -6,11 +5,12 @@ import type { VoteValue } from '@/api/votes';
 import { NsfwReveal } from '@/components/posts/NsfwReveal';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import { SaveButton } from '@/components/saves/SaveButton';
+import { ShareButton } from '@/components/posts/ShareButton';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { deletedBodyKey } from '@/lib/deletedBody';
-import { Check, MessageSquare, Pin, Share } from 'lucide-react';
+import { MessageSquare, Pin } from 'lucide-react';
 
 interface PostCardProps {
   post: Post;
@@ -205,55 +205,6 @@ function ActionBtn({ href, icon, children }: { href: string; icon: React.ReactNo
       {icon}
       {children}
     </Link>
-  );
-}
-
-const SHARE_STATUS_RESET_MS = 2000;
-
-type ShareStatus = 'idle' | 'copied' | 'failed';
-
-const SHARE_LABEL_KEYS: Record<ShareStatus, string> = {
-  idle: 'post.share',
-  copied: 'post.shareCopied',
-  failed: 'post.shareFailed',
-};
-
-function ShareButton({ postId, title }: { postId: number; title: string }) {
-  const { t } = useTranslation();
-  const [status, setStatus] = useState<ShareStatus>('idle');
-
-  useEffect(() => {
-    if (status === 'idle') return;
-    const timer = setTimeout(() => setStatus('idle'), SHARE_STATUS_RESET_MS);
-    return () => clearTimeout(timer);
-  }, [status]);
-
-  async function share() {
-    const url = `${window.location.origin}/posts/${postId}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url });
-        return;
-      } catch (e) {
-        // Dismissing the share sheet is not a failure; anything else falls back to copying.
-        if (e instanceof DOMException && e.name === 'AbortError') return;
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setStatus('copied');
-    } catch {
-      setStatus('failed');
-    }
-  }
-
-  const label = t(SHARE_LABEL_KEYS[status]);
-  const Icon = status === 'copied' ? Check : Share;
-  return (
-    <button type="button" className={ACTION_BTN_CLASSES} onClick={share} aria-label={label}>
-      <Icon className="h-[15px] w-[15px]" />
-      <span aria-live="polite" className="max-[480px]:hidden">{label}</span>
-    </button>
   );
 }
 

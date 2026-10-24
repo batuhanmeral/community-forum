@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
-from .validators import username_validator
+from .validators import username_validator, validate_country_code
 
 
 class User(AbstractUser):
@@ -19,6 +19,9 @@ class User(AbstractUser):
     )
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     bio = models.CharField(max_length=500, blank=True, default="")
+    country = models.CharField(
+        max_length=2, blank=True, default="", validators=[validate_country_code]
+    )
     post_karma = models.IntegerField(default=0)
     comment_karma = models.IntegerField(default=0)
     show_nsfw = models.BooleanField(default=False)

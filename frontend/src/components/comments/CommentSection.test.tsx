@@ -28,6 +28,7 @@ function comment(id: number, parent: number | null = null): Comment {
     post: 1,
     author: 2,
     author_username: 'bob',
+    author_avatar: null,
     parent,
     body: `body ${id}`,
     body_html: `<p>body ${id}</p>`,
@@ -163,6 +164,20 @@ describe('CommentSection', () => {
   });
 });
 
+describe('CommentSection author avatars', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows the author's avatar beside the name and a placeholder for deleted authors", async () => {
+    const withAvatar = { ...comment(1), author_avatar: 'http://x/media/avatars/bob.png' };
+    const gone = { ...comment(2), author: null, author_username: null, is_deleted: true };
+    listComments.mockResolvedValue({ count: 2, next: null, previous: null, results: [withAvatar, gone] });
+    const { container } = renderSection();
+    const link = await screen.findByRole('link', { name: 'bob' });
+    expect(link.querySelector('img')).toHaveAttribute('src', 'http://x/media/avatars/bob.png');
+    expect(container.querySelectorAll('[aria-hidden="true"] img, [aria-hidden="true"] > span')).toHaveLength(2);
+  });
+});
+
 describe('CommentSection layout', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -193,6 +208,7 @@ describe('CommentSection in Turkish', () => {
           email_verified: true,
           avatar: null,
           bio: '',
+          country: '',
           show_nsfw: false,
           post_karma: 0,
           comment_karma: 0,

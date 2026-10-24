@@ -26,6 +26,7 @@ import { ReportModal } from '@/components/moderation/ReportModal';
 import { fieldErrors } from '@/lib/apiErrors';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
+import { countriesByName, countryFlag, countryName } from '@/lib/countries';
 import { ArrowBigUp, Flag } from 'lucide-react';
 
 export function UserProfilePage() {
@@ -117,6 +118,12 @@ export function UserProfilePage() {
               <div className="min-w-0">
                 <h1 className="text-xl font-bold tracking-tight">u/{profile.username}</h1>
                 <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
+                  {profile.country && (
+                    <span className="mr-2 text-[var(--color-text-muted)]">
+                      <span aria-hidden="true">{countryFlag(profile.country)}</span>{' '}
+                      {countryName(profile.country, i18n.language)}
+                    </span>
+                  )}
                   {t('profile.joined', { date: new Date(profile.date_joined).toLocaleDateString(i18n.language) })}
                 </p>
               </div>
@@ -232,8 +239,9 @@ export function UserProfilePage() {
           open={editing}
           onClose={() => setEditing(false)}
           initialBio={profile.bio}
+          initialCountry={profile.country}
           onSaved={(updated) => {
-            setProfile((p) => (p ? { ...p, bio: updated.bio, avatar: updated.avatar } : p));
+            setProfile((p) => (p ? { ...p, ...updated } : p));
             setEditing(false);
           }}
         />
@@ -349,13 +357,15 @@ interface ProfileEditModalProps {
   open: boolean;
   onClose: () => void;
   initialBio: string;
-  onSaved: (updated: { bio: string; avatar: string | null }) => void;
+  initialCountry: string;
+  onSaved: (updated: { bio: string; country: string; avatar: string | null }) => void;
 }
 
-function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditModalProps) {
-  const { t } = useTranslation();
+function ProfileEditModal({ open, onClose, initialBio, initialCountry, onSaved }: ProfileEditModalProps) {
+  const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
   const [bio, setBio] = useState(initialBio);
+  const [country, setCountry] = useState(initialCountry);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -365,13 +375,14 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
   useEffect(() => {
     if (open) {
       setBio(initialBio);
+      setCountry(initialCountry);
       setAvatar(null);
       setPreview(null);
       setError(null);
       setErrors({});
       setSaving(false);
     }
-  }, [open, initialBio]);
+  }, [open, initialBio, initialCountry]);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -386,13 +397,13 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
     setError(null);
     setErrors({});
     try {
-      const updated = await updateProfile({ bio, avatar });
+      const updated = await updateProfile({ bio, country, avatar });
       dispatch(setUser(updated));
-      onSaved({ bio: updated.bio, avatar: updated.avatar });
+      onSaved({ bio: updated.bio, country: updated.country, avatar: updated.avatar });
     } catch (err) {
       const fields = fieldErrors(err);
       setErrors(fields);
-      if (!fields.bio && !fields.avatar) setError(t('profile.saveFailed'));
+      if (!fields.bio && !fields.country && !fields.avatar) setError(t('profile.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -445,6 +456,32 @@ function ProfileEditModal({ open, onClose, initialBio, onSaved }: ProfileEditMod
           {errors.bio && (
             <p id="profile-bio-error" className="text-xs text-[var(--color-danger)]">
               {errors.bio}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="profile-country"
+            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+            {t('profile.country')}
+          </label>
+          <select
+            id="profile-country"
+            aria-describedby={errors.country ? 'profile-country-error' : undefined}
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm focus:border-[var(--color-link)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]/30"
+          >
+            <option value="">{t('profile.noCountry')}</option>
+            {countriesByName(i18n.language).map((c) => (
+              <option key={c.code} value={c.code}>
+                {countryFlag(c.code)} {c.name}
+              </option>
+            ))}
+          </select>
+          {errors.country && (
+            <p id="profile-country-error" className="text-xs text-[var(--color-danger)]">
+              {errors.country}
             </p>
           )}
         </div>

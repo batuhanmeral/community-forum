@@ -15,7 +15,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { buttonClasses } from '@/components/ui/Button';
 import { APP_NAME } from '@/components/ui/PageTitle';
 import { cn } from '@/lib/cn';
-import { ArrowBigUp, Menu, MessageSquare, PanelLeft, PanelRight, Plus, Search } from 'lucide-react';
+import { ArrowBigUp, Menu, MessageSquare, PanelLeft, PanelRight, Search } from 'lucide-react';
+import { LanguageToggle, ThemeToggle } from './PreferenceToggles';
 
 const UNREAD_POLL_MS = 30_000;
 
@@ -193,19 +194,14 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
           >
             {searchIcon}
           </button>
+          <ThemeToggle />
+          <LanguageToggle />
           {isAuthed && user ? (
             <>
               <IconButton title={t('nav.messages')} to="/messages" count={dmUnread}>
                 <MessageSquare className="h-[18px] w-[18px]" />
               </IconButton>
               <NotificationDropdown unreadCount={notifUnread} />
-              <Link
-                to="/submit"
-                className={cn(buttonClasses({ size: 'md' }), 'tracking-tight max-[480px]:px-2.5')}
-              >
-                <Plus strokeWidth={2.2} className="h-[15px] w-[15px]" />
-                <span className="max-[480px]:sr-only">{t('nav.post')}</span>
-              </Link>
               <div ref={menuRef} className="relative">
                 <button
                   type="button"

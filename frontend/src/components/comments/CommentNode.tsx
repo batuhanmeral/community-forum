@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { Comment } from '@/features/comments/types';
 import { createComment, deleteComment, listCommentRevisions, updateComment } from '@/api/comments';
 import { VoteCluster } from '@/components/votes/VoteCluster';
+import { Avatar } from '@/components/ui/Avatar';
 import type { VoteValue } from '@/api/votes';
 import { toggleSave } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
@@ -82,12 +83,20 @@ export function CommentNode({
           {node.author_username ? (
             <Link
               to={userPath(node.author_username)}
-              className="font-semibold text-[var(--color-text)] hover:underline"
+              className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:underline"
             >
+              <span aria-hidden="true" className="inline-flex">
+                <Avatar src={node.author_avatar} alt={node.author_username} size="xs" />
+              </span>
               {node.author_username}
             </Link>
           ) : (
-            <span className="italic">{t('common.deleted')}</span>
+            <span className="inline-flex items-center gap-1.5 italic">
+              <span aria-hidden="true" className="inline-flex">
+                <Avatar size="xs" />
+              </span>
+              {t('common.deleted')}
+            </span>
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(node.created_at)}</span>

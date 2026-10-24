@@ -5,6 +5,7 @@ export interface User {
   email_verified: boolean;
   avatar: string | null;
   bio: string;
+  country: string;
   show_nsfw: boolean;
   post_karma: number;
   comment_karma: number;

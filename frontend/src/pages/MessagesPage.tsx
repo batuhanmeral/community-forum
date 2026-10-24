@@ -120,7 +120,7 @@ export function MessagesPage() {
   }
 
   return (
-    <div className="grid h-[calc(100vh-128px)] grid-cols-[280px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
+    <div className="grid h-[calc(100vh-128px)] grid-cols-[minmax(0,3fr)_minmax(0,7fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] max-[720px]:grid-cols-1">
       <PageTitle title={t('titles.messages')} />
       {/* Inbox */}
       <aside className={cn('flex min-h-0 flex-col border-r border-[var(--color-border)]', selected && 'max-[720px]:hidden')}>

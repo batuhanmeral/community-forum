@@ -67,6 +67,7 @@ function renderPage() {
       email_verified: true,
       avatar: null,
       bio: '',
+      country: '',
       show_nsfw: false,
       post_karma: 0,
       comment_karma: 0,
@@ -311,6 +312,23 @@ describe('PostDetailPage action row', () => {
     const actions = (await screen.findByRole('button', { name: 'Edit' })).parentElement!;
     expect(actions).toHaveClass('flex-wrap');
     expect(actions.parentElement).toHaveClass('flex-wrap');
+  });
+});
+
+describe('PostDetailPage share and report', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: null } as never);
+  });
+
+  it('places share right before save and gives report an icon', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, author: 2 });
+    renderPage();
+    const share = await screen.findByRole('button', { name: 'Share' });
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(share.nextElementSibling).toBe(save);
+    expect(screen.getByRole('button', { name: 'Report' }).querySelector('svg')).not.toBeNull();
   });
 });
 

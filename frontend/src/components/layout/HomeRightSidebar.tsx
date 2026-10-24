@@ -12,14 +12,10 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
-import { APP_NAME } from '@/components/ui/PageTitle';
-import { ArrowBigUp, ArrowRight, Plus } from 'lucide-react';
-
-const FOOTER_TEXT = `© 2026 ${APP_NAME} Forum · v0.1.0`;
+import { ArrowBigUp, ArrowRight } from 'lucide-react';
 
 export function HomeRightSidebar() {
   const { t } = useTranslation();
-  const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [trendPosts, setTrendPosts] = useState<Post[]>([]);
   const [topComms, setTopComms] = useState<Community[]>([]);
   const [topUsers, setTopUsers] = useState<UserProfile[]>([]);
@@ -37,7 +33,7 @@ export function HomeRightSidebar() {
   }, []);
 
   return (
-    <aside className="sticky top-[88px] flex h-[calc(100vh-110px)] flex-col gap-3.5 overflow-y-auto pb-10 pl-1 pt-5">
+    <aside className="flex flex-col gap-3.5 pb-10 pl-1 pt-5">
       {/* Trending */}
       <Card>
         <CardHead title={<><span className="live-dot" /> {t('rightbar.trendingNow')}</>} more="/popular" />
@@ -104,24 +100,6 @@ export function HomeRightSidebar() {
           ))}
         </Card>
       )}
-
-      {/* Quick create */}
-      <Card>
-        <div className="px-4 py-3.5">
-          <Link
-            to={isAuthed ? '/c/create' : '/register'}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-3.5 py-[7px] text-[12.5px] font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)] active:bg-[var(--color-accent-pressed)]"
-          >
-            <Plus strokeWidth={2.2} className="h-[13px] w-[13px]" />
-            {t('rightbar.createCommunity')}
-          </Link>
-        </div>
-      </Card>
-
-      {/* Footer */}
-      <div className="px-3 pt-1 text-[10.5px] leading-[1.6] text-[var(--color-text-dim)]">
-        <div className="font-mono mt-1.5 text-[10px]">{FOOTER_TEXT}</div>
-      </div>
 
       <style>{`
         .live-dot {

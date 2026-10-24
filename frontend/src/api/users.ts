@@ -10,6 +10,7 @@ export interface UserProfile {
   email?: string;
   avatar: string | null;
   bio: string;
+  country: string;
   post_karma: number;
   comment_karma: number;
   total_karma: number;
@@ -46,6 +47,7 @@ export async function getUserComments(username: string, page = 1): Promise<Pagin
 
 export interface UpdateProfilePayload {
   bio?: string;
+  country?: string;
   avatar?: File | null;
 }
 
@@ -53,13 +55,17 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<User
   if (payload.avatar) {
     const form = new FormData();
     if (payload.bio !== undefined) form.append('bio', payload.bio);
+    if (payload.country !== undefined) form.append('country', payload.country);
     form.append('avatar', payload.avatar);
     const res = await api.patch<User>('/users/me/', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
   }
-  const res = await api.patch<User>('/users/me/', { bio: payload.bio ?? '' });
+  const res = await api.patch<User>('/users/me/', {
+    bio: payload.bio ?? '',
+    ...(payload.country !== undefined && { country: payload.country }),
+  });
   return res.data;
 }
 

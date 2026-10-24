@@ -127,11 +127,18 @@ describe('HomeRightSidebar layout', () => {
     expect(aside.className).not.toMatch(/\blg:/);
   });
 
-  it('keeps cards at full height so the sidebar scrolls instead of clipping them', async () => {
+  // A sticky or self-scrolling column either clipped its last card or showed a second scrollbar.
+  it('scrolls with the page instead of inside its own box', async () => {
     renderSidebar();
     await screen.findByText('No trending posts yet.');
-    const cards = [...screen.getByRole('complementary').children].filter((el) => el.classList.contains('overflow-hidden'));
-    expect(cards.length).toBeGreaterThan(0);
-    for (const card of cards) expect(card).toHaveClass('shrink-0');
+    const aside = screen.getByRole('complementary');
+    expect(aside.className).not.toMatch(/\b(sticky|overflow-y-auto|h-\[)/);
+  });
+
+  it('has no create-community card or footer', async () => {
+    renderSidebar();
+    await screen.findByText('No trending posts yet.');
+    expect(screen.queryByRole('link', { name: /create a community/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/v0\.1\.0/)).not.toBeInTheDocument();
   });
 });

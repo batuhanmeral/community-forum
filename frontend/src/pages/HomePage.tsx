@@ -2,38 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { listFeed, listFollowingFeed, type SortOption, type TimeWindow } from '@/api/posts';
-import { listCommunities } from '@/api/communities';
 import { updatePreferences } from '@/api/users';
 import type { Post } from '@/features/posts/types';
 import { setUser } from '@/features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { Avatar } from '@/components/ui/Avatar';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
+import { PostSortTabs } from '@/components/posts/PostSortTabs';
+import { CreatePostLink } from '@/components/posts/CreatePostLink';
 import { cn } from '@/lib/cn';
-import { ArrowRight, ArrowUpToLine, BarChart3, Clock, Flame, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
-
-interface SortTab {
-  id: SortOption;
-  icon: React.ReactNode;
-}
-
-const hotIcon = (
-  <Flame className="h-[13px] w-[13px]" />
-);
-const newIcon = (
-  <Clock className="h-[13px] w-[13px]" />
-);
-const topIcon = (
-  <ArrowUpToLine className="h-[13px] w-[13px]" />
-);
-
-const SORT_TABS: SortTab[] = [
-  { id: 'hot', icon: hotIcon },
-  { id: 'new', icon: newIcon },
-  { id: 'top', icon: topIcon },
-];
+import { ArrowRight } from 'lucide-react';
 
 type FeedKind = 'home' | 'following';
 
@@ -55,7 +34,6 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const dispatch = useAppDispatch();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [memberCount, setMemberCount] = useState<number>(0);
   const [feedKind, setFeedKind] = useState<FeedKind>('home');
   const [sort, setSort] = useState<SortOption>(VARIANT_DEFAULT_SORT[variant]);
   const [timeRange, setTimeRange] = useState<TimeWindow>('all');
@@ -114,17 +92,6 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     };
   }, [feedKind, sort, timeRange, nsfwShown, variant, isAuthed]);
 
-  useEffect(() => {
-    if (!isAuthed) {
-      setMemberCount(0);
-      return;
-    }
-    // Only the total is needed, so ask the server to count joined communities.
-    listCommunities({ joined: true, page_size: 1 })
-      .then((d) => setMemberCount(d.count))
-      .catch(() => undefined);
-  }, [isAuthed]);
-
   const counts = useMemo(() => {
     const totals: Record<KindFilter, number> = { all: posts.length, text: 0, image: 0, link: 0, poll: 0 };
     for (const p of posts) totals[p.kind] = (totals[p.kind] ?? 0) + 1;
@@ -174,58 +141,31 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
     <div className="min-w-0">
       <PageTitle title={pageTitle} />
       {/* Feed header */}
-      <div className="mb-[18px] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight">
-            <span>{headerTitle}</span>
-            {isAuthed && variant === 'home' && feedKind === 'home' && memberCount > 0 && (
-              <span className="text-[14px] font-normal text-[var(--color-text-dim)]">
-                {t('feed.communityCount', { count: memberCount })}
-              </span>
-            )}
-          </div>
-          {isAuthed && variant === 'home' && (
-            <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
-              {(['home', 'following'] as FeedKind[]).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setFeedKind(k)}
-                  className={cn(
-                    'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
-                    feedKind === k
-                      ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
-                  )}
-                >
-                  {t(`feed.tab_${k}`)}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
-
+      <h1 className="sr-only">{headerTitle}</h1>
+      <div className="mb-[18px] flex flex-wrap items-center gap-2">
+        {isAuthed && variant === 'home' && (
           <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-1)] p-1">
-            {SORT_TABS.map((tab) => (
+            {(['home', 'following'] as FeedKind[]).map((k) => (
               <button
-                key={tab.id}
+                key={k}
                 type="button"
-                onClick={() => setSort(tab.id)}
+                onClick={() => setFeedKind(k)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
-                  sort === tab.id
+                  'rounded-[var(--radius-control-inner)] px-3.5 py-1.5 text-[13px] font-medium transition',
+                  feedKind === k
                     ? 'bg-[var(--color-bg-3)] text-[var(--color-text)]'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
                 )}
               >
-                {tab.icon}
-                {t(`sort.${tab.id}`)}
+                {t(`feed.tab_${k}`)}
               </button>
             ))}
           </div>
+        )}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2 max-sm:gap-1.5">
+          <PostSortTabs value={sort} onChange={setSort} />
+          <TimeRangeSelect value={timeRange} onChange={setTimeRange} iconOnly />
+          {isAuthed && <CreatePostLink to="/submit" />}
         </div>
       </div>
 
@@ -281,33 +221,6 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
         </div>
       </div>
 
-      {/* Compose */}
-      {isAuthed && (
-        <div className="relative mb-[18px] flex items-center gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-3.5 py-3 transition hover:border-[var(--color-border-strong)]">
-          <Avatar src={user?.avatar} alt={user?.username} size="md" />
-          <div className="flex-1 cursor-text rounded-[10px] border border-transparent bg-[var(--color-bg-elevated)] px-2.5 py-2 text-[14px] text-[var(--color-text-muted)] transition hover:border-[var(--color-border)] hover:bg-[var(--color-bg-3)]">
-            {/* The ::after overlay makes the whole box clickable without nesting links */}
-            <Link
-              to="/submit"
-              className="outline-none after:absolute after:inset-0 after:rounded-[14px] focus-visible:after:ring-2 focus-visible:after:ring-[var(--color-link)]"
-            >
-              {user ? t('feed.composePromptNamed', { name: user.username }) : t('feed.composePrompt')}
-            </Link>
-          </div>
-          <div className="relative z-10 flex gap-1">
-            <ComposeTool title={t('post.kind_image')} kind="image">
-              <ImageIcon className="h-[17px] w-[17px]" />
-            </ComposeTool>
-            <ComposeTool title={t('post.kind_link')} kind="link">
-              <LinkIcon className="h-[17px] w-[17px]" />
-            </ComposeTool>
-            <ComposeTool title={t('post.kind_poll')} kind="poll">
-              <BarChart3 className="h-[17px] w-[17px]" />
-            </ComposeTool>
-          </div>
-        </div>
-      )}
-
       {/* Posts */}
       {loading ? (
         <div className="flex flex-col gap-2">
@@ -358,17 +271,5 @@ export function HomePage({ variant = 'home' }: { variant?: FeedVariant }) {
         </div>
       )}
     </div>
-  );
-}
-
-function ComposeTool({ title, kind, children }: { title: string; kind: string; children: React.ReactNode }) {
-  return (
-    <Link
-      to={`/submit?kind=${kind}`}
-      title={title}
-      className="grid h-9 w-9 place-items-center rounded-[10px] text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-3)] hover:text-[var(--color-link)]"
-    >
-      {children}
-    </Link>
   );
 }

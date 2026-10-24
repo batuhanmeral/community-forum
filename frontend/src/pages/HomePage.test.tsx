@@ -48,6 +48,7 @@ function renderHome({ authed = true, variant }: { authed?: boolean; variant?: Fe
         email_verified: true,
         avatar: null,
         bio: '',
+        country: '',
         show_nsfw: false,
         post_karma: 0,
         comment_karma: 0,
@@ -91,43 +92,52 @@ const textPost = {
   edited_at: null,
 } as unknown as Post;
 
-describe('HomePage joined communities subtitle', () => {
+describe('HomePage create post button', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     posts.listFeed.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
-  });
-
-  it('shows the joined total reported by the API', async () => {
-    communities.listCommunities.mockResolvedValue({
-      count: 37,
-      next: 'p2',
-      previous: null,
-      results: [joined],
-    });
-    renderAuthed();
-    expect(await screen.findByText('37 communities')).toBeInTheDocument();
-    expect(communities.listCommunities).toHaveBeenCalledWith(
-      expect.objectContaining({ joined: true }),
-    );
-  });
-});
-
-describe('HomePage compose box', () => {
-  it('has no nested anchors and keeps the tool links', async () => {
-    posts.listFeed.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
     communities.listCommunities.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
-    const { container } = renderAuthed();
-    await screen.findByText(/Your feed is empty/);
-    expect(container.querySelectorAll('a a')).toHaveLength(0);
-    for (const kind of ['image', 'link', 'poll']) {
-      expect(container.querySelector(`a[href="/submit?kind=${kind}"]`)).not.toBeNull();
-    }
+  });
+
+  it('sits in the feed header for signed-in users as an icon', async () => {
+    renderAuthed();
+    const link = await screen.findByRole('link', { name: 'Create post' });
+    expect(link).toHaveAttribute('href', '/submit');
+    expect(link).toHaveTextContent('');
+  });
+
+  // The time range sits just left of the create button, and the inline composer is gone.
+  it('puts an icon-only time range before it and drops the composer', async () => {
+    renderAuthed();
+    const link = await screen.findByRole('link', { name: 'Create post' });
+    const range = screen.getByRole('button', { name: 'Time range: All time' });
+    expect(range).toHaveTextContent('');
+    expect(range.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText(/on your mind/)).not.toBeInTheDocument();
+  });
+
+  // Sort tabs sit right before the time range; the feed title is for screen readers only.
+  it('orders sort, time range and plus, with no visible feed title', async () => {
+    renderAuthed();
+    const link = await screen.findByRole('link', { name: 'Create post' });
+    const hot = screen.getByRole('button', { name: 'Hot' });
+    const range = screen.getByRole('button', { name: 'Time range: All time' });
+    expect(hot.compareDocumentPosition(range) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(range.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Your feed' })).toHaveClass('sr-only');
+    expect(screen.queryByText(/^\d+ communit/)).not.toBeInTheDocument();
+  });
+
+  it('is hidden from signed-out readers', async () => {
+    renderHome({ authed: false });
+    await screen.findByText(/No posts yet/);
+    expect(screen.queryByRole('link', { name: 'Create post' })).not.toBeInTheDocument();
   });
 });
 
 describe('HomePage in Turkish', () => {
   const ENGLISH_PROBE =
-    /\b(Hot|New|Top|Popular|All posts|Discussion|Media|Links?|Polls?|Image|Following|Your feed|Home|Show NSFW|Hide NSFW|community|communities|empty|following anyone|Discover users|Browse communities|Be the first|match this filter|Load more|Loading|What's on your mind)\b/;
+    /\b(Hot|New|Top|Popular|All posts|Discussion|Media|Links?|Polls?|Image|Following|Your feed|Home|Show NSFW|Hide NSFW|community|communities|empty|following anyone|Discover users|Browse communities|Be the first|match this filter|Load more|Loading|What's on your mind|Create post)\b/;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -140,7 +150,6 @@ describe('HomePage in Turkish', () => {
   it('renders no English in Turkish for the empty personal feed', async () => {
     await i18n.changeLanguage('tr');
     renderHome();
-    await screen.findByText('3 topluluk');
     await waitFor(() => expect(posts.listFeed).toHaveBeenCalled());
     expect(await screen.findByText(/Akışın boş/)).toBeInTheDocument();
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);

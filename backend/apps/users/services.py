@@ -57,6 +57,7 @@ def delete_account(user: User) -> None:
     user.first_name = ""
     user.last_name = ""
     user.bio = ""
+    user.country = ""
     user.avatar = None
     user.show_nsfw = False
     user.is_active = False
@@ -85,6 +86,7 @@ def export_account(user: User) -> dict:
             "email": user.email,
             "email_verified": user.email_verified,
             "bio": user.bio,
+            "country": user.country,
             "date_joined": _iso(user.date_joined),
             "post_karma": user.post_karma,
             "comment_karma": user.comment_karma,

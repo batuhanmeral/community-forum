@@ -12,7 +12,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Communities with membership roles (admin / moderator / member), icons, rules, and NSFW flags
 - Four post kinds: text, link, image (with upload validation), and poll
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
-- Nested comment trees with inline replies, `@username` mention autocomplete and mentions rendered as profile links
+- Nested comment trees with author avatars, inline replies, `@username` mention autocomplete and mentions rendered as profile links
 - Markdown editor with server-rendered, sanitized preview; links keep only absolute `http(s)`/`mailto`, site-root (`/…`) and `#…` targets (anything else renders as plain text) and always carry `rel="nofollow noopener noreferrer ugc"`
 - Post drafts — debounced autosave to localStorage with restore/discard
 
@@ -28,7 +28,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Notifications (comment, reply, mention, follow, DM, mod action) with bell dropdown, inbox page, and 30s polling
 - Navbar badges for unread notifications and messages come from one call, `GET /api/v1/users/me/unread-counts/` (`{notifications, messages}`), polled every 30s and paused in hidden tabs
 - User blocking — cuts DMs and follows both ways, suppresses notifications
-- Public user profiles with karma badges, post/comment tabs, and profile editing
+- Public user profiles with karma badges, post/comment tabs, profile editing, and an optional country shown with its flag
 
 **Discovery**
 - Full-text search (PostgreSQL `SearchVector` + GIN, ranked with `SearchRank`) across posts, communities, and people
@@ -54,6 +54,7 @@ The project is split into two independent applications: a Django REST Framework 
 
 **Interface**
 - Light, dark, and system themes; Inter and JetBrains Mono are self-hosted, so the app loads no third-party resources
+- One-click light/dark and EN/TR toggles in the navbar, available to signed-out visitors too
 - Interface language picker (EN/TR via i18next) with full Turkish coverage, `<html lang>` and per-page titles; an ESLint rule blocks hard-coded English in JSX
 - Responsive from 360 px: mobile navigation drawer below 960 px, tap-to-reveal for NSFW images
 - Sessions survive refresh hiccups (429/network) and stay in sync across tabs; stale-chunk errors reload once
@@ -142,11 +143,11 @@ npm run dev
 ![Home feed in the dark theme: poll post, hot/new/top sorting, post-kind filters and the trending sidebar](docs/screenshots/feed.png)
 *Home feed — sorting, time range, post-kind filters, inline polls and trending widgets.*
 
-![Post page in the light theme with a nested comment thread and moderator actions](docs/screenshots/post-thread.png)
-*Post page in the light theme — nested comments, votes, and pin/remove actions for moderators.*
+![Post page in the light theme with share, save and report actions, moderator actions and a nested comment thread](docs/screenshots/post-thread.png)
+*Post page in the light theme — share/save/report, pin/remove actions for moderators, and nested comments with avatars.*
 
-![Moderator tools with the approval queue, report queue and AutoMod keyword list](docs/screenshots/mod-panel.png)
-*Moderator tools — approval queue, report queue, and AutoMod keywords.*
+![Moderator tools with a post held by AutoMod, an open comment report and the AutoMod keyword list](docs/screenshots/mod-panel.png)
+*Moderator tools — a post held by AutoMod, the report queue, and AutoMod keywords.*
 
 ## License
 

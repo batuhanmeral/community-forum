@@ -39,6 +39,7 @@ function renderNavbar(props: ComponentProps<typeof Navbar> = {}) {
       email_verified: true,
       avatar: null,
       bio: '',
+      country: '',
       show_nsfw: false,
       post_karma: 0,
       comment_karma: 0,
@@ -262,6 +263,22 @@ describe('Navbar mobile header', () => {
     await act(async () => {});
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
     expect(onOpenMenu).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Navbar actions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    users.getUnreadCounts.mockResolvedValue({ notifications: 0, messages: 0 });
+  });
+
+  // Creating a post moved to the home feed header.
+  it('offers theme and language toggles but no post button', async () => {
+    renderNavbar();
+    await act(async () => {});
+    expect(screen.getByRole('button', { name: /Switch to (light|dark) theme/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Switch language to Türkçe' })).toBeInTheDocument();
+    expect(document.querySelector('a[href="/submit"]')).toBeNull();
   });
 });
 

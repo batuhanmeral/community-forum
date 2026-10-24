@@ -3,6 +3,7 @@ export interface Comment {
   post: number;
   author: number | null;
   author_username: string | null;
+  author_avatar: string | null;
   parent: number | null;
   body: string;
   body_html: string;

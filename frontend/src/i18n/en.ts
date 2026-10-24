@@ -1,7 +1,6 @@
 export const en = {
   nav: {
     searchPlaceholder: 'Search Nexus — communities, posts, people…',
-    post: 'Post',
     messages: 'Messages',
     login: 'Log in',
     signup: 'Sign up',
@@ -21,6 +20,9 @@ export const en = {
     showSidebar: 'Show sidebar',
     profileMenu: 'Profile menu',
     search: 'Search',
+    switchToLight: 'Switch to light theme',
+    switchToDark: 'Switch to dark theme',
+    switchLanguage: 'Switch language to {{language}}',
   },
   sidebar: {
     home: 'Home',
@@ -41,7 +43,6 @@ export const en = {
     topCommunities: 'Top communities',
     noCommunities: 'No active communities.',
     karmaLeaders: 'Karma leaders',
-    createCommunity: 'Create a community',
     seeAll: 'See all',
     joined: 'Joined',
     join: 'Join',
@@ -262,6 +263,8 @@ export const en = {
     changeImage: 'Change image',
     bio: 'Bio',
     bioPlaceholder: 'Tell the community about yourself…',
+    country: 'Country',
+    noCountry: 'Not shown',
   },
   mod: {
     rulesTitle: 'Rules',
@@ -476,8 +479,6 @@ export const en = {
     title_following: 'Following',
     tab_home: 'Home',
     tab_following: 'Following',
-    communityCount_one: '{{count}} community',
-    communityCount_other: '{{count}} communities',
     kind_all: 'All posts',
     kind_text: 'Discussion',
     kind_image: 'Media',
@@ -485,8 +486,7 @@ export const en = {
     kind_poll: 'Polls',
     nsfwHide: 'Hide NSFW',
     nsfwShow: 'Show NSFW',
-    composePrompt: "What's on your mind?",
-    composePromptNamed: "What's on your mind, {{name}}?",
+    createPost: 'Create post',
     followingEmpty: "You aren't following anyone yet.",
     discoverUsers: 'Discover users',
     feedEmpty: 'Your feed is empty.',
@@ -549,7 +549,6 @@ export const en = {
     notFoundBody: "The community c/{{slug}} doesn't exist.",
     modTools: 'Mod tools',
     rules: 'Community rules',
-    createPost: 'Create post',
     noPosts: 'No posts in this community yet.',
   },
   inbox: {

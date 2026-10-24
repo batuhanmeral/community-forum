@@ -146,3 +146,37 @@ class TestCommentNotifications:
         Membership.objects.create(user=bob, community=community)
         api.post(url, {"title": "t", "kind": "text", "body": "hi @carol"}, format="json")
         assert Notification.objects.filter(recipient=carol, verb="mention").exists()
+
+
+@pytest.mark.django_db
+class TestCommentAuthorAvatar:
+    @pytest.fixture
+    def bob_with_avatar(self, bob):
+        bob.avatar.name = "avatars/bob.png"
+        bob.save(update_fields=["avatar"])
+        return bob
+
+    def _avatars(self, api, post):
+        return [c["author_avatar"] for c in api.get(list_url(post.id)).data["results"]]
+
+    def test_lists_the_author_avatar_as_an_absolute_url(self, api, post, bob_with_avatar):
+        Comment.objects.create(post=post, author=bob_with_avatar, body="hi")
+        assert self._avatars(api, post) == ["http://testserver/media/avatars/bob.png"]
+
+    def test_null_without_an_avatar(self, api, post, bob):
+        Comment.objects.create(post=post, author=bob, body="hi")
+        assert self._avatars(api, post) == [None]
+
+    def test_hidden_on_a_deleted_comment(self, api, post, bob_with_avatar):
+        from django.utils import timezone
+
+        Comment.objects.create(
+            post=post, author=bob_with_avatar, body="hi", deleted_at=timezone.now()
+        )
+        assert self._avatars(api, post) == [None]
+
+    def test_hidden_for_a_deactivated_author(self, api, post, bob_with_avatar):
+        Comment.objects.create(post=post, author=bob_with_avatar, body="hi")
+        bob_with_avatar.is_active = False
+        bob_with_avatar.save(update_fields=["is_active"])
+        assert self._avatars(api, post) == [None]

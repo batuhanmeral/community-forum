@@ -19,6 +19,7 @@ const removedComment: Comment = {
   post: 3,
   author: null,
   author_username: null,
+  author_avatar: null,
   parent: null,
   body: '[removed]',
   body_html: '<p>[removed]</p>',

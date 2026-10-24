@@ -25,8 +25,9 @@ import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
 import { PostSortTabs } from '@/components/posts/PostSortTabs';
 import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
+import { CreatePostLink } from '@/components/posts/CreatePostLink';
 import { cn } from '@/lib/cn';
-import { ArrowLeft, Bell, ChevronDown, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, ShieldCheck } from 'lucide-react';
 
 export function CommunityDetailPage() {
   const { t } = useTranslation();
@@ -188,9 +189,9 @@ export function CommunityDetailPage() {
       <PageTitle title={`c/${community.slug}`} />
       <Card padded={false} className="overflow-hidden">
         <div className="h-24 w-full bg-[var(--color-bg-3)]" />
-        <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:gap-6">
-            <div className="flex shrink-0 items-start gap-4">
+        <div className="px-5 py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
               <div className="-mt-12">
                 <Avatar
                   src={community.avatar}
@@ -213,38 +214,38 @@ export function CommunityDetailPage() {
                 </p>
               </div>
             </div>
-            {community.description && (
-              <p className="min-w-0 flex-1 text-sm text-[var(--color-text-muted)] whitespace-pre-wrap sm:border-l sm:border-[var(--color-border)] sm:pl-6">
-                {community.description}
-              </p>
+
+            {isAuthed && (
+              <div className="flex items-center gap-2 self-start">
+                {(community.my_role === 'admin' || community.my_role === 'moderator') && (
+                  <Link to={`/c/${community.slug}/mod`}>
+                    <Button variant="secondary" size="md">
+                      <ShieldCheck className="h-4 w-4" />
+                      {t('communityPage.modTools')}
+                    </Button>
+                  </Link>
+                )}
+                {community.is_member && (
+                  <NotifyDropdown value={notifyLevel} onChange={handleNotifyChange} />
+                )}
+                {community.is_banned ? (
+                  <Badge tone="danger">{t('community.banned')}</Badge>
+                ) : (
+                  <Button
+                    variant={community.is_member ? 'secondary' : 'primary'}
+                    onClick={handleJoinLeave}
+                    loading={actionLoading}
+                  >
+                    {community.is_member ? t('rightbar.joined') : t('rightbar.join')}
+                  </Button>
+                )}
+              </div>
             )}
           </div>
-
-          {isAuthed && (
-            <div className="flex items-center gap-2 self-start">
-              {(community.my_role === 'admin' || community.my_role === 'moderator') && (
-                <Link to={`/c/${community.slug}/mod`}>
-                  <Button variant="secondary" size="md">
-                    <ShieldCheck className="h-4 w-4" />
-                    {t('communityPage.modTools')}
-                  </Button>
-                </Link>
-              )}
-              {community.is_member && (
-                <NotifyDropdown value={notifyLevel} onChange={handleNotifyChange} />
-              )}
-              {community.is_banned ? (
-                <Badge tone="danger">{t('community.banned')}</Badge>
-              ) : (
-                <Button
-                  variant={community.is_member ? 'secondary' : 'primary'}
-                  onClick={handleJoinLeave}
-                  loading={actionLoading}
-                >
-                  {community.is_member ? t('rightbar.joined') : t('rightbar.join')}
-                </Button>
-              )}
-            </div>
+          {community.description && (
+            <p className="mt-3 text-sm text-[var(--color-text-muted)] whitespace-pre-wrap">
+              {community.description}
+            </p>
           )}
         </div>
       </Card>
@@ -266,18 +267,12 @@ export function CommunityDetailPage() {
           </Card>
         )}
 
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
+        <div className="flex flex-wrap items-center gap-2">
+          {isAuthed && <CreatePostLink to={`/c/${community.slug}/submit`} showLabel />}
+          <div className="ml-auto flex items-center gap-2 max-sm:gap-1.5">
             <PostSortTabs value={sort} onChange={setSort} />
+            <TimeRangeSelect value={timeRange} onChange={setTimeRange} iconOnly />
           </div>
-          {isAuthed && (
-            <Link to={`/c/${community.slug}/submit`}>
-              <Button variant="primary" size="sm">
-                {t('communityPage.createPost')}
-              </Button>
-            </Link>
-          )}
         </div>
 
         {postsLoading ? (
@@ -319,6 +314,7 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const label = `${t('communityPage.notifyLevel')}: ${t(`communityPage.notify_${value}`)}`;
 
   useEffect(() => {
     if (!open) return;
@@ -334,12 +330,12 @@ function NotifyDropdown({ value, onChange }: NotifyDropdownProps) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)]"
-        aria-label={t('communityPage.notifyLevel')}
+        className="grid h-10 w-10 place-items-center rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-surface)] transition-colors hover:bg-[var(--color-surface-hover)]"
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
       >
-        <Bell className="h-4 w-4" />
-        <span className="hidden sm:inline">{t(`communityPage.notify_${value}`)}</span>
-        <ChevronDown className="h-4 w-4 text-[var(--color-text-muted)]" />
+        {value === 'off' ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-md">

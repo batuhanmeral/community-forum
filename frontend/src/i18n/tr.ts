@@ -5,7 +5,6 @@ type Translation = { [K in keyof typeof en]: Record<keyof (typeof en)[K], string
 export const tr: Translation = {
   nav: {
     searchPlaceholder: "Nexus'ta ara — topluluklar, gönderiler, kişiler…",
-    post: 'Gönderi',
     messages: 'Mesajlar',
     login: 'Giriş yap',
     signup: 'Kayıt ol',
@@ -25,6 +24,9 @@ export const tr: Translation = {
     showSidebar: 'Kenar çubuğunu göster',
     profileMenu: 'Profil menüsü',
     search: 'Ara',
+    switchToLight: 'Açık temaya geç',
+    switchToDark: 'Koyu temaya geç',
+    switchLanguage: 'Dili {{language}} olarak değiştir',
   },
   sidebar: {
     home: 'Ana sayfa',
@@ -45,7 +47,6 @@ export const tr: Translation = {
     topCommunities: 'Öne çıkan topluluklar',
     noCommunities: 'Aktif topluluk yok.',
     karmaLeaders: 'Karma liderleri',
-    createCommunity: 'Topluluk oluştur',
     seeAll: 'Tümünü gör',
     joined: 'Üyesin',
     join: 'Katıl',
@@ -266,6 +267,8 @@ export const tr: Translation = {
     changeImage: 'Görseli değiştir',
     bio: 'Hakkında',
     bioPlaceholder: 'Topluluğa kendinden bahset…',
+    country: 'Ülke',
+    noCountry: 'Gösterme',
   },
   mod: {
     rulesTitle: 'Kurallar',
@@ -480,8 +483,6 @@ export const tr: Translation = {
     title_following: 'Takip ettiklerin',
     tab_home: 'Ana sayfa',
     tab_following: 'Takip',
-    communityCount_one: '{{count}} topluluk',
-    communityCount_other: '{{count}} topluluk',
     kind_all: 'Tüm gönderiler',
     kind_text: 'Tartışma',
     kind_image: 'Medya',
@@ -489,8 +490,7 @@ export const tr: Translation = {
     kind_poll: 'Anketler',
     nsfwHide: 'NSFW gizle',
     nsfwShow: 'NSFW göster',
-    composePrompt: 'Aklında ne var?',
-    composePromptNamed: 'Aklında ne var, {{name}}?',
+    createPost: 'Gönderi oluştur',
     followingEmpty: 'Henüz kimseyi takip etmiyorsun.',
     discoverUsers: 'Kullanıcıları keşfet',
     feedEmpty: 'Akışın boş.',
@@ -553,7 +553,6 @@ export const tr: Translation = {
     notFoundBody: 'c/{{slug}} adlı bir topluluk yok.',
     modTools: 'Moderasyon araçları',
     rules: 'Topluluk kuralları',
-    createPost: 'Gönderi oluştur',
     noPosts: 'Bu toplulukta henüz gönderi yok.',
   },
   inbox: {

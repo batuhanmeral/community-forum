@@ -17,6 +17,7 @@ import { CommentSection } from '@/components/comments/CommentSection';
 import { NsfwReveal } from '@/components/posts/NsfwReveal';
 import { PollCard } from '@/components/posts/PollCard';
 import { SaveButton } from '@/components/saves/SaveButton';
+import { ShareButton } from '@/components/posts/ShareButton';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
 import { PendingPostActions } from '@/components/moderation/PendingPostActions';
@@ -25,6 +26,7 @@ import type { VoteValue } from '@/api/votes';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { useInternalLinkClick } from '@/lib/useInternalLinkClick';
+import { Flag } from 'lucide-react';
 
 export function PostDetailPage() {
   const { t } = useTranslation();
@@ -245,6 +247,7 @@ export function PostDetailPage() {
                 userVote={post.user_vote as VoteValue | null}
                 onChange={({ score, userVote }) => setPost({ ...post, score, user_vote: userVote })}
               />
+              <ShareButton postId={post.id} title={post.title} />
               <SaveButton
                 target="post"
                 objectId={post.id}
@@ -264,6 +267,7 @@ export function PostDetailPage() {
                 )}
                 {canReport && (
                   <Button variant="ghost" size="sm" onClick={() => setReporting(true)}>
+                    <Flag className="h-[15px] w-[15px]" />
                     {t('common.report')}
                   </Button>
                 )}

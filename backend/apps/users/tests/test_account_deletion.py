@@ -62,11 +62,13 @@ class TestAccountDeletion:
         assert alice.is_active and alice.username == "alice"
 
     def test_erases_personal_data_and_keeps_content(self, alice, bob, world):
+        alice.country = "TR"
+        alice.save(update_fields=["country"])
         resp = _client(alice).delete(ME, {"password": PW}, format="json")
         assert resp.status_code == 204
         alice.refresh_from_db()
         assert alice.username == f"deleted-{alice.pk}"
-        assert (alice.email, alice.bio, alice.is_active) == ("", "", False)
+        assert (alice.email, alice.bio, alice.country, alice.is_active) == ("", "", "", False)
         assert not alice.has_usable_password()
         assert not Follow.objects.filter(follower=alice).exists()
         assert not Follow.objects.filter(followed=alice).exists()
@@ -122,6 +124,7 @@ class TestAccountExport:
         data = json.loads(resp.content)
         assert data["profile"]["username"] == "alice"
         assert data["profile"]["email"] == "a@x.com"
+        assert data["profile"]["country"] == ""
         assert [p["title"] for p in data["posts"]] == ["mine"]
         assert [c["body"] for c in data["comments"]] == ["reply"]
         assert data["following"] == ["bob"]

@@ -8,6 +8,7 @@ function c(id: number, parent: number | null): Comment {
     post: 1,
     author: 1,
     author_username: 'alice',
+    author_avatar: null,
     parent,
     body: `comment ${id}`,
     body_html: `<p>comment ${id}</p>`,

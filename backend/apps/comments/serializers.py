@@ -24,6 +24,7 @@ def _mask_body(obj: Comment) -> str:
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
+    author_avatar = serializers.SerializerMethodField()
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
@@ -38,6 +39,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "post",
             "author",
             "author_username",
+            "author_avatar",
             "parent",
             "body",
             "body_html",
@@ -61,6 +63,14 @@ class CommentSerializer(serializers.ModelSerializer):
         if obj.deleted_at is not None or not obj.author.is_active:
             return None
         return obj.author.username
+
+    def get_author_avatar(self, obj: Comment) -> str | None:
+        # Hidden exactly when the author is, so a removed comment can't be traced by its picture.
+        if self.get_author(obj) is None or not obj.author.avatar:
+            return None
+        request = self.context.get("request")
+        url = obj.author.avatar.url
+        return request.build_absolute_uri(url) if request else url
 
     def get_body_html(self, obj: Comment) -> str:
         return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"

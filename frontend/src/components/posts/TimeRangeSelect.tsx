@@ -9,12 +9,15 @@ const TIME_WINDOWS: TimeWindow[] = ['hour', 'day', 'week', 'month', 'year', 'all
 interface TimeRangeSelectProps {
   value: TimeWindow;
   onChange: (value: TimeWindow) => void;
+  /** Calendar icon only; the chosen range stays in the tooltip and label. */
+  iconOnly?: boolean;
 }
 
-export function TimeRangeSelect({ value, onChange }: TimeRangeSelectProps) {
+export function TimeRangeSelect({ value, onChange, iconOnly = false }: TimeRangeSelectProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const label = `${t('timeRange.label')}: ${t(`timeRange.${value}`)}`;
 
   useEffect(() => {
     if (!open) return;
@@ -39,22 +42,31 @@ export function TimeRangeSelect({ value, onChange }: TimeRangeSelectProps) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`${t('timeRange.label')}: ${t(`timeRange.${value}`)}`}
+        aria-label={label}
+        title={iconOnly ? label : undefined}
         className={cn(
-          'inline-flex h-full min-h-10 items-center gap-1.5 rounded-[var(--radius-control)] border px-3 text-[13px] font-medium transition',
+          'inline-flex h-full min-h-10 items-center gap-1.5 rounded-[var(--radius-control)] border text-[13px] font-medium transition',
+          iconOnly ? 'w-10 justify-center' : 'px-3',
           value === 'all'
             ? 'border-[var(--color-border)] bg-[var(--color-bg-1)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
             : 'border-[var(--color-link-border)] bg-[var(--color-link-dim)] text-[var(--color-link)]',
         )}
       >
-        <CalendarDays className="h-[14px] w-[14px]" />
-        {t(`timeRange.${value}`)}
-        <ChevronDown className="h-[14px] w-[14px] opacity-70" />
+        <CalendarDays className={iconOnly ? 'h-[17px] w-[17px]' : 'h-[14px] w-[14px]'} />
+        {!iconOnly && (
+          <>
+            {t(`timeRange.${value}`)}
+            <ChevronDown className="h-[14px] w-[14px] opacity-70" />
+          </>
+        )}
       </button>
       {open && (
         <div
           role="menu"
-          className="absolute left-0 z-20 mt-1.5 w-44 overflow-hidden rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] py-1 shadow-md"
+          className={cn(
+            'absolute z-20 mt-1.5 w-44 overflow-hidden rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] py-1 shadow-md',
+            iconOnly ? 'right-0' : 'left-0',
+          )}
         >
           {TIME_WINDOWS.map((w) => (
             <button

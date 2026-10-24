@@ -55,6 +55,7 @@ function renderPage() {
       email_verified: true,
       avatar: null,
       bio: '',
+      country: '',
       show_nsfw: false,
       post_karma: 0,
       comment_karma: 0,
@@ -130,7 +131,20 @@ describe('CommunityDetailPage membership state', () => {
       my_notify_level: 'posts_only',
     });
     renderPage();
-    expect(await screen.findByText('Posts only')).toBeInTheDocument();
+    const bell = await screen.findByRole('button', { name: 'Notification level: Posts only' });
+    expect(bell).toHaveTextContent('');
+  });
+
+  it('puts a labelled create link first, then icon tabs and an icon time range', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ ...baseCommunity, is_member: true, my_role: 'member' });
+    renderPage();
+    const create = await screen.findByRole('link', { name: 'Create post' });
+    expect(create).toHaveAttribute('href', `/c/${baseCommunity.slug}/submit`);
+    expect(create).toHaveTextContent('Create post');
+    const hot = screen.getByRole('button', { name: 'Hot' });
+    expect(hot.querySelector('svg')).not.toBeNull();
+    expect(create.compareDocumentPosition(hot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Time range: All time' })).toHaveTextContent('');
   });
 
   it('loads more posts on demand', async () => {
@@ -193,7 +207,7 @@ describe('CommunityDetailPage in Turkish', () => {
     await i18n.changeLanguage('tr');
     renderPage();
     expect(await screen.findByText('Bu toplulukta henüz gönderi yok.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Bildirim düzeyi' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Bildirim düzeyi/ }));
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 

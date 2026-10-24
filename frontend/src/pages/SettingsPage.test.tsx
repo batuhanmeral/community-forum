@@ -35,6 +35,7 @@ const testUser = {
   email_verified: true,
   avatar: null,
   bio: '',
+  country: '',
   show_nsfw: false,
   post_karma: 0,
   comment_karma: 0,
