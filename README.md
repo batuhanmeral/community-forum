@@ -1,7 +1,5 @@
 # Nexus
 
-[![CI](https://github.com/batuhanmeral/community-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/batuhanmeral/community-hub/actions/workflows/ci.yml)
-
 > A community-driven forum / Q&A platform.
 
 Nexus lets people create and join communities, share text, link, image, and poll posts, and discuss them in nested comment threads. Voting drives both content ranking (hot/top feeds) and user karma, while follows, direct messages, and notifications keep members connected. Communities are self-governed: creators appoint moderators who manage rules and flairs, review held posts and reports, ban users, and pin posts.
@@ -77,7 +75,7 @@ The project is split into two independent applications: a Django REST Framework 
 ## Project Structure
 
 ```
-community-hub/
+community-forum/
 ├── .github/workflows/ci.yml    CI: backend lint + tests on PostgreSQL, frontend lint, build and tests
 ├── backend/                    Django + DRF API
 │   ├── config/                 settings (base / dev / prod), root URLs, pagination, WSGI/ASGI
@@ -140,6 +138,37 @@ npm install
 cp .env.example .env          # VITE_API_URL
 npm run dev
 ```
+
+## Testing
+
+The backend has 800+ pytest tests and the frontend 340+ Vitest tests. Backend tests run against a real PostgreSQL (full-text search and GIN indexes don't exist in SQLite), so start the database first; pytest-django creates and drops its own test database.
+
+```bash
+# Backend
+cd backend
+docker compose up -d                  # from the repo root, if PostgreSQL isn't running yet
+pytest                                # full suite
+pytest apps/posts                     # one app
+pytest --cov=apps --cov-report=term-missing
+ruff check . && ruff format --check .
+
+# Frontend
+cd frontend
+npm test                              # single run (npm run test:watch to watch)
+npm run lint
+npm run build                         # includes the TypeScript type check
+```
+
+What the suites cover:
+
+- **API behavior** — endpoints are exercised through DRF's test client: permissions, validation, pagination, throttling, and error responses
+- **Moderation rules** — approval snapshots and re-approval on edit, AutoMod normalization, ban enforcement, moderator hierarchy, held-post visibility
+- **Race conditions** — concurrent votes (on real threads), interleaved edits and moderator actions, and ban races must not double-count or overwrite each other
+- **Query budgets** — feeds, threads, inboxes, and mod queues assert an upper bound on SQL queries, so N+1 regressions fail the build
+- **Security** — markdown sanitization and link filtering, token revocation, refresh-cookie handling, account deletion and data export
+- **Frontend** — components and pages rendered with React Testing Library and driven with user-event; API client token refresh, cross-tab session sync, drafts, polling, and i18n
+
+[GitHub Actions](.github/workflows/ci.yml) runs all of the above on every push to `main` and on every pull request, with a PostgreSQL 16 service container.
 
 ## Screenshots
 
