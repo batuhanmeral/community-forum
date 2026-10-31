@@ -1,5 +1,5 @@
 # ─── Build stage ──────────────────────────────
-FROM node:22-alpine AS build
+FROM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS build
 
 WORKDIR /app
 
@@ -15,11 +15,17 @@ COPY . .
 RUN npm run build
 
 # ─── Serve stage ──────────────────────────────
-FROM nginx:1.27-alpine AS serve
+# Unprivileged build: nginx runs as uid 101, so it cannot bind ports below 1024.
+FROM nginxinc/nginx-unprivileged:1.30-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03 AS serve
+
+# Alpine fixes land before the pinned base is rebuilt; apk needs root.
+USER root
+RUN apk upgrade --no-cache
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+USER nginx
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]

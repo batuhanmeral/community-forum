@@ -129,6 +129,7 @@ export function CommentNode({
               <div
                 className="prose-nexus mt-1 text-sm text-[var(--color-text)]"
                 onClick={onBodyClick}
+                // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- body_html is nh3-sanitized server-side
                 dangerouslySetInnerHTML={{ __html: node.body_html }}
               />
             )}
