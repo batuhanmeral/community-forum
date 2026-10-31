@@ -65,7 +65,7 @@ The project is split into two independent applications: a Django REST Framework 
 
 | Layer    | Technology |
 |----------|------------|
-| Backend  | Python 3.12, Django 5.2, Django REST Framework, SimpleJWT, markdown-it-py + nh3 |
+| Backend  | Python 3.12, Django 6.1, Django REST Framework, SimpleJWT, markdown-it-py + nh3 |
 | Database | PostgreSQL 16 (full-text search, GIN indexes) |
 | Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4, Lucide icons |
 | Testing  | pytest + pytest-cov (backend), Vitest + React Testing Library (frontend) |
