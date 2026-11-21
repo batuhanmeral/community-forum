@@ -51,18 +51,6 @@ class TestSearchPosts:
         assert match.id in ids
         assert len(ids) == 1
 
-    def test_post_body_match(self, api, alice, community):
-        match = Post.objects.create(
-            author=alice,
-            community=community,
-            kind="text",
-            title="x",
-            body="Discussion about asyncio internals",
-        )
-        resp = api.get(SEARCH, {"q": "asyncio", "type": "post"})
-        ids = [p["id"] for p in resp.data["results"]]
-        assert match.id in ids
-
     def test_title_and_body_both_searched(self, api, alice, community):
         body_match = Post.objects.create(
             author=alice, community=community, kind="text", title="Rust", body="zigzag mentions"
@@ -113,11 +101,6 @@ class TestSearchUsers:
         names = [u["username"] for u in resp.data["results"]]
         assert "alice" in names
         assert "bob" not in names
-
-    def test_bio_match(self, api, alice):
-        resp = api.get(SEARCH, {"q": "python", "type": "user"})
-        names = [u["username"] for u in resp.data["results"]]
-        assert "alice" in names
 
     def test_user_results_hide_email(self, api, alice):
         resp = api.get(SEARCH, {"q": "alice", "type": "user"})

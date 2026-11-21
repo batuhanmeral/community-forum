@@ -7,14 +7,16 @@ from apps.common.text_match import html_text, link_targets, normalize_for_match,
 @pytest.mark.parametrize(
     "raw, expected",
     [
-        ("SPAMMY", "spammy"),
-        ("s.p.a.m.m.y", "spammy"),
-        ("s**pa**mmy", "spammy"),
-        ("sp​ammy", "spammy"),
-        ("ｓｐａｍｍｙ", "spammy"),
-        ("spämmy", "spammy"),
-        ("IŞIK ışık İyi", "isik isik iyi"),
-        ("buy   now\n\tplease", "buy now please"),
+        pytest.param("SPAMMY", "spammy", id="uppercase"),
+        pytest.param("s.p.a.m.m.y", "spammy", id="dots"),
+        pytest.param("s**pa**mmy", "spammy", id="markdown"),
+        pytest.param("sp\u200bammy", "spammy", id="zero-width-space"),
+        pytest.param("ｓｐａｍｍｙ", "spammy", id="fullwidth"),
+        pytest.param("spämmy", "spammy", id="accent"),
+        pytest.param("IŞIK ışık İyi", "isik isik iyi", id="turkish-i"),
+        pytest.param("buy   now\n\tplease", "buy now please", id="whitespace"),
+        pytest.param("spㅤammy", "spammy", id="hangul-filler"),
+        pytest.param("sp@mmy", "spammy", id="at-sign"),
     ],
 )
 def test_normalize_for_match(raw, expected):
@@ -23,11 +25,6 @@ def test_normalize_for_match(raw, expected):
 
 def test_html_text_resolves_entities_and_tags():
     assert html_text("<p>sp&#97;<strong>m</strong>my &amp; co</p>") == "spammy & co"
-
-
-@pytest.mark.parametrize("raw", ["spㅤammy", "sp@mmy"])
-def test_normalize_folds_blank_letters_and_at_sign(raw):
-    assert normalize_for_match(raw) == "spammy"
 
 
 def test_url_forms_decode_percent_and_punycode():

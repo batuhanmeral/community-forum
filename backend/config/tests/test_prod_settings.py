@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -36,22 +38,18 @@ def test_long_secret_key_boots():
     assert result.returncode == 0, result.stderr
 
 
-def test_log_level_comes_from_env():
+@pytest.mark.parametrize(
+    "env, expected",
+    [
+        pytest.param({"LOG_LEVEL": "ERROR"}, "40", id="uppercase-error"),
+        pytest.param({}, "20", id="default-info"),
+        pytest.param({"LOG_LEVEL": "error"}, "40", id="lowercase-error"),
+    ],
+)
+def test_log_level_from_env(env, expected):
     code = "import django, logging; django.setup(); print(logging.getLogger().getEffectiveLevel())"
-    result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50), LOG_LEVEL="ERROR")
-    assert result.stdout.strip() == "40"
-
-
-def test_log_level_defaults_to_info():
-    code = "import django, logging; django.setup(); print(logging.getLogger().getEffectiveLevel())"
-    result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50))
-    assert result.stdout.strip() == "20"
-
-
-def test_log_level_is_case_insensitive():
-    code = "import django, logging; django.setup(); print(logging.getLogger().getEffectiveLevel())"
-    result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50), LOG_LEVEL="error")
-    assert result.stdout.strip() == "40", result.stderr
+    result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50), **env)
+    assert result.stdout.strip() == expected, result.stderr
 
 
 _CONN_CODE = (
@@ -60,11 +58,13 @@ _CONN_CODE = (
 )
 
 
-def test_conn_max_age_defaults_to_60_with_health_checks():
-    result = _run_prod(_CONN_CODE, SECRET_KEY=secrets.token_urlsafe(50))
-    assert result.stdout.split() == ["60", "True"]
-
-
-def test_conn_max_age_comes_from_env():
-    result = _run_prod(_CONN_CODE, SECRET_KEY=secrets.token_urlsafe(50), DB_CONN_MAX_AGE="0")
-    assert result.stdout.split() == ["0", "True"]
+@pytest.mark.parametrize(
+    "env, expected",
+    [
+        pytest.param({}, ["60", "True"], id="default"),
+        pytest.param({"DB_CONN_MAX_AGE": "0"}, ["0", "True"], id="disabled"),
+    ],
+)
+def test_conn_max_age(env, expected):
+    result = _run_prod(_CONN_CODE, SECRET_KEY=secrets.token_urlsafe(50), **env)
+    assert result.stdout.split() == expected

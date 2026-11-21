@@ -158,7 +158,7 @@ cd backend
 docker compose up -d                  # from the repo root, if PostgreSQL isn't running yet
 pytest                                # full suite
 pytest apps/posts                     # one app
-pytest --cov=apps --cov-report=term-missing
+pytest --cov --cov-report=term-missing   # app code only; CI fails below 90%
 ruff check . && ruff format --check .
 
 # Frontend
@@ -178,6 +178,25 @@ What the suites cover:
 - **Frontend** — components and pages rendered with React Testing Library and driven with user-event; API client token refresh, cross-tab session sync, drafts, polling, and i18n
 
 [GitHub Actions](.github/workflows/ci.yml) runs all of the above on every push to `main` and on every pull request, with a PostgreSQL 16 service container.
+
+## CI and security
+
+- **[CI](.github/workflows/ci.yml)**: backend and frontend lint, type check, build and tests.
+- **[Security](.github/workflows/security.yml)**: Semgrep and zizmor (SAST), gitleaks, Trivy (dependencies, Dockerfiles, images, SBOM), dependency review on pull requests, Django deploy checks and a ZAP baseline that fails on the rules in [.github/zap/rules.tsv](.github/zap/rules.tsv) (known, deferred alerts are listed there as report-only). Semgrep results are also uploaded to GitHub code scanning (Security tab).
+- **[Scorecard](.github/workflows/scorecard.yml)**: OpenSSF Scorecard runs weekly and on pushes to `main`, and uploads its results to code scanning.
+- **[SECURITY.md](SECURITY.md)**: how to report a vulnerability privately.
+
+The scanner images are pinned by digest and updated by hand; the steps are at the top of [security.yml](.github/workflows/security.yml). Maintainer notes live in a local `.docs/` directory (in Turkish, not committed).
+
+## Releases
+
+Pushing a `v*` tag triggers the release workflow; it can also be run manually from `main` (manual runs use a unique `run-<id>-<attempt>` image tag). Only commits already on `main` are released. It builds `ghcr.io/<owner>/nexus-backend` and `ghcr.io/<owner>/nexus-frontend` without build cache, blocks publication on fixable HIGH/CRITICAL Trivy findings, and publishes provenance, CycloneDX SBOM attestations and keyless signatures. It does not deploy. The job summary lists each digest and exact verification commands:
+
+```bash
+# Replace owner/repository, digest and tag with the release values.
+gh attestation verify oci://ghcr.io/<owner>/nexus-backend@sha256:<digest> --repo <owner>/<repository> --cert-identity https://github.com/<owner>/<repository>/.github/workflows/release.yml@refs/tags/<tag>
+cosign verify --certificate-identity https://github.com/<owner>/<repository>/.github/workflows/release.yml@refs/tags/<tag> --certificate-oidc-issuer https://token.actions.githubusercontent.com ghcr.io/<owner>/nexus-backend@sha256:<digest>
+```
 
 ## Screenshots
 

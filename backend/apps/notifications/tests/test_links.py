@@ -40,31 +40,42 @@ def _links(user):
     return [n["link"] for n in client.get(LIST).data["results"]]
 
 
+def _comment_link_case(alice, bob, post):
+    comment = Comment.objects.create(post=post, author=bob, body="hi")
+    return alice, bob, "comment", comment, f"/posts/{post.id}#comment-{comment.id}"
+
+
+def _message_link_case(alice, bob, _post):
+    a, b = sorted((alice, bob), key=lambda u: u.id)
+    conv = Conversation.objects.create(participant_a=a, participant_b=b)
+    message = Message.objects.create(conversation=conv, sender=bob, body="hey")
+    return alice, bob, "dm", message, f"/messages/{conv.id}"
+
+
 @pytest.mark.django_db
 class TestNotificationLinks:
-    def test_comment_links_to_anchor_in_post(self, alice, bob, post):
-        comment = Comment.objects.create(post=post, author=bob, body="hi")
-        notify(alice, actor=bob, verb="comment", target=comment)
-        assert _links(alice) == [f"/posts/{post.id}#comment-{comment.id}"]
-
-    def test_dm_links_to_conversation(self, alice, bob):
-        a, b = sorted((alice, bob), key=lambda u: u.id)
-        conv = Conversation.objects.create(participant_a=a, participant_b=b)
-        message = Message.objects.create(conversation=conv, sender=bob, body="hey")
-        notify(alice, actor=bob, verb="dm", target=message)
-        assert _links(alice) == [f"/messages/{conv.id}"]
-
-    def test_follow_links_to_profile(self, alice, bob):
-        notify(alice, actor=bob, verb="follow", target=bob)
-        assert _links(alice) == ["/u/bob"]
-
-    def test_community_target_links_to_community(self, alice, bob, post):
-        notify(bob, actor=alice, verb="mod_action", target=post.community)
-        assert _links(bob) == ["/c/py"]
-
-    def test_post_target_links_to_post(self, alice, bob, post):
-        notify(alice, actor=bob, verb="mention", target=post)
-        assert _links(alice) == [f"/posts/{post.id}"]
+    @pytest.mark.parametrize(
+        "build_case",
+        [
+            pytest.param(_comment_link_case, id="comment-anchor"),
+            pytest.param(_message_link_case, id="message-conversation"),
+            pytest.param(
+                lambda alice, bob, post: (alice, bob, "follow", bob, "/u/bob"), id="user-profile"
+            ),
+            pytest.param(
+                lambda alice, bob, post: (bob, alice, "mod_action", post.community, "/c/py"),
+                id="community",
+            ),
+            pytest.param(
+                lambda alice, bob, post: (alice, bob, "mention", post, f"/posts/{post.id}"),
+                id="post",
+            ),
+        ],
+    )
+    def test_link_by_target_type(self, alice, bob, post, build_case):
+        recipient, actor, verb, target, expected_link = build_case(alice, bob, post)
+        notify(recipient, actor=actor, verb=verb, target=target)
+        assert _links(recipient) == [expected_link]
 
     def test_missing_target_has_no_link(self, alice, bob, post):
         comment = Comment.objects.create(post=post, author=bob, body="hi")

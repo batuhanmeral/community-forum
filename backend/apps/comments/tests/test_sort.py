@@ -55,17 +55,19 @@ class TestCommentSort:
         ids = [c["id"] for c in api.get(list_url(post.id), {"sort": "top"}).data["results"]]
         assert ids.index(high.id) < ids.index(low.id)
 
-    def test_new_orders_by_created_at_desc(self, api, alice, post):
+    @pytest.mark.parametrize(
+        "sort, expected_order",
+        [
+            pytest.param("new", ("second", "first"), id="newest-first"),
+            pytest.param("old", ("first", "second"), id="oldest-first"),
+        ],
+    )
+    def test_chronological_sorts(self, api, alice, post, sort, expected_order):
         first = Comment.objects.create(post=post, author=alice, body="first")
         second = Comment.objects.create(post=post, author=alice, body="second")
-        ids = [c["id"] for c in api.get(list_url(post.id), {"sort": "new"}).data["results"]]
-        assert ids[0] == second.id and ids[-1] == first.id
-
-    def test_old_orders_by_created_at_asc(self, api, alice, post):
-        first = Comment.objects.create(post=post, author=alice, body="first")
-        second = Comment.objects.create(post=post, author=alice, body="second")
-        ids = [c["id"] for c in api.get(list_url(post.id), {"sort": "old"}).data["results"]]
-        assert ids[0] == first.id and ids[-1] == second.id
+        comments = {"first": first, "second": second}
+        ids = [c["id"] for c in api.get(list_url(post.id), {"sort": sort}).data["results"]]
+        assert [ids[0], ids[-1]] == [comments[key].id for key in expected_order]
 
     def test_controversial_prefers_balanced_high_engagement(self, api, alice, bob, post):
         # high-score comment: clearly top

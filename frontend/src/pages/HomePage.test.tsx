@@ -193,18 +193,14 @@ describe('HomePage title', () => {
     posts.listFeed.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
   });
 
-  it('sets the page title', async () => {
-    renderHome({ authed: false });
+  it.each([
+    ['default', undefined, 'Nexus'],
+    ['popular', 'popular', 'Popular · Nexus'],
+    ['all', 'all', 'All posts · Nexus'],
+  ] as const)('titles the %s variant', async (_name, variant, expected) => {
+    renderHome({ authed: false, variant });
     await waitFor(() => expect(posts.listFeed).toHaveBeenCalled());
-    expect(document.title).toBe('Nexus');
-  });
-
-  it('titles the popular and all variants', async () => {
-    const { unmount } = renderHome({ authed: false, variant: 'popular' });
-    await waitFor(() => expect(document.title).toBe('Popular · Nexus'));
-    unmount();
-    renderHome({ authed: false, variant: 'all' });
-    await waitFor(() => expect(document.title).toBe('All posts · Nexus'));
+    await waitFor(() => expect(document.title).toBe(expected));
   });
 });
 

@@ -102,14 +102,12 @@ describe('PostCard', () => {
     expect(link.getAttribute('rel')).toContain('noreferrer');
   });
 
-  it('wraps NSFW images in the reveal and leaves safe images alone', () => {
-    renderCard(makePost({ kind: 'image', image: 'https://example.com/i.png', is_nsfw: true }));
-    expect(screen.getByRole('button', { name: 'Show NSFW content' })).toBeInTheDocument();
-  });
-
-  it('does not add a reveal to a safe image', () => {
-    renderCard(makePost({ kind: 'image', image: 'https://example.com/i.png' }));
-    expect(screen.queryByRole('button', { name: 'Show NSFW content' })).toBeNull();
+  it.each([
+    [true, 1],
+    [false, 0],
+  ] as const)('NSFW=%s image shows %i reveal buttons', (isNsfw, expected) => {
+    renderCard(makePost({ kind: 'image', image: 'https://example.com/i.png', is_nsfw: isNsfw }));
+    expect(screen.queryAllByRole('button', { name: 'Show NSFW content' })).toHaveLength(expected);
   });
 
   it('revealing on a card does not navigate', async () => {
@@ -181,23 +179,15 @@ describe('PostCard in Turkish', () => {
     user_option: null,
   };
 
-  it.each(['text', 'link', 'image', 'poll'] as const)('renders no English in Turkish for a %s post', async (kind) => {
+  it.each([
+    ['text', { kind: 'text', is_pinned: true, url: '', image: null, poll: null }],
+    ['link', { kind: 'link', is_pinned: true, url: 'https://example.com/x', image: null, poll: null }],
+    ['image', { kind: 'image', is_pinned: true, url: '', image: 'https://example.com/i.png', poll: null }],
+    ['poll', { kind: 'poll', is_pinned: true, url: '', image: null, poll }],
+    ['closed poll', { kind: 'poll', poll: { ...poll, is_closed: true } }],
+  ] as const)('renders no English in Turkish for a %s post', async (_kind, overrides) => {
     await i18n.changeLanguage('tr');
-    renderCard(
-      makePost({
-        kind,
-        is_pinned: true,
-        url: kind === 'link' ? 'https://example.com/x' : '',
-        image: kind === 'image' ? 'https://example.com/i.png' : null,
-        poll: kind === 'poll' ? poll : null,
-      }),
-    );
-    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
-  });
-
-  it('renders a closed poll without English in Turkish', async () => {
-    await i18n.changeLanguage('tr');
-    renderCard(makePost({ kind: 'poll', poll: { ...poll, is_closed: true } }));
+    renderCard(makePost(overrides));
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 

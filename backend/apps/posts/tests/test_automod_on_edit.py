@@ -125,26 +125,29 @@ class TestAutoModCoverage:
             {"title": "hi", "kind": "link", "url": "https://xn--spmmy-hra.example"},
             {"title": "hi", "body": "[click](https://sp&#97;mmy.example)"},
             {"title": "hi", "body": "[click](https://%73pammy.example)"},
-        ],
-    )
-    def test_create_holds_disguised_keywords(self, api, author, community, payload):
-        api.force_authenticate(author)
-        resp = api.post(list_url(community.slug), payload, format="json")
-        assert resp.status_code == 201, resp.data
-        assert Post.objects.get(pk=resp.data["id"]).is_approved is False
-
-    def test_create_holds_keyword_in_poll_option(self, api, author, community):
-        api.force_authenticate(author)
-        closes_at = (timezone.now() + timedelta(days=1)).isoformat()
-        resp = api.post(
-            list_url(community.slug),
             {
                 "title": "vote",
                 "kind": "poll",
-                "poll_input": {"options": ["fine", "Spammy deal"], "closes_at": closes_at},
+                "poll_input": {
+                    "options": ["fine", "Spammy deal"],
+                    "closes_at": (timezone.now() + timedelta(days=1)).isoformat(),
+                },
             },
-            format="json",
-        )
+        ],
+        ids=[
+            "dotted-keyword",
+            "html-entity",
+            "fullwidth",
+            "link-url",
+            "punycode-url",
+            "markdown-link-entity",
+            "markdown-link-percent-encoding",
+            "poll-option",
+        ],
+    )
+    def test_create_holds_keywords(self, api, author, community, payload):
+        api.force_authenticate(author)
+        resp = api.post(list_url(community.slug), payload, format="json")
         assert resp.status_code == 201, resp.data
         assert Post.objects.get(pk=resp.data["id"]).is_approved is False
 
@@ -155,20 +158,19 @@ class TestAutoModCoverage:
         )
         assert Post.objects.get(pk=resp.data["id"]).is_approved is True
 
-    def test_edit_adding_a_disguised_keyword_holds(self, api, author, community):
-        post = Post.objects.create(author=author, community=community, title="hello")
-        _edit(api, author, post, body="**spam**my")
-        post.refresh_from_db()
-        assert post.is_approved is False
-
-    def test_edit_changing_url_to_keyword_holds(self, api, author, community):
-        post = Post.objects.create(
-            author=author,
-            community=community,
-            title="hello",
-            kind=Post.Kind.LINK,
-            url="https://ok.example",
-        )
-        _edit(api, author, post, url="https://spammy.example")
+    @pytest.mark.parametrize(
+        "post_kwargs, edit",
+        [
+            pytest.param({}, {"body": "**spam**my"}, id="text-body"),
+            pytest.param(
+                {"kind": Post.Kind.LINK, "url": "https://ok.example"},
+                {"url": "https://spammy.example"},
+                id="link-url",
+            ),
+        ],
+    )
+    def test_edit_adding_keyword_holds(self, api, author, community, post_kwargs, edit):
+        post = Post.objects.create(author=author, community=community, title="hello", **post_kwargs)
+        _edit(api, author, post, **edit)
         post.refresh_from_db()
         assert post.is_approved is False

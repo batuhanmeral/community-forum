@@ -73,17 +73,11 @@ describe('api client token refresh', () => {
     expect(localStorage.getItem('nexus.refresh')).toBeNull();
   });
 
-  it('keeps the session when refresh returns 429', async () => {
-    refreshFails(429);
+  it.each([429, 'network'] as const)('keeps the session when refresh fails transiently with %s', async (failure) => {
+    refreshFails(failure);
     await expect(api.get('/x/')).rejects.toBeTruthy();
     expect(store.getState().auth.sessionUserId).toBe('7');
     expect(localStorage.getItem(SESSION_KEY)).toBe('7');
-  });
-
-  it('keeps the session on a network error', async () => {
-    refreshFails('network');
-    await expect(api.get('/x/')).rejects.toBeTruthy();
-    expect(store.getState().auth.sessionUserId).toBe('7');
   });
 
   it.each([400, 401])('logs out when refresh rejects the token with %i', async (status) => {

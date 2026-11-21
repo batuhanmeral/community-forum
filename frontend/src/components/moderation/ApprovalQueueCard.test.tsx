@@ -51,20 +51,15 @@ describe('ApprovalQueueCard', () => {
     expect(api.listApprovalQueue).toHaveBeenCalledWith('py', 1);
   });
 
-  it('removes a post once approved', async () => {
-    api.approvePost.mockResolvedValue();
+  it.each([
+    ['Approve', 'approvePost', [1, null]],
+    ['Reject', 'rejectPost', [1]],
+  ] as const)('removes a post once %s succeeds', async (button, action, args) => {
+    api[action].mockResolvedValue();
     renderCard();
-    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    await userEvent.click(await screen.findByRole('button', { name: button }));
     await waitFor(() => expect(screen.queryByText('held 1')).not.toBeInTheDocument());
-    expect(api.approvePost).toHaveBeenCalledWith(1, null);
-  });
-
-  it('removes a post once rejected', async () => {
-    api.rejectPost.mockResolvedValue();
-    renderCard();
-    await userEvent.click(await screen.findByRole('button', { name: 'Reject' }));
-    await waitFor(() => expect(screen.queryByText('held 1')).not.toBeInTheDocument());
-    expect(api.rejectPost).toHaveBeenCalledWith(1);
+    expect(api[action]).toHaveBeenCalledWith(...args);
   });
 
   it('keeps the post and explains when the action fails', async () => {

@@ -1,0 +1,52 @@
+name: Scorecard
+
+# OpenSSF Scorecard. Runs on the default branch only; the action rejects
+# other refs and forks. Publishing (publish_results) is checked by the
+# Scorecard API, which rejects results from workflows that have top-level
+# env/defaults, workflow-level write permissions, or run: steps in the
+# scorecard job. Keep this file to the approved actions only.
+on:
+  push:
+    branches: [main]
+  # Weekly; the score also changes without code changes (e.g. maintenance).
+  schedule:
+    - cron: "30 6 * * 1"
+
+# Exception to the "contents: read" rule used by the other workflows: this is
+# the permission block of the action's documented example, kept as is
+# (https://github.com/ossf/scorecard-action#workflow-example).
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Only PRs cancel superseded runs; every main/scheduled run completes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analysis:
+    name: scorecard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      security-events: write # Needed for Code scanning upload
+      id-token: write # Needed for GitHub OIDC token if publish_results is true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run analysis
+        uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - name: Upload artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scorecard-sarif
+          path: results.sarif
+          retention-days: 5
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: results.sarif

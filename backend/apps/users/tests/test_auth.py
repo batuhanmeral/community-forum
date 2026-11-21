@@ -32,32 +32,30 @@ class TestRegister:
         assert User.objects.filter(username="bob").exists()
         assert "password" not in resp.data
 
-    def test_register_rejects_weak_password(self, api):
-        resp = api.post(
-            self.url,
-            {"username": "bob", "email": "bob@example.com", "password": "123"},
-            format="json",
-        )
+    @pytest.mark.parametrize(
+        "payload, error_field",
+        [
+            pytest.param(
+                {"username": "bob", "email": "bob@example.com", "password": "123"},
+                "password",
+                id="weak-password",
+            ),
+            pytest.param(
+                {"username": "alice", "email": "other@example.com", "password": "StrongPass123!"},
+                "username",
+                id="duplicate-username",
+            ),
+            pytest.param(
+                {"username": "other", "email": "alice@example.com", "password": "StrongPass123!"},
+                "email",
+                id="duplicate-email",
+            ),
+        ],
+    )
+    def test_register_rejects_invalid(self, api, user, payload, error_field):
+        resp = api.post(self.url, payload, format="json")
         assert resp.status_code == 400
-        assert "password" in resp.data
-
-    def test_register_rejects_duplicate_username(self, api, user):
-        resp = api.post(
-            self.url,
-            {"username": "alice", "email": "other@example.com", "password": "StrongPass123!"},
-            format="json",
-        )
-        assert resp.status_code == 400
-        assert "username" in resp.data
-
-    def test_register_rejects_duplicate_email(self, api, user):
-        resp = api.post(
-            self.url,
-            {"username": "other", "email": "alice@example.com", "password": "StrongPass123!"},
-            format="json",
-        )
-        assert resp.status_code == 400
-        assert "email" in resp.data
+        assert error_field in resp.data
 
 
 @pytest.mark.django_db

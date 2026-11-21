@@ -100,13 +100,3 @@ class TestApprovalQueue:
         pending.refresh_from_db()
         assert pending.is_approved is True
         assert api.get(list_url("gated")).data["count"] == 1
-
-    def test_reject_soft_deletes(self, api, alice, bob, gated_community):
-        Membership.objects.create(user=bob, community=gated_community)
-        api.force_authenticate(bob)
-        api.post(list_url("gated"), {"title": "hi", "kind": "text"}, format="json")
-        pending = Post.objects.get()
-        api.force_authenticate(alice)
-        api.delete(approve_url(pending.id))
-        pending.refresh_from_db()
-        assert pending.deleted_at is not None

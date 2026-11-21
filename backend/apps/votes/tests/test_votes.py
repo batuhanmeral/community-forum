@@ -81,27 +81,25 @@ class TestVoteEndpoint:
         assert resp.data["user_vote"] == -1
         assert Vote.objects.count() == 1
 
-    def test_unknown_target_rejected(self, api, bob):
+    @pytest.mark.parametrize(
+        "content_type, object_id, value",
+        [
+            pytest.param("post", 9999, 1, id="unknown-target"),
+            pytest.param("community", None, 1, id="invalid-content-type"),
+            pytest.param("post", None, 0, id="invalid-value"),
+        ],
+    )
+    def test_invalid_vote_payload_rejected(self, api, bob, post, content_type, object_id, value):
         api.force_authenticate(bob)
         resp = api.post(
             VOTE_URL,
-            {"content_type": "post", "object_id": 9999, "value": 1},
+            {
+                "content_type": content_type,
+                "object_id": post.id if object_id is None else object_id,
+                "value": value,
+            },
             format="json",
         )
-        assert resp.status_code == 400
-
-    def test_invalid_content_type_rejected(self, api, bob, post):
-        api.force_authenticate(bob)
-        resp = api.post(
-            VOTE_URL,
-            {"content_type": "community", "object_id": post.id, "value": 1},
-            format="json",
-        )
-        assert resp.status_code == 400
-
-    def test_invalid_value_rejected(self, api, bob, post):
-        api.force_authenticate(bob)
-        resp = api.post(VOTE_URL, _post_payload(post, 0), format="json")
         assert resp.status_code == 400
 
 

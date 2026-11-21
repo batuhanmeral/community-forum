@@ -88,17 +88,18 @@ class TestPostCreate:
         assert resp.data["author"] == bob.id
         assert resp.data["community"] == "python"
 
-    def test_link_post_requires_url(self, api, community, alice):
+    @pytest.mark.parametrize(
+        "kind, field",
+        [
+            pytest.param("link", "url", id="link-missing-url"),
+            pytest.param("image", "image", id="image-missing-image"),
+        ],
+    )
+    def test_kind_requires_its_field(self, api, community, alice, kind, field):
         api.force_authenticate(alice)
-        resp = api.post(list_url("python"), {"title": "x", "kind": "link"}, format="json")
+        resp = api.post(list_url("python"), {"title": "x", "kind": kind}, format="json")
         assert resp.status_code == 400
-        assert "url" in resp.data
-
-    def test_image_post_requires_image(self, api, community, alice):
-        api.force_authenticate(alice)
-        resp = api.post(list_url("python"), {"title": "x", "kind": "image"}, format="json")
-        assert resp.status_code == 400
-        assert "image" in resp.data
+        assert field in resp.data
 
     def test_image_post_with_valid_png(self, api, community, alice):
         api.force_authenticate(alice)

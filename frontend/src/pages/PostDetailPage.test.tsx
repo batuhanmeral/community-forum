@@ -102,15 +102,11 @@ describe('PostDetailPage comment form', () => {
     expect(await screen.findByPlaceholderText('Add a comment...')).toBeInTheDocument();
   });
 
-  it('hides the form on a deleted post', async () => {
-    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, is_deleted: true });
-    renderPage();
-    expect(await screen.findByText(/comments?$/i)).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Add a comment...')).not.toBeInTheDocument();
-  });
-
-  it('hides the form on an unapproved post', async () => {
-    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, is_approved: false });
+  it.each([
+    ['deleted', { is_deleted: true }],
+    ['unapproved', { is_approved: false }],
+  ] as const)('hides the form on a %s post', async (_state, overrides) => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, ...overrides });
     renderPage();
     expect(await screen.findByText(/comments?$/i)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Add a comment...')).not.toBeInTheDocument();
@@ -285,16 +281,13 @@ describe('PostDetailPage title', () => {
     vi.mocked(communitiesApi.getCommunity).mockRejectedValue(new Error('skip'));
   });
 
-  it('sets the page title while the post is loading', async () => {
-    vi.mocked(postsApi.getPost).mockReturnValue(new Promise(() => undefined));
+  it.each([
+    ['while loading', () => new Promise<typeof basePost>(() => undefined), 'Nexus'],
+    ['after loading', async () => ({ ...basePost, title: 'Hello world' }), 'Hello world · Nexus'],
+  ] as const)('sets the page title %s', async (_state, getPost, expected) => {
+    vi.mocked(postsApi.getPost).mockImplementation(getPost);
     renderPage();
-    await waitFor(() => expect(document.title).toBe('Nexus'));
-  });
-
-  it('sets the page title to the post title', async () => {
-    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, title: 'Hello world' });
-    renderPage();
-    await waitFor(() => expect(document.title).toBe('Hello world · Nexus'));
+    await waitFor(() => expect(document.title).toBe(expected));
   });
 });
 

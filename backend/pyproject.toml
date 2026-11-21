@@ -25,3 +25,10 @@ known-first-party = ["apps", "config"]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 addopts = "-ra --strict-markers"
+
+# Measure app code only, so `pytest --cov` and the CI threshold ignore test files.
+[tool.coverage.run]
+# sys.monitoring keeps tracing overhead low enough for the markdown time-budget tests.
+core = "sysmon"
+source = ["apps"]
+omit = ["*/tests/*", "*/migrations/*"]

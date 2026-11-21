@@ -231,18 +231,18 @@ describe('CommunityDetailPage in Turkish', () => {
 });
 
 describe('CommunityDetailPage title', () => {
-  it('sets the page title while the community is loading', async () => {
-    vi.mocked(communitiesApi.getCommunity).mockReturnValue(new Promise(() => undefined));
-    renderPage();
-    await waitFor(() => expect(document.title).toBe('Nexus'));
-  });
-
-  it('sets the page title to c/<slug>', async () => {
-    vi.mocked(communitiesApi.getCommunity).mockResolvedValue(baseCommunity);
+  beforeEach(() => {
     vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
     vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  });
+
+  it.each([
+    ['while loading', () => new Promise<typeof baseCommunity>(() => undefined), 'Nexus'],
+    ['after loading', async () => baseCommunity, 'c/py · Nexus'],
+  ] as const)('sets the page title %s', async (_state, getCommunity, expected) => {
+    vi.mocked(communitiesApi.getCommunity).mockImplementation(getCommunity);
     renderPage();
-    await waitFor(() => expect(document.title).toBe('c/py · Nexus'));
+    await waitFor(() => expect(document.title).toBe(expected));
   });
 });
 

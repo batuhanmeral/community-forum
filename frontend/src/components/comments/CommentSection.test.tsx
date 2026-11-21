@@ -113,13 +113,6 @@ describe('CommentSection', () => {
     expect(screen.queryByRole('button', { name: 'Load more comments' })).not.toBeInTheDocument();
   });
 
-  it('scrolls to the comment named in the URL hash', async () => {
-    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [comment(5)] });
-    renderSection('/posts/1#comment-5');
-    await screen.findByText('body 5');
-    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
-  });
-
   it('scrolls once per hash, not again when the sort changes', async () => {
     listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [comment(5)] });
     renderSection('/posts/1#comment-5');
@@ -147,18 +140,13 @@ describe('CommentSection', () => {
     expect(commentsApi.listCommentRevisions).toHaveBeenCalledWith(1, 1);
   });
 
-  it('shows a plain marker to readers who are neither author nor moderator', async () => {
-    const edited = { ...comment(1), edited_at: '2026-10-02T00:00:00Z' };
+  it.each([
+    ['a reader viewing a live comment', false, false],
+    ['a moderator viewing a deleted comment', true, true],
+  ] as const)('shows a plain (edited) marker without a history button for %s', async (_scenario, isModerator, isDeleted) => {
+    const edited = { ...comment(1), is_deleted: isDeleted, edited_at: '2026-10-02T00:00:00Z' };
     listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [edited] });
-    renderSection();
-    expect(await screen.findByText('(edited)')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
-  });
-
-  it('hides the history button on a deleted comment even for moderators', async () => {
-    const deleted = { ...comment(1), is_deleted: true, edited_at: '2026-10-02T00:00:00Z' };
-    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [deleted] });
-    renderSection('/posts/1', true);
+    renderSection('/posts/1', isModerator);
     expect(await screen.findByText('(edited)')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '(edited)' })).not.toBeInTheDocument();
   });

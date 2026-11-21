@@ -92,11 +92,21 @@ class TestReportCreate:
             == 401
         )
 
-    def test_create_report(self, api, carol, post):
+    @pytest.mark.parametrize(
+        "content_type, target_fixture, reason",
+        [
+            pytest.param("post", "post", "spam", id="post"),
+            pytest.param("user", "bob", "harassment", id="user"),
+        ],
+    )
+    def test_create_report_for_target(
+        self, api, carol, request, content_type, target_fixture, reason
+    ):
+        target = request.getfixturevalue(target_fixture)
         api.force_authenticate(carol)
         resp = api.post(
             REPORT_URL,
-            {"content_type": "post", "object_id": post.id, "reason": "spam"},
+            {"content_type": content_type, "object_id": target.id, "reason": reason},
             format="json",
         )
         assert resp.status_code == 201
@@ -122,15 +132,6 @@ class TestReportCreate:
             REPORT_URL, {"content_type": "post", "object_id": 9999, "reason": "x"}, format="json"
         )
         assert resp.status_code == 400
-
-    def test_user_target_supported(self, api, carol, bob):
-        api.force_authenticate(carol)
-        resp = api.post(
-            REPORT_URL,
-            {"content_type": "user", "object_id": bob.id, "reason": "harassment"},
-            format="json",
-        )
-        assert resp.status_code == 201
 
 
 @pytest.mark.django_db

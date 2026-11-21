@@ -84,19 +84,18 @@ def api():
 
 @pytest.mark.django_db
 class TestHeldPostProbing:
-    def test_stranger_gets_404_on_sticky(self, api, stranger, held):
+    @pytest.mark.parametrize(
+        "url",
+        [
+            pytest.param(sticky_url, id="sticky"),
+            pytest.param(approve_url, id="approval"),
+        ],
+    )
+    def test_stranger_mod_action_on_held_post_looks_missing(self, api, stranger, held, url):
         api.force_authenticate(stranger)
-        assert api.delete(sticky_url(held.pk)).status_code == 404
-        held_resp = api.post(sticky_url(held.pk))
-        missing_resp = api.post(sticky_url(MISSING_ID))
-        assert held_resp.status_code == missing_resp.status_code == 404
-        assert held_resp.data == missing_resp.data
-
-    def test_stranger_gets_404_on_approve_and_reject(self, api, stranger, held):
-        api.force_authenticate(stranger)
-        assert api.delete(approve_url(held.pk)).status_code == 404
-        held_resp = api.post(approve_url(held.pk))
-        missing_resp = api.post(approve_url(MISSING_ID))
+        assert api.delete(url(held.pk)).status_code == 404
+        held_resp = api.post(url(held.pk))
+        missing_resp = api.post(url(MISSING_ID))
         assert held_resp.status_code == missing_resp.status_code == 404
         assert held_resp.data == missing_resp.data
 
@@ -151,25 +150,38 @@ class TestHeldPostProbing:
         assert held_resp.status_code == missing_resp.status_code == 404
         assert held_resp.data == missing_resp.data
 
-    def test_post_detail_hides_held_post_like_a_missing_one(self, api, held):
-        self._same_as_missing(api.get(post_url(held.pk)), api.get(post_url(MISSING_ID)))
-
-    def test_comment_list_hides_held_post_like_a_missing_one(self, api, held):
-        self._same_as_missing(api.get(comments_url(held.pk)), api.get(comments_url(MISSING_ID)))
+    @pytest.mark.parametrize(
+        "url",
+        [
+            pytest.param(post_url, id="post-detail"),
+            pytest.param(comments_url, id="comment-list"),
+        ],
+    )
+    def test_anonymous_read_of_held_post_looks_missing(self, api, held, url):
+        self._same_as_missing(api.get(url(held.pk)), api.get(url(MISSING_ID)))
 
     def test_comment_detail_hides_comment_on_held_post_like_a_missing_one(self, api, author, held):
         comment = Comment.objects.create(post=held, author=author, body="c")
         self._same_as_missing(api.get(comment_url(comment.pk)), api.get(comment_url(MISSING_ID)))
 
-    def test_poll_of_held_post_looks_missing(self, api, held):
-        poll = Poll.objects.create(post=held, closes_at=timezone.now() + timedelta(days=1))
-        self._same_as_missing(api.get(poll_url(poll.pk)), api.get(poll_url(MISSING_ID)))
-
-    def test_poll_of_deleted_post_looks_missing(self, api, author, community):
+    @pytest.mark.parametrize(
+        "deleted",
+        [
+            pytest.param(False, id="held"),
+            pytest.param(True, id="deleted"),
+        ],
+    )
+    def test_poll_of_hidden_post_looks_missing(self, api, author, community, deleted):
+        now = timezone.now()
         post = Post.objects.create(
-            author=author, community=community, title="gone", kind="poll", deleted_at=timezone.now()
+            author=author,
+            community=community,
+            title="gone" if deleted else "held",
+            kind="poll",
+            is_approved=deleted,
+            deleted_at=now if deleted else None,
         )
-        poll = Poll.objects.create(post=post, closes_at=timezone.now() + timedelta(days=1))
+        poll = Poll.objects.create(post=post, closes_at=now + timedelta(days=1))
         self._same_as_missing(api.get(poll_url(poll.pk)), api.get(poll_url(MISSING_ID)))
 
     def test_author_still_reads_own_held_post(self, api, author, held):

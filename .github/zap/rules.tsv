@@ -1,0 +1,39 @@
+# ZAP baseline rules (zap-baseline.py -c). Format: <rule id><TAB><action><TAB>(<name>)
+# Without -I any WARN fails the job too; rules not listed here default to WARN.
+# INFO keeps an alert in the report without failing the job.
+
+# High risk: these must never fire.
+10003	FAIL	(Vulnerable JS Library (Powered by Retire.js))
+10010	FAIL	(Cookie No HttpOnly Flag)
+10017	FAIL	(Cross-Domain JavaScript Source File Inclusion)
+10020	FAIL	(Anti-clickjacking Header)
+10021	FAIL	(X-Content-Type-Options Header Missing)
+10023	FAIL	(Information Disclosure - Debug Error Messages)
+10028	FAIL	(Off-site Redirect)
+10031	FAIL	(User Controllable HTML Element Attribute (Potential XSS))
+10033	FAIL	(Directory Browsing)
+10037	FAIL	(Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s))
+10038	FAIL	(Content Security Policy (CSP) Header Not Set)
+10040	FAIL	(Secure Pages Include Mixed Content)
+10043	FAIL	(User Controllable JavaScript Event (XSS))
+10054	FAIL	(Cookie without SameSite Attribute)
+10098	FAIL	(Cross-Domain Misconfiguration)
+10099	FAIL	(Source Code Disclosure)
+10115	FAIL	(Script Served From Malicious Domain (polyfill))
+20020	FAIL	(Server Side Technology Version with Known Vulnerabilities)
+90022	FAIL	(Application Error Disclosure)
+
+# Known and deferred.
+# style-src 'unsafe-inline': React inline style attributes need it; scripts stay strict.
+10055	INFO	(CSP)
+# No COEP/COOP/CORP headers yet: the app loads no cross-origin resources and uses no
+# SharedArrayBuffer, so Spectre exposure is low; cross-origin isolation is deferred.
+90004	INFO	(Insufficient Site Isolation Against Spectre Vulnerability)
+# Hashed static bundles are cacheable on purpose.
+10049	INFO	(Content Cacheability)
+# Fires on words such as "query" or "user" in the minified bundle, not on source comments.
+10027	INFO	(Information Disclosure - Suspicious Comments)
+# The ZAP image is pinned by digest and updated by hand; a new ZAP release is not a finding.
+10116	INFO	(ZAP is Out of Date)
+# Informational only: ZAP notes the site is a single-page app.
+10109	INFO	(Modern Web Application)

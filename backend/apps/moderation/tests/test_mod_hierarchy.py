@@ -64,17 +64,17 @@ class TestBanHierarchy:
         assert membership.role == Membership.Role.ADMIN
         assert membership.is_banned is False
 
-    def test_moderator_cannot_ban_moderator(self, api, staff):
-        api.force_authenticate(staff["mod"])
-        assert api.post(ban_url("py", "mod2")).status_code == 403
-
-    def test_moderator_can_ban_member(self, api, staff):
-        api.force_authenticate(staff["mod"])
-        assert api.post(ban_url("py", "mem")).status_code == 200
-
-    def test_admin_can_ban_moderator(self, api, staff):
-        api.force_authenticate(staff["adm"])
-        assert api.post(ban_url("py", "mod")).status_code == 200
+    @pytest.mark.parametrize(
+        "actor, target, status",
+        [
+            pytest.param("mod", "mod2", 403, id="moderator-bans-peer"),
+            pytest.param("mod", "mem", 200, id="moderator-bans-member"),
+            pytest.param("adm", "mod", 200, id="admin-bans-moderator"),
+        ],
+    )
+    def test_ban_permission_by_rank(self, api, staff, actor, target, status):
+        api.force_authenticate(staff[actor])
+        assert api.post(ban_url("py", target)).status_code == status
 
 
 @pytest.mark.django_db
@@ -85,11 +85,6 @@ class TestRoleHierarchy:
         api.force_authenticate(staff["adm"])
         resp = api.patch(role_url("py", "adm2"), {"role": "member"}, format="json")
         assert resp.status_code == 403
-
-    def test_creator_can_demote_admin(self, api, creator, staff):
-        api.force_authenticate(creator)
-        resp = api.patch(role_url("py", "adm"), {"role": "moderator"}, format="json")
-        assert resp.status_code == 200
 
 
 @pytest.mark.django_db
@@ -103,20 +98,19 @@ class TestBannedModerator:
 
 @pytest.mark.django_db
 class TestRoleAssignment:
-    def test_admin_cannot_promote_member_to_admin(self, api, staff):
-        api.force_authenticate(staff["adm"])
-        resp = api.patch(role_url("py", "mem"), {"role": "admin"}, format="json")
-        assert resp.status_code == 403
-
-    def test_admin_can_promote_member_to_moderator(self, api, staff):
-        api.force_authenticate(staff["adm"])
-        resp = api.patch(role_url("py", "mem"), {"role": "moderator"}, format="json")
-        assert resp.status_code == 200
-
-    def test_creator_can_promote_member_to_admin(self, api, creator, staff):
-        api.force_authenticate(creator)
-        resp = api.patch(role_url("py", "mem"), {"role": "admin"}, format="json")
-        assert resp.status_code == 200
+    @pytest.mark.parametrize(
+        "actor, target, role, status",
+        [
+            pytest.param("adm", "mem", "admin", 403, id="admin-promotes-to-admin"),
+            pytest.param("adm", "mem", "moderator", 200, id="admin-promotes-to-moderator"),
+            pytest.param("creator", "mem", "admin", 200, id="creator-promotes-to-admin"),
+            pytest.param("creator", "adm", "moderator", 200, id="creator-demotes-admin"),
+        ],
+    )
+    def test_role_change_permission_by_rank(self, api, creator, staff, actor, target, role, status):
+        api.force_authenticate(creator if actor == "creator" else staff[actor])
+        resp = api.patch(role_url("py", target), {"role": role}, format="json")
+        assert resp.status_code == status
 
     def test_role_change_on_banned_membership_rejected(self, api, community, staff):
         Membership.objects.filter(user=staff["mem"], community=community).update(is_banned=True)

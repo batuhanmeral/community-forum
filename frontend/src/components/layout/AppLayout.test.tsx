@@ -135,22 +135,15 @@ describe('AppLayout profile retry', () => {
     return store;
   }
 
-  it('retries a failed profile load when the tab becomes visible again', async () => {
+  it.each([
+    ['visibilitychange', document],
+    ['focus', window],
+  ] as const)('retries a failed profile load on %s', async (event, target) => {
     fetchMe.mockRejectedValueOnce(serverError).mockResolvedValue(alice);
     const store = await failFirstLoad();
     vi.setSystemTime(Date.now() + 30_000);
     await act(async () => {
-      document.dispatchEvent(new Event('visibilitychange'));
-    });
-    await waitFor(() => expect(store.getState().auth.user).toEqual(alice));
-  });
-
-  it('retries a failed profile load when the window regains focus', async () => {
-    fetchMe.mockRejectedValueOnce(serverError).mockResolvedValue(alice);
-    const store = await failFirstLoad();
-    vi.setSystemTime(Date.now() + 30_000);
-    await act(async () => {
-      window.dispatchEvent(new Event('focus'));
+      target.dispatchEvent(new Event(event));
     });
     await waitFor(() => expect(store.getState().auth.user).toEqual(alice));
   });

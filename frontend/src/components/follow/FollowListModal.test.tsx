@@ -57,12 +57,20 @@ describe('FollowListModal in Turkish', () => {
     );
   }
 
-  it.each(['followers', 'following'] as const)('renders no English in Turkish for %s', async (mode) => {
+  const loaded = { count: 1, next: 'p2', previous: null, results: [user(1)] };
+  const empty = { count: 0, next: null, previous: null, results: [] };
+
+  it.each([
+    ['followers', 'loaded', loaded, (): string => 'u/user1'],
+    ['following', 'loaded', loaded, (): string => 'u/user1'],
+    ['followers', 'empty', empty, (): string => i18n.t('follow.noFollowers')],
+    ['following', 'empty', empty, (): string => i18n.t('follow.noFollowing')],
+  ] as const)('renders no English in Turkish for %s (%s)', async (mode, _state, response, textToAwait) => {
     await i18n.changeLanguage('tr');
-    api.listFollowers.mockResolvedValue({ count: 1, next: 'p2', previous: null, results: [user(1)] });
-    api.listFollowing.mockResolvedValue({ count: 1, next: 'p2', previous: null, results: [user(1)] });
+    api.listFollowers.mockResolvedValue(response);
+    api.listFollowing.mockResolvedValue(response);
     renderModal(mode);
-    await screen.findByText('u/user1');
+    await screen.findByText(textToAwait());
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 
@@ -70,15 +78,6 @@ describe('FollowListModal in Turkish', () => {
     await i18n.changeLanguage('tr');
     api.listFollowers.mockReturnValue(new Promise(() => undefined));
     renderModal('followers');
-    expect(visibleText()).not.toMatch(ENGLISH_PROBE);
-  });
-
-  it.each(['followers', 'following'] as const)('renders no English in Turkish for an empty %s list', async (mode) => {
-    await i18n.changeLanguage('tr');
-    api.listFollowers.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
-    api.listFollowing.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
-    renderModal(mode);
-    await screen.findByText(i18n.t(mode === 'followers' ? 'follow.noFollowers' : 'follow.noFollowing'));
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 });

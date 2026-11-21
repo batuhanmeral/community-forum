@@ -7,24 +7,21 @@ User = get_user_model()
 
 
 class TestExtract:
-    def test_empty(self):
-        assert extract_mention_usernames("") == []
-
-    def test_single(self):
-        assert extract_mention_usernames("hello @alice!") == ["alice"]
-
-    def test_multiple_unique(self):
-        assert extract_mention_usernames("@alice @bob @alice") == ["alice", "bob"]
-
-    def test_case_insensitive_dedupe(self):
-        assert extract_mention_usernames("@Alice @ALICE @bob") == ["Alice", "bob"]
-
-    def test_ignores_email(self):
-        # "@bob" after a letter (in email) should NOT match
-        assert extract_mention_usernames("contact me at user@bob.com") == []
-
-    def test_underscore_allowed(self):
-        assert extract_mention_usernames("hi @user_42") == ["user_42"]
+    @pytest.mark.parametrize(
+        "body, expected",
+        [
+            pytest.param("", [], id="empty"),
+            pytest.param("hello @alice!", ["alice"], id="single"),
+            pytest.param("@alice @bob @alice", ["alice", "bob"], id="duplicates-preserve-order"),
+            pytest.param(
+                "@Alice @ALICE @bob", ["Alice", "bob"], id="case-insensitive-deduplication"
+            ),
+            pytest.param("contact me at user@bob.com", [], id="email"),
+            pytest.param("hi @user_42", ["user_42"], id="underscore-and-digits"),
+        ],
+    )
+    def test_extract_mention_usernames(self, body, expected):
+        assert extract_mention_usernames(body) == expected
 
 
 @pytest.mark.django_db

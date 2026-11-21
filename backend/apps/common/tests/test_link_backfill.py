@@ -33,11 +33,14 @@ def _run_backfill_on_stale_row(row, migration):
     return row.body_html
 
 
-def test_post_migration_rerenders_links(post):
-    body_html = _run_backfill_on_stale_row(post, "apps.posts.migrations.0008_rerender_links")
-    assert "noreferrer" in body_html
-
-
-def test_comment_migration_rerenders_links(comment):
-    body_html = _run_backfill_on_stale_row(comment, "apps.comments.migrations.0005_rerender_links")
+@pytest.mark.parametrize(
+    "fixture_name, migration",
+    [
+        pytest.param("post", "apps.posts.migrations.0008_rerender_links", id="post"),
+        pytest.param("comment", "apps.comments.migrations.0005_rerender_links", id="comment"),
+    ],
+)
+def test_migration_rerenders_links(request, fixture_name, migration):
+    row = request.getfixturevalue(fixture_name)
+    body_html = _run_backfill_on_stale_row(row, migration)
     assert "noreferrer" in body_html

@@ -29,46 +29,42 @@ def authed(api, alice):
     return api
 
 
-def detail_url():
-    return reverse("api_v1:communities:community-detail", args=["py"])
+ME = reverse("api_v1:users:users-me")
+DETAIL = reverse("api_v1:communities:community-detail", args=["py"])
+RULES = reverse("api_v1:communities:community-rules", args=["py"])
 
 
 @pytest.mark.django_db
 class TestLengthCaps:
-    def test_bio_over_cap_rejected(self, authed):
-        resp = authed.patch(reverse("api_v1:users:users-me"), {"bio": "x" * 501}, format="json")
+    @pytest.mark.parametrize(
+        "method, url, field, length, extra",
+        [
+            pytest.param("patch", ME, "bio", 501, {}, id="bio"),
+            pytest.param("patch", DETAIL, "description", 501, {}, id="community-description"),
+            pytest.param("patch", DETAIL, "banned_keywords", 2001, {}, id="banned-keywords"),
+            pytest.param("post", RULES, "description", 501, {"short": "r"}, id="rule-description"),
+        ],
+    )
+    def test_length_cap_exceeded_rejected(
+        self, authed, community, method, url, field, length, extra
+    ):
+        resp = getattr(authed, method)(url, {**extra, field: "x" * length}, format="json")
         assert resp.status_code == 400
-        assert "bio" in resp.data
+        assert field in resp.data
 
-    def test_bio_at_cap_accepted(self, authed):
-        resp = authed.patch(reverse("api_v1:users:users-me"), {"bio": "x" * 500}, format="json")
-        assert resp.status_code == 200
-
-    def test_community_description_over_cap_rejected(self, authed, community):
-        resp = authed.patch(detail_url(), {"description": "x" * 501}, format="json")
-        assert resp.status_code == 400
-        assert "description" in resp.data
-
-    def test_community_description_at_cap_accepted(self, authed, community):
-        resp = authed.patch(detail_url(), {"description": "x" * 500}, format="json")
-        assert resp.status_code == 200
-
-    def test_banned_keywords_over_cap_rejected(self, authed, community):
-        resp = authed.patch(detail_url(), {"banned_keywords": "x" * 2001}, format="json")
-        assert resp.status_code == 400
-        assert "banned_keywords" in resp.data
-
-    def test_banned_keywords_at_cap_accepted(self, authed, community):
-        resp = authed.patch(detail_url(), {"banned_keywords": "x" * 2000}, format="json")
-        assert resp.status_code == 200
-
-    def test_rule_description_over_cap_rejected(self, authed, community):
-        url = reverse("api_v1:communities:community-rules", args=["py"])
-        resp = authed.post(url, {"short": "r", "description": "x" * 501}, format="json")
-        assert resp.status_code == 400
-        assert "description" in resp.data
-
-    def test_rule_description_at_cap_accepted(self, authed, community):
-        url = reverse("api_v1:communities:community-rules", args=["py"])
-        resp = authed.post(url, {"short": "r", "description": "x" * 500}, format="json")
-        assert resp.status_code == 201
+    @pytest.mark.parametrize(
+        "method, url, field, length, extra, status",
+        [
+            pytest.param("patch", ME, "bio", 500, {}, 200, id="bio"),
+            pytest.param("patch", DETAIL, "description", 500, {}, 200, id="community-description"),
+            pytest.param("patch", DETAIL, "banned_keywords", 2000, {}, 200, id="banned-keywords"),
+            pytest.param(
+                "post", RULES, "description", 500, {"short": "r"}, 201, id="rule-description"
+            ),
+        ],
+    )
+    def test_length_cap_at_limit_accepted(
+        self, authed, community, method, url, field, length, extra, status
+    ):
+        resp = getattr(authed, method)(url, {**extra, field: "x" * length}, format="json")
+        assert resp.status_code == status

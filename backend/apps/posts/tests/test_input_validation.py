@@ -82,17 +82,23 @@ class TestPostBody:
         assert resp.status_code == 201
         assert resp.data["body"] == "    indented code"
 
-    def test_kind_cannot_change(self, api, alice, post):
+    @pytest.mark.parametrize(
+        "payload, field",
+        [
+            pytest.param({"kind": "link", "url": "https://x.com"}, "kind", id="kind-change"),
+            pytest.param({"url": "https://x.com"}, "url", id="url-on-text"),
+            pytest.param(
+                {"poll_input": {"options": ["a", "b"], "closes_at": "2030-01-01T00:00:00Z"}},
+                "poll_input",
+                id="poll-on-update",
+            ),
+        ],
+    )
+    def test_invalid_patch_on_text_post_rejected(self, api, alice, post, payload, field):
         api.force_authenticate(alice)
-        resp = api.patch(post_url(post.id), {"kind": "link", "url": "https://x.com"}, format="json")
+        resp = api.patch(post_url(post.id), payload, format="json")
         assert resp.status_code == 400
-        assert "kind" in resp.data
-
-    def test_url_rejected_on_text_post(self, api, alice, post):
-        api.force_authenticate(alice)
-        resp = api.patch(post_url(post.id), {"url": "https://x.com"}, format="json")
-        assert resp.status_code == 400
-        assert "url" in resp.data
+        assert field in resp.data
 
     def test_blank_url_rejected_on_link_post(self, api, alice, community):
         link = Post.objects.create(
@@ -111,29 +117,19 @@ class TestPostBody:
         resp = api.patch(post_url(link.id), {"title": "new"}, format="json")
         assert resp.status_code == 200
 
-    def test_poll_input_rejected_on_update(self, api, alice, post):
-        api.force_authenticate(alice)
-        resp = api.patch(
-            post_url(post.id),
-            {"poll_input": {"options": ["a", "b"], "closes_at": "2030-01-01T00:00:00Z"}},
-            format="json",
-        )
-        assert resp.status_code == 400
-        assert "poll_input" in resp.data
-
 
 @pytest.mark.django_db
 class TestCommentBody:
-    def test_non_string_body_rejected(self, api, alice, post):
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param({"x": 1}, id="non-string"),
+            pytest.param("x" * (COMMENT_BODY_MAX_CHARS + 1), id="over-limit"),
+        ],
+    )
+    def test_invalid_comment_body_rejected(self, api, alice, post, body):
         api.force_authenticate(alice)
-        resp = api.post(comments_url(post.id), {"body": {"x": 1}}, format="json")
-        assert resp.status_code == 400
-
-    def test_body_length_capped(self, api, alice, post):
-        api.force_authenticate(alice)
-        resp = api.post(
-            comments_url(post.id), {"body": "x" * (COMMENT_BODY_MAX_CHARS + 1)}, format="json"
-        )
+        resp = api.post(comments_url(post.id), {"body": body}, format="json")
         assert resp.status_code == 400
 
 

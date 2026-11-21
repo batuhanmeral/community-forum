@@ -127,17 +127,20 @@ class TestAutoMod:
         assert entry.actor is None
         assert "crypto scam" in entry.detail
 
-    def test_body_is_checked_too(self, api, strict_community, bob):
+    @pytest.mark.parametrize(
+        "title, body, expected_approved",
+        [
+            pytest.param("innocent", "totally spammy content", False, id="body-keyword"),
+            pytest.param("A normal post", "", True, id="clean"),
+        ],
+    )
+    def test_automod_approval_by_content(
+        self, api, strict_community, bob, title, body, expected_approved
+    ):
         Membership.objects.create(user=bob, community=strict_community)
         api.force_authenticate(bob)
-        resp = self._post(api, title="innocent", body="totally spammy content")
-        assert Post.objects.get(pk=resp.data["id"]).is_approved is False
-
-    def test_clean_post_passes(self, api, strict_community, bob):
-        Membership.objects.create(user=bob, community=strict_community)
-        api.force_authenticate(bob)
-        resp = self._post(api, title="A normal post")
-        assert Post.objects.get(pk=resp.data["id"]).is_approved is True
+        resp = self._post(api, title=title, body=body)
+        assert Post.objects.get(pk=resp.data["id"]).is_approved is expected_approved
 
     def test_moderator_bypasses_automod(self, api, strict_community, alice):
         api.force_authenticate(alice)
@@ -147,16 +150,16 @@ class TestAutoMod:
 
 @pytest.mark.django_db
 class TestBannedKeywordsVisibility:
-    def test_hidden_from_non_mods(self, api, community, member):
-        api.force_authenticate(member)
+    @pytest.mark.parametrize(
+        "viewer_fixture, visible",
+        [
+            pytest.param("member", False, id="member"),
+            pytest.param(None, False, id="anonymous"),
+            pytest.param("alice", True, id="admin"),
+        ],
+    )
+    def test_banned_keywords_visibility(self, api, community, request, viewer_fixture, visible):
+        if viewer_fixture is not None:
+            api.force_authenticate(request.getfixturevalue(viewer_fixture))
         resp = api.get(community_detail_url("py"))
-        assert "banned_keywords" not in resp.data
-
-    def test_hidden_from_anonymous(self, api, community):
-        resp = api.get(community_detail_url("py"))
-        assert "banned_keywords" not in resp.data
-
-    def test_visible_to_admin(self, api, community, alice):
-        api.force_authenticate(alice)
-        resp = api.get(community_detail_url("py"))
-        assert "banned_keywords" in resp.data
+        assert ("banned_keywords" in resp.data) is visible
