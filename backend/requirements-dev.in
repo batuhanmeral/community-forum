@@ -3,10 +3,10 @@
 -c requirements.txt
 
 # ─── Dev / Test ───────────────────────────────
-pytest==9.1.1
+pytest==9.2.0
 pytest-django==4.14.0
 pytest-cov==7.1.0
-ruff==0.17.2
+ruff==0.17.5
 
 # ─── Lock files ───────────────────────────────
 pip-tools==7.7.0
