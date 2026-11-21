@@ -7,70 +7,69 @@ class TestMarkdown:
     def test_empty(self):
         assert render_markdown("") == ""
 
-    def test_bold(self):
-        assert "<strong>bold</strong>" in render_markdown("**bold**")
+    @pytest.mark.parametrize(
+        "src, expected_fragments",
+        [
+            pytest.param("**bold**", ("<strong>bold</strong>",), id="bold"),
+            pytest.param("```\nx = 1\n```", ("<pre>", "<code>"), id="fenced-code"),
+            pytest.param("| a | b |\n|---|---|\n| 1 | 2 |", ("<table>", "<th>"), id="table"),
+            pytest.param("a\nb", ("<br",), id="single-newline"),
+            pytest.param("H<sub>2</sub>O", ("<sub>2</sub>",), id="subscript"),
+            pytest.param(
+                '<abbr title="HyperText">HTML</abbr>',
+                ('<abbr title="HyperText">HTML</abbr>',),
+                id="html-attribute",
+            ),
+            pytest.param(
+                "```python\nprint(1)\n```", ('class="language-python"',), id="code-language"
+            ),
+            pytest.param("~~gone~~", ("~~gone~~",), id="literal-double-tilde"),
+            pytest.param(
+                "| a | b | c |\n|:-|:-:|-:|\n" + "| 1 | 2 | 3 |\n" * 300,
+                ("<table>",),
+                id="large-aligned-table",
+            ),
+        ],
+    )
+    def test_allowed_markup_renders(self, src, expected_fragments):
+        out = render_markdown(src)
+        for fragment in expected_fragments:
+            assert fragment in out
 
-    def test_link_gets_rel(self):
-        out = render_markdown("[x](https://example.com)")
-        assert 'rel="nofollow noopener noreferrer ugc"' in out
-
-    def test_strips_script(self):
-        out = render_markdown("<script>alert(1)</script>hello")
-        assert "<script" not in out
-        assert "hello" in out
-
-    def test_strips_javascript_url(self):
-        out = render_markdown("[x](javascript:alert(1))")
-        assert "href" not in out
-
-    def test_fenced_code(self):
-        out = render_markdown("```\nx = 1\n```")
-        assert "<pre>" in out and "<code>" in out
-
-    def test_table(self):
-        out = render_markdown("| a | b |\n|---|---|\n| 1 | 2 |")
-        assert "<table>" in out and "<th>" in out
-
-    def test_no_app_config_needed(self):
-        """Importing render_markdown shouldn't require django apps loaded."""
-        # The fact that this module imports cleanly is the test
-        assert callable(render_markdown)
-
-    def test_strips_arbitrary_classes(self):
-        out = render_markdown('<span class="fixed inset-0 z-50">fake banner</span>')
-        assert "class=" not in out
-        assert "fake banner" in out
-
-    def test_keeps_code_language_class(self):
-        out = render_markdown("```python\nprint(1)\n```")
-        assert 'class="language-python"' in out
-
-    def test_drops_code_class_that_is_not_a_language(self):
-        out = render_markdown('<code class="fixed inset-0">x</code>')
-        assert "class=" not in out
-
-    def test_drops_inline_images(self):
-        out = render_markdown("![pixel](https://tracker.example/p.gif)")
-        assert "<img" not in out
-        assert "tracker.example" not in out
-
-    def test_single_newline_is_a_line_break(self):
-        assert "<br" in render_markdown("a\nb")
-
-    def test_keeps_allowlisted_raw_html(self):
-        assert "<sub>2</sub>" in render_markdown("H<sub>2</sub>O")
-
-    def test_large_aligned_table_still_renders(self):
-        text = "| a | b | c |\n|:-|:-:|-:|\n" + "| 1 | 2 | 3 |\n" * 300
-        assert "<table>" in render_markdown(text)
+    @pytest.mark.parametrize(
+        "src, absent, present",
+        [
+            pytest.param("<script>alert(1)</script>hello", ("<script",), ("hello",), id="script"),
+            pytest.param(
+                '<span class="fixed inset-0 z-50">fake banner</span>',
+                ("class=",),
+                ("fake banner",),
+                id="arbitrary-span-class",
+            ),
+            pytest.param(
+                '<code class="fixed inset-0">x</code>',
+                ("class=",),
+                (),
+                id="non-language-code-class",
+            ),
+            pytest.param(
+                "![pixel](https://tracker.example/p.gif)",
+                ("<img", "tracker.example"),
+                (),
+                id="inline-image",
+            ),
+        ],
+    )
+    def test_unsafe_markup_is_stripped(self, src, absent, present):
+        out = render_markdown(src)
+        for fragment in absent:
+            assert fragment not in out
+        for fragment in present:
+            assert fragment in out
 
     def test_reference_definitions_do_not_become_links(self):
         out = render_markdown("[a]: https://example.com\n\nsee [a]")
         assert "href" not in out
-
-    def test_keeps_raw_html_with_a_few_attributes(self):
-        out = render_markdown('<abbr title="HyperText">HTML</abbr>')
-        assert '<abbr title="HyperText">HTML</abbr>' in out
 
     def test_many_attributed_raw_tags_render_as_text(self):
         out = render_markdown('<u title="x">' * 40 + "y")
@@ -82,24 +81,20 @@ class TestMarkdown:
         out = render_markdown(sample + generics + "H<sub>2</sub>O")
         assert "<sub>2</sub>" in out
 
-    def test_double_tilde_stays_literal(self):
-        assert "~~gone~~" in render_markdown("~~gone~~")
-
-
-@pytest.mark.parametrize("src", ["[a](//evil.com)", "[a](../x)", "[a](x/y)"])
-def test_non_root_relative_href_is_dropped(src):
-    assert "href" not in render_markdown(src)
-
 
 @pytest.mark.parametrize(
     "src",
     [
-        '<a href="/\\evil.com">a</a>',
-        '<a href=" //evil.com">a</a>',
-        '<a href="/&#9;/evil.com">a</a>',
+        pytest.param("[x](javascript:alert(1))", id="javascript"),
+        pytest.param("[a](//evil.com)", id="protocol-relative"),
+        pytest.param("[a](../x)", id="parent-relative"),
+        pytest.param("[a](x/y)", id="relative-path"),
+        pytest.param('<a href="/\\evil.com">a</a>', id="slash-backslash"),
+        pytest.param('<a href=" //evil.com">a</a>', id="leading-space"),
+        pytest.param('<a href="/&#9;/evil.com">a</a>', id="tab-entity"),
     ],
 )
-def test_disguised_protocol_relative_href_is_dropped(src):
+def test_disallowed_href_is_dropped(src):
     assert "href" not in render_markdown(src)
 
 
@@ -116,8 +111,8 @@ def test_allowed_hrefs_are_kept(src, href):
     assert f'href="{href}"' in render_markdown(src)
 
 
-def test_links_carry_noreferrer():
-    assert 'rel="nofollow noopener noreferrer ugc"' in render_markdown("[a](https://x.com)")
+def test_external_link_gets_rel():
+    assert 'rel="nofollow noopener noreferrer ugc"' in render_markdown("[x](https://example.com)")
 
 
 def test_safe_href_rejects_schemes_outside_the_allowlist():
@@ -135,12 +130,15 @@ class TestMentionLinks:
         assert 'href="/u/bob"' in out
         assert 'href="/u/carol"' in out
 
-    def test_email_is_not_a_mention(self):
-        assert "href" not in render_markdown("mail me at me@example.com")
-
-    def test_code_is_left_alone(self):
-        out = render_markdown("`@alice`\n\n```\n@bob\n```")
-        assert "href" not in out
+    @pytest.mark.parametrize(
+        "src",
+        [
+            pytest.param("mail me at me@example.com", id="email"),
+            pytest.param("`@alice`\n\n```\n@bob\n```", id="inline-and-fenced-code"),
+        ],
+    )
+    def test_non_mention_text_stays_unlinked(self, src):
+        assert "href" not in render_markdown(src)
 
     def test_existing_link_is_not_nested(self):
         out = render_markdown("[ask @alice](https://example.com)")

@@ -36,15 +36,15 @@ def test_post_edited_at_save_does_not_touch_search_vector(post, django_assert_nu
         post.save(update_fields=["edited_at"])
 
 
-def test_bio_update_fields_still_refreshes_vector(api, alice):
+@pytest.mark.parametrize(
+    "update_fields",
+    [
+        pytest.param(["bio"], id="update-fields"),
+        pytest.param(None, id="full-save"),
+    ],
+)
+def test_bio_save_refreshes_vector(api, alice, update_fields):
     alice.bio = "zeppelin"
-    alice.save(update_fields=["bio"])
-    resp = api.get(SEARCH, {"q": "zeppelin", "type": "user"})
-    assert [u["username"] for u in resp.data["results"]] == ["alice"]
-
-
-def test_full_save_still_refreshes_vector(api, alice):
-    alice.bio = "zeppelin"
-    alice.save()
+    alice.save(update_fields=update_fields)
     resp = api.get(SEARCH, {"q": "zeppelin", "type": "user"})
     assert [u["username"] for u in resp.data["results"]] == ["alice"]

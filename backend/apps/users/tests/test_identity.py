@@ -64,17 +64,16 @@ class TestMeUpdate:
         assert bob.email_verified is False
         assert mail.outbox[-1].to == ["new@x.com"]
 
-    def test_email_change_without_password_rejected(self, api, bob):
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            pytest.param({"email": "new@x.com"}, id="missing-password"),
+            pytest.param({"email": "new@x.com", "current_password": "nope"}, id="wrong-password"),
+        ],
+    )
+    def test_email_change_without_valid_password_rejected(self, api, bob, payload):
         api.force_authenticate(bob)
-        resp = api.patch(ME, {"email": "new@x.com"}, format="json")
-        assert resp.status_code == 400
-        assert "current_password" in resp.data
-        bob.refresh_from_db()
-        assert bob.email == "b@x.com"
-
-    def test_email_change_with_wrong_password_rejected(self, api, bob):
-        api.force_authenticate(bob)
-        resp = api.patch(ME, {"email": "new@x.com", "current_password": "nope"}, format="json")
+        resp = api.patch(ME, payload, format="json")
         assert resp.status_code == 400
         assert "current_password" in resp.data
         bob.refresh_from_db()
@@ -135,13 +134,16 @@ class TestRegisterUsername:
 
 @pytest.mark.django_db
 class TestDatabaseConstraints:
-    def test_username_unique_ignoring_case(self, alice):
+    @pytest.mark.parametrize(
+        "user_kwargs",
+        [
+            pytest.param({"username": "ALICE", "email": "other@x.com"}, id="username"),
+            pytest.param({"username": "other", "email": "A@x.com"}, id="email"),
+        ],
+    )
+    def test_identity_unique_ignoring_case(self, alice, user_kwargs):
         with pytest.raises(IntegrityError):
-            User.objects.create_user(username="ALICE", email="other@x.com", password="x")
-
-    def test_email_unique_ignoring_case(self, alice):
-        with pytest.raises(IntegrityError):
-            User.objects.create_user(username="other", email="A@x.com", password="x")
+            User.objects.create_user(password="x", **user_kwargs)
 
     def test_multiple_blank_emails_allowed(self, db):
         User.objects.create_user(username="nomail1", email="", password="x")

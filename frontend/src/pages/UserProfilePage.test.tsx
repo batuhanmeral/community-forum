@@ -199,21 +199,13 @@ describe('UserProfilePage', () => {
     expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
   });
 
-  it('sets the page title while the profile is loading', async () => {
-    api.getUserProfile.mockReturnValue(new Promise(() => undefined));
-    renderProfile(null);
-    await waitFor(() => expect(document.title).toBe('Nexus'));
-  });
-
-  it('sets the page title for a missing user', async () => {
-    api.getUserProfile.mockRejectedValue(new Error('404'));
-    renderProfile(null, 'ghost');
-    await waitFor(() => expect(document.title).toBe('User not found · Nexus'));
-  });
-
-  it('sets the page title to u/<username>', async () => {
-    api.getUserProfile.mockResolvedValue(bob);
-    renderProfile(null);
-    await waitFor(() => expect(document.title).toBe('u/bob · Nexus'));
+  it.each([
+    ['while loading', 'bob', () => new Promise<typeof bob>(() => undefined), 'Nexus'],
+    ['for a missing user', 'ghost', () => Promise.reject(new Error('404')), 'User not found · Nexus'],
+    ['for an existing user', 'bob', async () => bob, 'u/bob · Nexus'],
+  ] as const)('sets the page title %s', async (_state, username, getUserProfile, expected) => {
+    api.getUserProfile.mockImplementation(getUserProfile);
+    renderProfile(null, username);
+    await waitFor(() => expect(document.title).toBe(expected));
   });
 });

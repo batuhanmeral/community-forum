@@ -86,18 +86,21 @@ class TestFollowToggle:
 
 @pytest.mark.django_db
 class TestFollowLists:
-    def test_followers_list(self, api, alice, bob, carol):
-        Follow.objects.create(follower=bob, followed=alice)
-        Follow.objects.create(follower=carol, followed=alice)
-        resp = api.get(followers_url("alice"))
+    @pytest.mark.parametrize(
+        "url, alice_is_follower",
+        [
+            pytest.param(followers_url, False, id="followers"),
+            pytest.param(following_url, True, id="following"),
+        ],
+    )
+    def test_follow_list_returns_related_users(
+        self, api, alice, bob, carol, url, alice_is_follower
+    ):
+        for other in (bob, carol):
+            follower, followed = (alice, other) if alice_is_follower else (other, alice)
+            Follow.objects.create(follower=follower, followed=followed)
+        resp = api.get(url("alice"))
         assert resp.status_code == 200
-        names = {u["username"] for u in resp.data["results"]}
-        assert names == {"bob", "carol"}
-
-    def test_following_list(self, api, alice, bob, carol):
-        Follow.objects.create(follower=alice, followed=bob)
-        Follow.objects.create(follower=alice, followed=carol)
-        resp = api.get(following_url("alice"))
         names = {u["username"] for u in resp.data["results"]}
         assert names == {"bob", "carol"}
 

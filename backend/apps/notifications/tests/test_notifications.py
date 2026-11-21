@@ -45,34 +45,36 @@ def post(alice, community):
 
 @pytest.mark.django_db
 class TestNotifyLevel:
-    def test_off_suppresses_comment_notification(self, alice, bob, community, post):
-        Membership.objects.filter(user=alice, community=community).update(
-            notify_level=Membership.NotifyLevel.OFF
-        )
-        comment = Comment.objects.create(post=post, author=bob, body="hi")
-        notify(alice, actor=bob, verb="comment", target=comment, community=community)
-        assert not Notification.objects.filter(recipient=alice).exists()
-
-    def test_off_still_allows_mention(self, alice, bob, community, post):
-        Membership.objects.filter(user=alice, community=community).update(
-            notify_level=Membership.NotifyLevel.OFF
-        )
-        comment = Comment.objects.create(post=post, author=bob, body="hi @alice")
-        notify(alice, actor=bob, verb="mention", target=comment, community=community)
-        assert Notification.objects.filter(recipient=alice, verb="mention").exists()
-
-    def test_posts_only_suppresses_comment(self, alice, bob, community, post):
-        Membership.objects.filter(user=alice, community=community).update(
-            notify_level=Membership.NotifyLevel.POSTS_ONLY
-        )
-        comment = Comment.objects.create(post=post, author=bob, body="hi")
-        notify(alice, actor=bob, verb="comment", target=comment, community=community)
-        assert not Notification.objects.filter(recipient=alice).exists()
-
-    def test_all_delivers_comment(self, alice, bob, community, post):
-        comment = Comment.objects.create(post=post, author=bob, body="hi")
-        notify(alice, actor=bob, verb="comment", target=comment, community=community)
-        assert Notification.objects.filter(recipient=alice, verb="comment").exists()
+    @pytest.mark.parametrize(
+        "level, verb, body, delivered",
+        [
+            pytest.param(
+                Membership.NotifyLevel.OFF, "comment", "hi", False, id="off-suppresses-comment"
+            ),
+            pytest.param(
+                Membership.NotifyLevel.POSTS_ONLY,
+                "comment",
+                "hi",
+                False,
+                id="posts-only-suppresses-comment",
+            ),
+            pytest.param(None, "comment", "hi", True, id="default-delivers-comment"),
+            pytest.param(
+                Membership.NotifyLevel.OFF, "mention", "hi @alice", True, id="off-allows-mention"
+            ),
+        ],
+    )
+    def test_notify_level_gates_verbs(
+        self, alice, bob, community, post, level, verb, body, delivered
+    ):
+        if level is not None:
+            Membership.objects.filter(user=alice, community=community).update(notify_level=level)
+        comment = Comment.objects.create(post=post, author=bob, body=body)
+        notify(alice, actor=bob, verb=verb, target=comment, community=community)
+        notifications = Notification.objects.filter(recipient=alice)
+        if delivered:
+            notifications = notifications.filter(verb=verb)
+        assert notifications.exists() is delivered
 
 
 @pytest.mark.django_db

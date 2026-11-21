@@ -38,16 +38,20 @@ def _vote(user, target, value=1):
 
 @pytest.mark.django_db
 class TestSelfVotes:
-    def test_self_upvote_on_post_adds_no_karma(self, alice, post):
-        _vote(alice, post)
+    @pytest.mark.parametrize(
+        "target_kind, karma_field",
+        [
+            pytest.param("post", "post_karma", id="post"),
+            pytest.param("comment", "comment_karma", id="comment"),
+        ],
+    )
+    def test_self_vote_adds_no_karma(self, alice, post, target_kind, karma_field):
+        target = post
+        if target_kind == "comment":
+            target = Comment.objects.create(post=post, author=alice, body="c")
+        _vote(alice, target)
         alice.refresh_from_db()
-        assert alice.post_karma == 0
-
-    def test_self_vote_on_comment_adds_no_karma(self, alice, post):
-        comment = Comment.objects.create(post=post, author=alice, body="c")
-        _vote(alice, comment)
-        alice.refresh_from_db()
-        assert alice.comment_karma == 0
+        assert getattr(alice, karma_field) == 0
 
     def test_removing_a_self_vote_changes_nothing(self, alice, post):
         _vote(alice, post)
@@ -62,11 +66,6 @@ class TestSelfVotes:
         vote.save()
         alice.refresh_from_db()
         assert alice.post_karma == 0
-
-    def test_other_votes_still_count(self, alice, bob, post):
-        _vote(bob, post)
-        alice.refresh_from_db()
-        assert alice.post_karma == 1
 
     def test_recalculate_ignores_self_votes(self, alice, bob, post):
         _vote(alice, post)

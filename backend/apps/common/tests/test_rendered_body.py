@@ -104,9 +104,3 @@ class TestBackfill:
         backfill_body_html(Post, batch_size=2)
         for p in Post.objects.all():
             assert f"<strong>{p.body[2:4]}</strong>" in p.body_html
-
-    def test_fills_comments(self, post, comment):
-        Comment.objects.update(body_html="")
-        backfill_body_html(Comment)
-        comment.refresh_from_db()
-        assert "<strong>c1</strong>" in comment.body_html

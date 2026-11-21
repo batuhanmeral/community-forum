@@ -75,21 +75,24 @@ def held_post(gated, author, bob):
 
 @pytest.mark.django_db
 class TestHeldPostMentions:
-    def test_create_in_gated_community_does_not_notify(self, gated, author, bob):
-        resp = _client(author).post(
-            list_url("gated"), {"title": "t", "body": "hi @bob", "kind": "text"}, format="json"
-        )
-        assert resp.status_code == 201
-        assert Post.objects.get().is_approved is False
-        assert _mentions_for(bob) == 0
-
-    def test_create_held_by_automod_does_not_notify(self, alice, author, bob):
+    @pytest.mark.parametrize(
+        "slug, name, community_kwargs, title",
+        [
+            pytest.param("gated", "Gated", {"requires_approval": True}, "t", id="approval-gate"),
+            pytest.param("mod", "Mod", {"banned_keywords": "spam"}, "spam", id="automod"),
+        ],
+    )
+    def test_create_held_post_does_not_notify(
+        self, alice, author, bob, slug, name, community_kwargs, title
+    ):
         community = Community.objects.create(
-            slug="mod", name="Mod", creator=alice, banned_keywords="spam"
+            slug=slug, name=name, creator=alice, **community_kwargs
         )
         Membership.objects.create(user=author, community=community)
         resp = _client(author).post(
-            list_url("mod"), {"title": "spam", "body": "hi @bob", "kind": "text"}, format="json"
+            list_url(community.slug),
+            {"title": title, "body": "hi @bob", "kind": "text"},
+            format="json",
         )
         assert resp.status_code == 201
         assert Post.objects.get().is_approved is False

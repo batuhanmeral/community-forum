@@ -21,7 +21,21 @@ def smtp_down(monkeypatch):
 
 @pytest.mark.django_db
 class TestEmailFailures:
-    def test_register_succeeds_when_smtp_is_down(self, smtp_down, caplog):
+    @pytest.mark.parametrize(
+        "error",
+        [
+            pytest.param(SMTPException("connection refused"), id="connection-refused"),
+            pytest.param(
+                SMTPRecipientsRefused({"n@x.com": (550, b"no such user")}), id="recipients-refused"
+            ),
+        ],
+    )
+    def test_register_succeeds_and_hides_address_when_smtp_fails(self, monkeypatch, caplog, error):
+        def _fail(*args, **kwargs):
+            raise error
+
+        monkeypatch.setattr("apps.users.emails.send_mail", _fail)
+        caplog.set_level(logging.ERROR, logger="apps.users.emails")
         resp = APIClient().post(
             REGISTER,
             {"username": "newbie", "email": "n@x.com", "password": "StrongPass123!"},
@@ -35,18 +49,3 @@ class TestEmailFailures:
         User.objects.create_user(username="alice", email="a@x.com", password="x")
         resp = APIClient().post(RESET, {"email": "a@x.com"}, format="json")
         assert resp.status_code == 204
-
-    def test_recipients_refused_does_not_leak_address_into_logs(self, monkeypatch, caplog):
-        def _refuse(*args, **kwargs):
-            raise SMTPRecipientsRefused({"n@x.com": (550, b"no such user")})
-
-        monkeypatch.setattr("apps.users.emails.send_mail", _refuse)
-        caplog.set_level(logging.ERROR, logger="apps.users.emails")
-        resp = APIClient().post(
-            REGISTER,
-            {"username": "newbie", "email": "n@x.com", "password": "StrongPass123!"},
-            format="json",
-        )
-        assert resp.status_code == 201
-        assert "Email delivery failed" in caplog.text
-        assert "n@x.com" not in caplog.text

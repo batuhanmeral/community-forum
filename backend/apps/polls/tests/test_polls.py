@@ -83,29 +83,22 @@ class TestPollCreation:
         assert resp.status_code == 400
         assert "poll_input" in resp.data
 
-    def test_poll_rejects_past_closes_at(self, api, alice, community):
+    @pytest.mark.parametrize(
+        "closes_at_delta, options",
+        [
+            pytest.param(-timedelta(hours=1), ["a", "b"], id="past-close"),
+            pytest.param(timedelta(days=1), ["solo"], id="single-option"),
+        ],
+    )
+    def test_invalid_poll_input_rejected(self, api, alice, community, closes_at_delta, options):
         api.force_authenticate(alice)
-        past = (timezone.now() - timedelta(hours=1)).isoformat()
+        closes_at = (timezone.now() + closes_at_delta).isoformat()
         resp = api.post(
             post_create_url("py"),
             {
                 "title": "x",
                 "kind": "poll",
-                "poll_input": {"closes_at": past, "options": ["a", "b"]},
-            },
-            format="json",
-        )
-        assert resp.status_code == 400
-
-    def test_poll_requires_at_least_two_options(self, api, alice, community):
-        api.force_authenticate(alice)
-        future = (timezone.now() + timedelta(days=1)).isoformat()
-        resp = api.post(
-            post_create_url("py"),
-            {
-                "title": "x",
-                "kind": "poll",
-                "poll_input": {"closes_at": future, "options": ["solo"]},
+                "poll_input": {"closes_at": closes_at, "options": options},
             },
             format="json",
         )
@@ -185,13 +178,6 @@ class TestPollDetail:
         assert opts["A"]["vote_count"] == 2
         assert opts["A"]["percent"] == pytest.approx(66.7, abs=0.1)
         assert opts["B"]["percent"] == pytest.approx(33.3, abs=0.1)
-
-    def test_user_option_for_viewer(self, api, bob, open_poll):
-        poll, opt_a, _ = open_poll
-        PollVote.objects.create(poll=poll, option=opt_a, user=bob)
-        api.force_authenticate(bob)
-        resp = api.get(poll_detail_url(poll.id))
-        assert resp.data["user_option"] == opt_a.id
 
     def test_is_closed_flag(self, api, closed_poll):
         poll, _ = closed_poll

@@ -1,0 +1,4 @@
+# Every change needs review from the maintainer; workflows are listed
+# separately so the rule survives if the default owner changes.
+*          @batuhanmeral
+/.github/  @batuhanmeral

@@ -96,15 +96,18 @@ class TestBlockEnforcement:
             format="json",
         )
 
-    def test_cannot_start_conversation_with_blocked(self, api, alice, bob):
+    @pytest.mark.parametrize(
+        "actor, target",
+        [
+            pytest.param("alice", "bob", id="blocker-to-blocked"),
+            pytest.param("bob", "alice", id="blocked-to-blocker"),
+        ],
+    )
+    def test_blocked_pair_cannot_start_conversation(self, api, alice, bob, actor, target):
         Block.objects.create(blocker=alice, blocked=bob)
-        api.force_authenticate(alice)
-        assert self._start_conversation(api, "bob").status_code == 400
-
-    def test_blocked_user_cannot_start_conversation(self, api, alice, bob):
-        Block.objects.create(blocker=alice, blocked=bob)
-        api.force_authenticate(bob)
-        assert self._start_conversation(api, "alice").status_code == 400
+        users = {"alice": alice, "bob": bob}
+        api.force_authenticate(users[actor])
+        assert self._start_conversation(api, target).status_code == 400
 
     def test_block_stops_messages_in_existing_conversation(self, api, alice, bob):
         api.force_authenticate(alice)

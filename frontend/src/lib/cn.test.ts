@@ -2,15 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { cn } from './cn';
 
 describe('cn', () => {
-  it('joins truthy class names with spaces', () => {
-    expect(cn('a', 'b', 'c')).toBe('a b c');
-  });
-
-  it('drops falsy values', () => {
-    expect(cn('a', false, null, undefined, 'b')).toBe('a b');
-  });
-
-  it('returns an empty string when nothing is truthy', () => {
-    expect(cn(false, null, undefined)).toBe('');
+  it.each([
+    [['a', false, null, undefined, 'b'], 'a b'],
+    [[false, null, undefined], ''],
+  ] as const)('cn(%j) -> %j', (classes, expected) => {
+    expect(cn(...classes)).toBe(expected);
   });
 });

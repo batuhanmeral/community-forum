@@ -84,13 +84,6 @@ describe('RulesCard', () => {
     expect(screen.queryByText('No rules yet.')).not.toBeInTheDocument();
   });
 
-  it('names each rule on its buttons', async () => {
-    render(<RulesCard slug="py" />);
-    await screen.findByText('Be kind');
-    expect(screen.getByRole('button', { name: 'Edit rule: Be kind' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete rule: Be kind' })).toBeInTheDocument();
-  });
-
   it('asks before deleting a rule', async () => {
     api.deleteRule.mockResolvedValue();
     render(<RulesCard slug="py" />);

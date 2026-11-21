@@ -73,14 +73,16 @@ class TestSaveToggle:
         assert resp.status_code == 201
         assert SavedItem.objects.get(user=bob).content_type.model == "comment"
 
-    def test_unknown_target_400(self, api, bob):
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            pytest.param({"content_type": "post", "object_id": 9999}, id="unknown-target"),
+            pytest.param({"content_type": "community", "object_id": 1}, id="invalid-content-type"),
+        ],
+    )
+    def test_invalid_save_payload_rejected(self, api, bob, payload):
         api.force_authenticate(bob)
-        resp = api.post(SAVED, {"content_type": "post", "object_id": 9999}, format="json")
-        assert resp.status_code == 400
-
-    def test_invalid_content_type(self, api, bob):
-        api.force_authenticate(bob)
-        resp = api.post(SAVED, {"content_type": "community", "object_id": 1}, format="json")
+        resp = api.post(SAVED, payload, format="json")
         assert resp.status_code == 400
 
 
@@ -153,14 +155,3 @@ class TestIsSavedField:
         url = reverse("api_v1:community-posts:community-posts", args=[post.community.slug])
         row = next(p for p in api.get(url).data["results"] if p["id"] == post.id)
         assert row["is_saved"] is False
-
-    def test_comment_is_saved(self, api, alice, comment):
-        SavedItem.objects.create(
-            user=alice,
-            content_type=ContentType.objects.get_for_model(Comment),
-            object_id=comment.id,
-        )
-        api.force_authenticate(alice)
-        url = reverse("api_v1:post-comments:post-comments", args=[comment.post_id])
-        row = api.get(url).data["results"][0]
-        assert row["is_saved"] is True

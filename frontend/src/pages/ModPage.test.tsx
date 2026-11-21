@@ -95,14 +95,9 @@ describe('ModPage', () => {
     );
   });
 
-  it('shows the approval queue', async () => {
+  it.each(['Approval queue', 'Rules'])('shows the %s card to an admin', async (title) => {
     renderPage();
-    expect(await screen.findByText('Approval queue')).toBeInTheDocument();
-  });
-
-  it('shows the rules card', async () => {
-    renderPage();
-    expect(await screen.findByText('Rules')).toBeInTheDocument();
+    expect(await screen.findByText(title)).toBeInTheDocument();
   });
 
   it('refreshes the banned list after a ban', async () => {

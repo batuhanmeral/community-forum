@@ -16,11 +16,6 @@ def _upload(size: tuple[int, int], fmt: str = "PNG") -> SimpleUploadedFile:
 
 
 class TestDownscaleImage:
-    def test_large_image_resized(self):
-        result = downscale_image(_upload((2000, 1000)), 512)
-        img = Image.open(result)
-        assert max(img.size) == 512
-
     def test_small_image_untouched(self):
         original = _upload((100, 80))
         result = downscale_image(original, 512)

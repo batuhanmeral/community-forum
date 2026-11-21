@@ -33,9 +33,17 @@ describe('formatNotification', () => {
     expect(f.to).toBe('/posts/42#comment-7');
   });
 
-  it('links replies and mentions that live in comments', () => {
-    expect(formatNotification(make({ verb: 'reply' })).to).toBe('/posts/42#comment-7');
-    expect(formatNotification(make({ verb: 'mention' })).to).toBe('/posts/42#comment-7');
+  it.each([
+    { label: 'reply', overrides: { verb: 'reply' }, expectedTo: '/posts/42#comment-7' },
+    { label: 'mention', overrides: { verb: 'mention' }, expectedTo: '/posts/42#comment-7' },
+    { label: 'DM', overrides: { verb: 'dm', target_type: 'message', link: '/messages/3' }, expectedTo: '/messages/3' },
+    {
+      label: 'mention with a gone target',
+      overrides: { verb: 'mention', target_type: 'post', target_id: 42, link: null },
+      expectedTo: null,
+    },
+  ] as const)('links a $label notification to $expectedTo', ({ overrides, expectedTo }) => {
+    expect(formatNotification(make(overrides)).to).toBe(expectedTo);
   });
 
   it('links a follow notification to the actor profile', () => {
@@ -46,21 +54,9 @@ describe('formatNotification', () => {
     expect(f.to).toBe('/u/alice');
   });
 
-  it('routes dm notifications to the conversation', () => {
-    const f = formatNotification(make({ verb: 'dm', target_type: 'message', link: '/messages/3' }));
-    expect(f.to).toBe('/messages/3');
-  });
-
   it('falls back to "Someone" when the actor username is missing', () => {
     const f = formatNotification(make({ actor_username: null, verb: 'mention' }));
     expect(f.text).toMatch(/^Someone /);
-  });
-
-  it('is not clickable when the target is gone', () => {
-    const f = formatNotification(
-      make({ verb: 'mention', target_type: 'post', target_id: 42, link: null }),
-    );
-    expect(f.to).toBeNull();
   });
 
   it('has a default branch for unknown verbs', () => {

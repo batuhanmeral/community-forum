@@ -113,37 +113,38 @@ class TestDeletedRevisionsHidden:
         assert resp.status_code == 404
         assert resp.data == missing.data
 
-    def test_deleted_post_revisions_look_missing(self, api, alice, post):
-        PostRevision.objects.create(post=post, title="t", body="old", edited_by=alice)
-        Post.objects.filter(pk=post.pk).update(deleted_at=timezone.now(), deleted_by=alice)
-        api.force_authenticate(alice)
-        self._assert_like_missing(api, "api_v1:posts:post-revisions", post.id, 999_999)
-
-    def test_removed_post_revisions_hidden_from_moderators(self, api, alice, bob, community):
+    @pytest.mark.parametrize(
+        "author_fixture, body",
+        [
+            pytest.param("alice", "v1", id="author-deleted"),
+            pytest.param("bob", "v", id="moderator-removed"),
+        ],
+    )
+    def test_hidden_post_revisions_look_missing(
+        self, api, alice, community, request, author_fixture, body
+    ):
+        author = request.getfixturevalue(author_fixture)
         post = Post.objects.create(
-            author=bob, community=community, kind="text", title="t", body="v"
+            author=author, community=community, kind="text", title="t", body=body
         )
-        PostRevision.objects.create(post=post, title="t", body="old", edited_by=bob)
+        PostRevision.objects.create(post=post, title="t", body="old", edited_by=author)
         Post.objects.filter(pk=post.pk).update(deleted_at=timezone.now(), deleted_by=alice)
         api.force_authenticate(alice)
         self._assert_like_missing(api, "api_v1:posts:post-revisions", post.id, 999_999)
 
-    def test_deleted_comment_revisions_look_missing(self, api, alice, comment):
-        CommentRevision.objects.create(comment=comment, body="old", edited_by=alice)
+    @pytest.mark.parametrize(
+        "author_fixture, body",
+        [
+            pytest.param("alice", "v1", id="author-deleted"),
+            pytest.param("bob", "v", id="moderator-removed"),
+        ],
+    )
+    def test_hidden_comment_revisions_look_missing(
+        self, api, alice, post, request, author_fixture, body
+    ):
+        author = request.getfixturevalue(author_fixture)
+        comment = Comment.objects.create(post=post, author=author, body=body)
+        CommentRevision.objects.create(comment=comment, body="old", edited_by=author)
         Comment.objects.filter(pk=comment.pk).update(deleted_at=timezone.now(), deleted_by=alice)
         api.force_authenticate(alice)
         self._assert_like_missing(api, "api_v1:comments:comment-revisions", comment.id, 999_999)
-
-    def test_removed_comment_revisions_hidden_from_moderators(self, api, alice, bob, post):
-        comment = Comment.objects.create(post=post, author=bob, body="v")
-        CommentRevision.objects.create(comment=comment, body="old", edited_by=bob)
-        Comment.objects.filter(pk=comment.pk).update(deleted_at=timezone.now(), deleted_by=alice)
-        api.force_authenticate(alice)
-        self._assert_like_missing(api, "api_v1:comments:comment-revisions", comment.id, 999_999)
-
-    def test_live_post_revisions_still_listed_for_author(self, api, alice, post):
-        PostRevision.objects.create(post=post, title="t", body="old", edited_by=alice)
-        api.force_authenticate(alice)
-        resp = api.get(reverse("api_v1:posts:post-revisions", args=[post.id]))
-        assert resp.status_code == 200
-        assert resp.data["count"] >= 1

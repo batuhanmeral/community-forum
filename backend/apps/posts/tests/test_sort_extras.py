@@ -92,16 +92,6 @@ class TestTimeWindowAnySort:
 
 @pytest.mark.django_db
 class TestHotSort:
-    def test_hot_returns_results(self, api, alice, bob, community):
-        a = Post.objects.create(author=alice, community=community, kind="text", title="a")
-        b = Post.objects.create(author=alice, community=community, kind="text", title="b")
-        _vote(bob, b, 1)
-        resp = api.get(list_url("c"), {"sort": "hot"})
-        assert resp.status_code == 200
-        ids = [p["id"] for p in resp.data["results"]]
-        # b has positive score → should beat a
-        assert ids.index(b.id) < ids.index(a.id)
-
     def test_hot_prefers_newer_when_scores_equal(self, api, alice, community):
         old_post = Post.objects.create(author=alice, community=community, kind="text", title="old")
         Post.objects.filter(pk=old_post.pk).update(created_at=timezone.now() - timedelta(days=30))

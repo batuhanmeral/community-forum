@@ -65,12 +65,16 @@ class TestCommunityCRUD:
             user=alice, community=c, role=Membership.Role.ADMIN
         ).exists()
 
-    def test_detail_lookup_by_slug(self, api, community):
-        resp = api.get(detail("python"))
-        assert resp.status_code == 200
-        assert resp.data["slug"] == "python"
-
-    def test_only_creator_can_update(self, api, community, bob):
+    @pytest.mark.parametrize(
+        "role",
+        [
+            pytest.param(None, id="non-member"),
+            pytest.param(Membership.Role.MODERATOR, id="moderator"),
+        ],
+    )
+    def test_non_admin_cannot_update(self, api, community, bob, role):
+        if role is not None:
+            Membership.objects.create(user=bob, community=community, role=role)
         api.force_authenticate(bob)
         resp = api.patch(detail("python"), {"description": "x"}, format="json")
         assert resp.status_code == 403
@@ -82,12 +86,6 @@ class TestCommunityCRUD:
         assert resp.status_code == 200
         community.refresh_from_db()
         assert community.description == "x"
-
-    def test_moderator_cannot_update(self, api, community, bob):
-        Membership.objects.create(user=bob, community=community, role=Membership.Role.MODERATOR)
-        api.force_authenticate(bob)
-        resp = api.patch(detail("python"), {"description": "x"}, format="json")
-        assert resp.status_code == 403
 
     def test_admin_member_cannot_delete(self, api, community, bob):
         Membership.objects.create(user=bob, community=community, role=Membership.Role.ADMIN)

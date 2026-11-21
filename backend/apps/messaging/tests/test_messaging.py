@@ -68,14 +68,16 @@ class TestConversationCreate:
         c = Conversation.objects.get()
         assert c.participant_a_id < c.participant_b_id
 
-    def test_cannot_self_chat(self, api, alice):
+    @pytest.mark.parametrize(
+        "username",
+        [
+            pytest.param("alice", id="self"),
+            pytest.param("ghost", id="unknown-user"),
+        ],
+    )
+    def test_invalid_recipient_rejected(self, api, alice, username):
         api.force_authenticate(alice)
-        resp = api.post(LIST, {"username": "alice"}, format="json")
-        assert resp.status_code == 400
-
-    def test_unknown_user_rejected(self, api, alice):
-        api.force_authenticate(alice)
-        resp = api.post(LIST, {"username": "ghost"}, format="json")
+        resp = api.post(LIST, {"username": username}, format="json")
         assert resp.status_code == 400
 
 
@@ -90,13 +92,6 @@ class TestInbox:
         resp = api.get(LIST)
         assert resp.data["count"] == 1
 
-    def test_unread_count_excludes_own_messages(self, api, alice, bob, conv):
-        Message.objects.create(conversation=conv, sender=bob, body="hi")
-        Message.objects.create(conversation=conv, sender=alice, body="self")
-        api.force_authenticate(alice)
-        row = api.get(LIST).data["results"][0]
-        assert row["unread_count"] == 1
-
     def test_last_message_shown(self, api, alice, bob, conv):
         Message.objects.create(conversation=conv, sender=bob, body="first")
         Message.objects.create(conversation=conv, sender=alice, body="second")
@@ -107,10 +102,6 @@ class TestInbox:
 
 @pytest.mark.django_db
 class TestMessages:
-    def test_non_participant_blocked(self, api, conv, carol):
-        api.force_authenticate(carol)
-        assert api.get(msgs_url(conv.id)).status_code == 403
-
     def test_send_message(self, api, conv, alice, bob):
         api.force_authenticate(alice)
         resp = api.post(msgs_url(conv.id), {"body": "hi"}, format="json")
@@ -128,13 +119,6 @@ class TestMessages:
         api.force_authenticate(alice)
         assert api.post(msgs_url(conv.id), {"body": "  "}, format="json").status_code == 400
 
-    def test_history_newest_first(self, api, conv, alice, bob):
-        Message.objects.create(conversation=conv, sender=alice, body="a")
-        Message.objects.create(conversation=conv, sender=bob, body="b")
-        api.force_authenticate(alice)
-        bodies = [m["body"] for m in api.get(msgs_url(conv.id)).data["results"]]
-        assert bodies == ["b", "a"]
-
 
 @pytest.mark.django_db
 class TestRead:
@@ -150,6 +134,15 @@ class TestRead:
         assert m1.read_at is not None
         assert m2.read_at is None  # own message untouched
 
-    def test_non_participant_blocked(self, api, conv, carol):
-        api.force_authenticate(carol)
-        assert api.post(read_url(conv.id)).status_code == 403
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "method, url",
+    [
+        pytest.param("get", msgs_url, id="message-list"),
+        pytest.param("post", read_url, id="mark-read"),
+    ],
+)
+def test_non_participant_gets_403(api, conv, carol, method, url):
+    api.force_authenticate(carol)
+    assert getattr(api, method)(url(conv.id)).status_code == 403

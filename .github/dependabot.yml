@@ -22,6 +22,10 @@ updates:
     groups:
       pip-minor-patch:
         update-types: [minor, patch]
+    # Majors need code changes; take them by hand. Security updates still open PRs.
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -32,12 +36,10 @@ updates:
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
-    # @types/node tracks the runtime Node line; typescript-eslint does not support TS 7 yet.
+    # Majors need code changes; take them by hand. Security updates still open PRs.
     ignore:
-      - dependency-name: "@types/node"
+      - dependency-name: "*"
         update-types: [version-update:semver-major]
-      - dependency-name: typescript
-        versions: [">=7"]
 
   - package-ecosystem: docker
     directories: [/backend, /frontend]
@@ -45,7 +47,19 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
-    # Node majors include non-LTS lines; move between LTS releases by hand.
+    # Majors (Node, Python, nginx) need code changes; take them by hand.
+    # Security updates still open PRs.
     ignore:
-      - dependency-name: node
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    # A PostgreSQL major needs dump/restore; take it by hand. Security updates still open PRs.
+    ignore:
+      - dependency-name: "*"
         update-types: [version-update:semver-major]

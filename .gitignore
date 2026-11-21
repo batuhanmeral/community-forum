@@ -84,3 +84,6 @@ Thumbs.db
 .docs/
 # Claude Code local settings
 .claude/settings.local.json
+
+# Scanner output (Semgrep SARIF from the security workflow)
+semgrep.sarif
