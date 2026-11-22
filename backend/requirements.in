@@ -1,12 +1,12 @@
 # ─── Core ─────────────────────────────────────
-Django==6.1.2
+Django==6.1.3
 django-tasks-db==0.13.0
 djangorestframework==3.18.3
 djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.9.0
 
 # ─── Database ─────────────────────────────────
-psycopg[binary]==3.3.6
+psycopg[binary]==3.3.9
 
 # ─── Config & Media ───────────────────────────
 python-decouple==3.8
@@ -16,7 +16,7 @@ Pillow==13.0.0
 gunicorn==26.2.0
 whitenoise==6.12.0
 redis==8.1.0
-sentry-sdk==2.73.0
+sentry-sdk==2.75.0
 
 # ─── Realtime (WebSocket) ─────────────────────
 # Separate ASGI service; uvicorn without [standard] extras, websockets as its only WS backend.
@@ -40,5 +40,5 @@ boto3==1.44.9
 pywebpush==2.5.0
 
 # ─── Content rendering ────────────────────────
-markdown-it-py==4.2.0
+markdown-it-py==4.3.0
 nh3==0.3.7
