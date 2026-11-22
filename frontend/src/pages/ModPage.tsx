@@ -21,6 +21,7 @@ import { BannedListCard } from '@/components/moderation/BannedListCard';
 import { ApprovalQueueCard } from '@/components/moderation/ApprovalQueueCard';
 import { ReportQueueCard } from '@/components/moderation/ReportQueueCard';
 import { RulesCard } from '@/components/moderation/RulesCard';
+import { UserFlairCard } from '@/components/moderation/UserFlairCard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -96,6 +97,18 @@ export function ModPage() {
       {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
       <RulesCard slug={community.slug} />
       <FlairCard slug={community.slug} />
+      <UserFlairCard
+        slug={community.slug}
+        canSelect
+        isModerator
+        allowSelf={community.allow_self_user_flair}
+        onAllowSelfChange={
+          isAdmin
+            ? async (value) =>
+                setCommunity(await updateCommunity(community.slug, { allow_self_user_flair: value }))
+            : undefined
+        }
+      />
       <BanUserCard slug={community.slug} onBanned={() => setBansVersion((v) => v + 1)} />
       <BannedListCard key={bansVersion} slug={community.slug} />
       {isAdmin && <RoleCard slug={community.slug} />}

@@ -186,6 +186,7 @@ class CommunityBanView(_CommunityModView, APIView):
             pk=membership.pk, is_banned=False, role__in=allowed
         ).update(
             is_banned=True,
+            user_flair=None,
             role=Membership.Role.MEMBER,
             banned_by=request.user,
             banned_at=timezone.now(),

@@ -5,6 +5,7 @@ from apps.comments.models import Comment
 from apps.comments.views import _annotate_score as _annotate_comment_score
 from apps.common.throttling import WriteThrottleMixin
 from apps.common.viewer import viewer_prefetches
+from apps.communities.services import annotate_author_flair
 from apps.posts.models import Post
 from apps.posts.views import _annotate_score as _annotate_post_score
 from apps.posts.views import _base_post_qs
@@ -21,7 +22,7 @@ def _load_targets(items, user) -> dict[tuple[str, int], object]:
     posts = _annotate_post_score(_base_post_qs(Post.objects.filter(pk__in=ids["post"]), user=user))
     # post/community: _is_hidden_from and can_see_unapproved read them for every saved comment.
     comments = _annotate_comment_score(
-        Comment.objects.filter(pk__in=ids["comment"])
+        annotate_author_flair(Comment.objects.filter(pk__in=ids["comment"]), "post__community_id")
         .select_related("author", "post", "post__community")
         .prefetch_related(*viewer_prefetches(user))
     )

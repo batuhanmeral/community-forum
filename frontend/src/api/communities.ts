@@ -2,6 +2,7 @@ import { api } from './client';
 import type {
   Community,
   CommunityRule,
+  UserFlair,
   Flair,
   Membership,
   NotifyLevel,
@@ -61,6 +62,7 @@ export interface UpdateCommunityPayload {
   description?: string;
   is_nsfw?: boolean;
   requires_approval?: boolean;
+  allow_self_user_flair?: boolean;
   avatar?: File | null;
   banned_keywords?: string;
 }
@@ -78,6 +80,8 @@ export async function updateCommunity(
       form.append('requires_approval', String(payload.requires_approval));
     if (payload.banned_keywords !== undefined)
       form.append('banned_keywords', payload.banned_keywords);
+    if (payload.allow_self_user_flair !== undefined)
+      form.append('allow_self_user_flair', String(payload.allow_self_user_flair));
     form.append('avatar', payload.avatar);
     const res = await api.patch<Community>(`/communities/${slug}/`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -152,4 +156,34 @@ export async function updateRule(
 
 export async function deleteRule(slug: string, id: number): Promise<void> {
   await api.delete(`/communities/${slug}/rules/${id}/`);
+}
+
+export async function listUserFlairs(slug: string): Promise<UserFlair[]> {
+  const res = await api.get<UserFlair[]>(`/communities/${slug}/user-flairs/`);
+  return res.data;
+}
+
+export async function createUserFlair(
+  slug: string,
+  text: string,
+  color: string,
+): Promise<UserFlair> {
+  const res = await api.post<UserFlair>(`/communities/${slug}/user-flairs/`, { text, color });
+  return res.data;
+}
+
+export async function deleteUserFlair(slug: string, id: number): Promise<void> {
+  await api.delete(`/communities/${slug}/user-flairs/${id}/`);
+}
+
+/** Select (or clear with null) the caller's own flair, or a member's when `user` is given. */
+export async function assignUserFlair(
+  slug: string,
+  userFlair: number | null,
+  user?: number,
+): Promise<void> {
+  await api.patch(`/communities/${slug}/user-flair/`, {
+    user_flair: userFlair,
+    ...(user === undefined ? {} : { user }),
+  });
 }

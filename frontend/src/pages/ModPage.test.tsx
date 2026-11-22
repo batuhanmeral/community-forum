@@ -20,6 +20,10 @@ vi.mock('@/api/communities', () => ({
   createRule: vi.fn(),
   updateRule: vi.fn(),
   deleteRule: vi.fn(),
+  listUserFlairs: vi.fn(),
+  createUserFlair: vi.fn(),
+  deleteUserFlair: vi.fn(),
+  assignUserFlair: vi.fn(),
 }));
 vi.mock('@/api/moderation', () => ({
   listModReports: vi.fn(),
@@ -73,6 +77,7 @@ describe('ModPage', () => {
     vi.mocked(communitiesApi.getCommunity).mockResolvedValue(adminCommunity);
     vi.mocked(communitiesApi.listFlairs).mockResolvedValue([]);
     vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
+    vi.mocked(communitiesApi.listUserFlairs).mockResolvedValue([]);
     vi.mocked(moderationApi.listModReports).mockResolvedValue(empty);
     vi.mocked(moderationApi.listModLog).mockResolvedValue(empty);
     vi.mocked(moderationApi.listBans).mockResolvedValue(empty);

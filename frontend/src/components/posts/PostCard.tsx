@@ -54,6 +54,7 @@ export function PostCard({ post, hideCommunity, hideAction }: PostCardProps) {
   const image = post.image && (
     <img src={post.image} alt={post.title} className="max-h-[420px] w-full object-contain" loading="lazy" />
   );
+
   if (hidden) {
     return (
       <div
@@ -105,6 +106,17 @@ export function PostCard({ post, hideCommunity, hideAction }: PostCardProps) {
             </Link>
           ) : (
             <span className="text-[var(--color-text-soft)]">u/{t('common.deleted')}</span>
+          )}
+          {post?.author_flair && (
+            <span
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
+              style={{
+                color: post.author_flair.color,
+                borderColor: `${post.author_flair.color}44`,
+              }}
+            >
+              {post.author_flair.text}
+            </span>
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span className="font-mono text-[11.5px] text-[var(--color-text-dim)]">{timeAgo(post.created_at)}</span>

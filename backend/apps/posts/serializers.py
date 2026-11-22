@@ -26,6 +26,7 @@ def _mask_body(obj) -> str:
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
+    author_flair = serializers.SerializerMethodField()
     community = serializers.SlugRelatedField(read_only=True, slug_field="slug")
     flair_detail = FlairSerializer(source="flair", read_only=True)
     score = serializers.IntegerField(read_only=True, default=0)
@@ -48,6 +49,7 @@ class PostSerializer(serializers.ModelSerializer):
             "id",
             "author",
             "author_username",
+            "author_flair",
             "community",
             "flair",
             "flair_detail",
@@ -97,6 +99,11 @@ class PostSerializer(serializers.ModelSerializer):
             return None
         return obj.author_id
 
+    def get_author_flair(self, obj):
+        from apps.communities.services import author_flair_data
+
+        return author_flair_data(obj, obj.community_id)
+
     def get_author_username(self, obj: Post):
         # Removed content and deleted accounts both show as "[deleted]".
         if obj.deleted_at is not None or not obj.author.is_active:
@@ -105,6 +112,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_body_html(self, obj: Post) -> str:
         return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"
+
     def get_crosspost_from(self, obj: Post):
         root = obj.crosspost_parent
         if root is None:

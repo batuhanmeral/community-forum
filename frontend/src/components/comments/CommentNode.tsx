@@ -104,6 +104,17 @@ export function CommentNode({
               {t('common.deleted')}
             </span>
           )}
+          {node?.author_flair && (
+            <span
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
+              style={{
+                color: node.author_flair.color,
+                borderColor: `${node.author_flair.color}44`,
+              }}
+            >
+              {node.author_flair.text}
+            </span>
+          )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(node.created_at)}</span>
           {node.is_accepted && <Badge tone="link">{t('qa.accepted')}</Badge>}

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import HEX_COLOR_PATTERN, Community, CommunityRule, Flair, Membership
+from .models import HEX_COLOR_PATTERN, Community, CommunityRule, Flair, Membership, UserFlair
 from .services import MOD_ROLES
 
 
@@ -23,6 +23,7 @@ class CommunitySerializer(serializers.ModelSerializer):
             "is_nsfw",
             "requires_approval",
             "qa_enabled",
+            "allow_self_user_flair",
             "creator",
             "created_at",
             "member_count",
@@ -103,5 +104,14 @@ class FlairSerializer(serializers.ModelSerializer):
 class MembershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = Membership
-        fields = ("id", "user", "community", "role", "notify_level", "joined_at")
-        read_only_fields = ("id", "user", "community", "role", "joined_at")
+        fields = ("id", "user", "community", "role", "notify_level", "user_flair", "joined_at")
+        read_only_fields = ("id", "user", "community", "role", "user_flair", "joined_at")
+
+
+class UserFlairSerializer(serializers.ModelSerializer):
+    color = serializers.RegexField(HEX_COLOR_PATTERN, required=False)
+
+    class Meta:
+        model = UserFlair
+        fields = ("id", "text", "color", "order")
+        read_only_fields = ("id",)

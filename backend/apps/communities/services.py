@@ -112,3 +112,46 @@ def roles_below(actor, community: Community) -> tuple[str, ...]:
         return tuple(_ROLE_RANK)
     actor_rank = _ROLE_RANK[actor_membership.role]
     return tuple(role for role, rank in _ROLE_RANK.items() if rank < actor_rank)
+
+
+def annotate_author_flair(qs, community_field="community_id"):
+    """Resolve author flair in the content query, including mixed-community feeds."""
+    from django.db.models import OuterRef, Subquery
+    from django.db.models.functions import JSONObject
+
+    membership = Membership.objects.filter(
+        user_id=OuterRef("author_id"),
+        community_id=OuterRef(community_field),
+        is_banned=False,
+        user_flair__isnull=False,
+    ).annotate(
+        flair_data=JSONObject(
+            id="user_flair_id",
+            text="user_flair__text",
+            color="user_flair__color",
+            order="user_flair__order",
+        )
+    )
+    return qs.annotate(author_flair_data=Subquery(membership.values("flair_data")[:1]))
+
+
+def author_flair_data(obj, community_id):
+    if obj.deleted_at is not None or not obj.author.is_active:
+        return None
+    if hasattr(obj, "author_flair_data"):
+        return obj.author_flair_data
+    # Single-object write responses do not pass through the annotated list queryset.
+    membership = (
+        Membership.objects.select_related("user_flair")
+        .filter(
+            user_id=obj.author_id,
+            community_id=community_id,
+            is_banned=False,
+            user_flair__isnull=False,
+        )
+        .first()
+    )
+    if membership is None:
+        return None
+    flair = membership.user_flair
+    return {"id": flair.pk, "text": flair.text, "color": flair.color, "order": flair.order}
