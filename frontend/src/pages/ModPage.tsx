@@ -21,6 +21,7 @@ import { BannedListCard } from '@/components/moderation/BannedListCard';
 import { ApprovalQueueCard } from '@/components/moderation/ApprovalQueueCard';
 import { ReportQueueCard } from '@/components/moderation/ReportQueueCard';
 import { RulesCard } from '@/components/moderation/RulesCard';
+import { RemovalReasonsCard } from '@/components/moderation/RemovalReasonsCard';
 import { UserFlairCard } from '@/components/moderation/UserFlairCard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -96,6 +97,16 @@ export function ModPage() {
       <ReportQueueCard slug={community.slug} />
       {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
       <RulesCard slug={community.slug} />
+      <RemovalReasonsCard
+        slug={community.slug}
+        required={community.require_removal_reason}
+        onRequiredChange={
+          isAdmin
+            ? async (value) =>
+                setCommunity(await updateCommunity(community.slug, { require_removal_reason: value }))
+            : undefined
+        }
+      />
       <FlairCard slug={community.slug} />
       <UserFlairCard
         slug={community.slug}
@@ -177,6 +188,8 @@ function ModLogCard({ slug }: { slug: string }) {
                 <Link to={`/posts/${e.object_id}`} className="text-[var(--color-link)] hover:underline">
                   #{e.object_id}
                 </Link>
+              {e.reason_title && (
+                <span className="text-[var(--color-text-muted)]">— {e.reason_title}</span>
               )}
               {e.detail && (
                 <span className="text-[var(--color-text-muted)]">— {e.detail}</span>

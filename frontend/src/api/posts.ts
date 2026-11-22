@@ -1,4 +1,5 @@
 import { api } from './client';
+import { removalBody } from './removal';
 import type { Paginated } from '@/features/communities/types';
 import type { Post, PostKind, PostRevision } from '@/features/posts/types';
 
@@ -105,7 +106,11 @@ export async function setPostSpoiler(id: number, spoiler: boolean): Promise<{ is
   return res.data;
 }
 
-export async function deletePost(id: number): Promise<void> {
+export async function deletePost(
+  id: number,
+  removal?: { reason: number | null; note: string },
+): Promise<void> {
+  await api.delete(`/posts/${id}/`, removal ? { data: removalBody(removal) } : undefined);
 }
 
 export async function setPostSticky(id: number, pinned: boolean): Promise<{ is_pinned: boolean }> {

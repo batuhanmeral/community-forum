@@ -4,7 +4,7 @@ from apps.realtime.publish import publish_to_user
 from .models import Notification
 
 # Verbs that bypass community notify_level (always delivered)
-DIRECT_VERBS = {"reply", "mention", "follow", "dm", "mod_action"}
+DIRECT_VERBS = {"reply", "mention", "follow", "dm", "mod_action", "removal"}
 
 
 def _suppressed_by_notify_level(recipient, community, verb: str) -> bool:
@@ -42,6 +42,8 @@ def notify(
     verb: str,
     target=None,
     community=None,
+    reason_title: str = "",
+    reason_body_html: str = "",
 ) -> Notification | None:
     """Create a Notification. Skips self-notification and respects notify_level."""
     # Deleted accounts are inactive; their inbox was erased and must not refill.
@@ -53,7 +55,13 @@ def notify(
         return None
     if _suppressed_by_notify_level(recipient, community, verb):
         return None
-    kwargs = {"recipient": recipient, "actor": actor, "verb": verb}
+    kwargs = {
+        "recipient": recipient,
+        "actor": actor,
+        "verb": verb,
+        "reason_title": reason_title,
+        "reason_body_html": reason_body_html,
+    }
     if target is not None:
         kwargs["target_ct"] = ContentType.objects.get_for_model(target.__class__)
         kwargs["target_id"] = target.pk

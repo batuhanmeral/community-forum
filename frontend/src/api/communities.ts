@@ -63,6 +63,7 @@ export interface UpdateCommunityPayload {
   is_nsfw?: boolean;
   requires_approval?: boolean;
   allow_self_user_flair?: boolean;
+  require_removal_reason?: boolean;
   avatar?: File | null;
   banned_keywords?: string;
 }
@@ -82,6 +83,8 @@ export async function updateCommunity(
       form.append('banned_keywords', payload.banned_keywords);
     if (payload.allow_self_user_flair !== undefined)
       form.append('allow_self_user_flair', String(payload.allow_self_user_flair));
+    if (payload.require_removal_reason !== undefined)
+      form.append('require_removal_reason', String(payload.require_removal_reason));
     form.append('avatar', payload.avatar);
     const res = await api.patch<Community>(`/communities/${slug}/`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },

@@ -32,6 +32,8 @@ import { SaveButton } from '@/components/saves/SaveButton';
 import { ShareButton } from '@/components/posts/ShareButton';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
+import { RemovalReasonModal } from '@/components/moderation/RemovalReasonModal';
+import type { RemovalChoice } from '@/api/moderation';
 import { PendingPostActions } from '@/components/moderation/PendingPostActions';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import type { VoteValue } from '@/api/votes';
@@ -52,6 +54,7 @@ export function PostDetailPage() {
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
 
   const [myRole, setMyRole] = useState<CommunityRole | null>(null);
+  const [requireReason, setRequireReason] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -77,7 +80,9 @@ export function PostDetailPage() {
         if (isAuthed) {
           getCommunity(p.community)
             .then((c) => {
-              if (!cancelled) setMyRole(c.my_role);
+              if (cancelled) return;
+              setMyRole(c.my_role);
+              setRequireReason(Boolean(c.require_removal_reason));
             })
             .catch(() => undefined);
         }
@@ -93,10 +98,12 @@ export function PostDetailPage() {
     };
   }, [id, isAuthed]);
 
-  async function handleDelete() {
+  async function handleDelete(choice?: RemovalChoice) {
     if (!post) return;
-    await deletePost(post.id);
+    await deletePost(post.id, choice);
     navigate(`/c/${post.community}`, { replace: true });
+  }
+
   async function handleSpoilerToggle() {
     if (!post) return;
     const res = await setPostSpoiler(post.id, !post.is_spoiler);
@@ -112,6 +119,9 @@ export function PostDetailPage() {
       setPost({ ...post, is_pinned: res.is_pinned });
     } finally {
       setStickyBusy(false);
+    }
+  }
+
   async function handleAcceptToggle(commentId: number, accepted: boolean): Promise<number | null> {
     if (!post) return null;
     setQaError(null);
@@ -396,6 +406,8 @@ export function PostDetailPage() {
         isModerator={isMod}
         acceptedId={post.accepted_comment}
         onAcceptToggle={post.is_question && (isAuthor || isMod) ? handleAcceptToggle : undefined}
+        communitySlug={post.community}
+        requireRemovalReason={requireReason}
       />
       {qaError && (
         <p role="alert" className="text-sm text-[var(--color-danger)]">
@@ -430,6 +442,16 @@ export function PostDetailPage() {
           />
         </label>
       </Modal>
+
+      {isMod && !isAuthor ? (
+        <RemovalReasonModal
+          open={confirmDelete}
+          slug={post.community}
+          required={requireReason}
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={handleDelete}
+        />
+      ) : (
       <Modal
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
@@ -439,7 +461,7 @@ export function PostDetailPage() {
             <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
               {t('common.cancel')}
             </Button>
-            <Button variant="danger" onClick={handleDelete}>
+            <Button variant="danger" onClick={() => void handleDelete()}>
               {t('common.delete')}
             </Button>
           </>
@@ -449,6 +471,7 @@ export function PostDetailPage() {
           {t('postPage.deleteBody')}
         </p>
       </Modal>
+      )}
 
       <ReportModal
         open={reporting}

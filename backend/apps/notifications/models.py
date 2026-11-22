@@ -15,6 +15,7 @@ class Notification(models.Model):
         ANSWER_ACCEPTED = "answer_accepted", "Answer accepted"
         BOUNTY_AWARDED = "bounty_awarded", "Bounty awarded"
         BOUNTY_REFUNDED = "bounty_refunded", "Bounty refunded"
+        REMOVAL = "removal", "Removal"
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -34,6 +35,9 @@ class Notification(models.Model):
     target = GenericForeignKey("target_ct", "target_id")
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
+    # Removal notices carry the (sanitized) reason shown to the content owner.
+    reason_title = models.CharField(max_length=60, blank=True, default="")
+    reason_body_html = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ("-created_at",)

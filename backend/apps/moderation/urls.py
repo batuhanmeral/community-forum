@@ -6,6 +6,8 @@ from .views import (
     CommunityReportListView,
     MembershipRoleView,
     ModLogView,
+    RemovalReasonDetailView,
+    RemovalReasonListCreateView,
     ReportCreateView,
     ReportDismissView,
     ReportResolveView,
@@ -47,5 +49,15 @@ urlpatterns = [
         "communities/<slug:slug>/mod/log/",
         ModLogView.as_view(),
         name="community-mod-log",
+    ),
+    path(
+        "communities/<slug:slug>/mod/removal-reasons/",
+        RemovalReasonListCreateView.as_view(),
+        name="community-mod-removal-reasons",
+    ),
+    path(
+        "communities/<slug:slug>/mod/removal-reasons/<int:pk>/",
+        RemovalReasonDetailView.as_view(),
+        name="community-mod-removal-reason",
     ),
 ]

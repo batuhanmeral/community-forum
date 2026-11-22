@@ -166,6 +166,12 @@ export function InboxPage() {
                   <p className={cn('text-sm leading-snug', unread ? 'text-[var(--color-text)]' : 'text-[var(--color-text-soft)]')}>
                     {fmt.text}
                   </p>
+                  {fmt.detailHtml && (
+                    <div
+                      className="prose-body mt-1 text-xs text-[var(--color-text-muted)]"
+                      dangerouslySetInnerHTML={{ __html: fmt.detailHtml }}
+                    />
+                  )}
                   <p className="font-mono mt-0.5 text-[11px] text-[var(--color-text-dim)]">
                     {timeAgo(n.created_at)}
                   </p>

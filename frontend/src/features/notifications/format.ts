@@ -7,6 +7,8 @@ export interface FormattedNotification {
   kind: NotificationKind;
   text: string;
   to: string | null;
+  /** Server-sanitized HTML (removal reason body). */
+  detailHtml?: string;
 }
 
 function targetKey(targetType: Notification['target_type']): string {
@@ -38,6 +40,16 @@ export function formatNotification(n: Notification, t: TFunction): FormattedNoti
       return { kind: 'bounty', text: t('notifications.bountyAwarded'), to };
     case 'bounty_refunded':
       return { kind: 'bounty', text: t('notifications.bountyRefunded'), to };
+    case 'removal':
+      return {
+        kind: 'mod',
+        text: t('notifications.removal', {
+          target: t(targetKey(n.target_type)),
+          reason: n.reason_title ?? '',
+        }),
+        to,
+        detailHtml: n.reason_body_html || undefined,
+      };
     default:
       return { kind: 'other', text: t('notifications.other', { actor }), to };
   }

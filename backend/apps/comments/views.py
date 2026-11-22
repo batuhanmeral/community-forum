@@ -102,8 +102,16 @@ class PostCommentListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
         return self._post
 
     def get_queryset(self):
-        qs = _base_comment_qs(
-            _annotate_score(Comment.objects.filter(post=self.get_post())), self.request.user
+        post = self.get_post()
+        qs = _base_comment_qs(_annotate_score(Comment.objects.filter(post=post)), self.request.user)
+        sort = self.request.query_params.get("sort", "best")
+        qs = _apply_comment_sort(qs, sort)
+        # The accepted answer is pinned first whatever the sort, and appears once; a removed or
+        # deleted one keeps its place in the thread instead of a pinned "[deleted]" stub.
+        accepted = Case(
+            When(pk=post.accepted_comment_id, deleted_at__isnull=True, then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
         )
         return qs.annotate(_accepted=accepted).order_by("-_accepted", *qs.query.order_by)
 
@@ -206,20 +214,24 @@ class CommentDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIVie
     def perform_destroy(self, instance):
         if instance.deleted_at is not None:
             return
+        from apps.moderation.models import ModAction
+        from apps.moderation.services import log_mod_action, notify_removal, parse_removal
+
+        by_moderator = instance.author_id != self.request.user.id
+        community = instance.post.community
+        reason = parse_removal(self.request, community) if by_moderator else None
         instance.deleted_at = timezone.now()
         instance.deleted_by = self.request.user
         instance.save(update_fields=["deleted_at", "deleted_by"])
-        if instance.author_id != self.request.user.id:
-            from apps.moderation.models import ModAction
-            from apps.moderation.services import log_mod_action
-
+        if by_moderator:
             log_mod_action(
-                instance.post.community,
+                community,
                 actor=self.request.user,
                 action=ModAction.Action.COMMENT_REMOVE,
                 target=instance,
+                reason=reason,
             )
-            notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
+            notify_removal(instance.author, self.request.user, instance, reason)
 
 
 class CommentRevisionListView(generics.ListAPIView):

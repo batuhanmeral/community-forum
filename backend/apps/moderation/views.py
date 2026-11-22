@@ -10,6 +10,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.throttling import WriteThrottleMixin
 from apps.communities.models import Community, Membership
 from apps.communities.services import (
     can_assign_role,
@@ -25,6 +26,7 @@ from .serializers import (
     BannedMemberSerializer,
     MembershipRoleSerializer,
     ModActionSerializer,
+    RemovalReasonSerializer,
     ReportCreateSerializer,
     ReportSerializer,
 )
@@ -289,3 +291,37 @@ class ModLogView(_CommunityModView, generics.ListAPIView):
             .select_related("actor", "content_type")
             .order_by("-created_at")
         )
+
+
+class RemovalReasonListCreateView(
+    WriteThrottleMixin, _CommunityModView, generics.ListCreateAPIView
+):
+    serializer_class = RemovalReasonSerializer
+    pagination_class = None
+    throttle_scope = "write"
+    MAX_PER_COMMUNITY = 25
+
+    def get_queryset(self):
+        return self.get_community().removal_reasons.all()
+
+    def perform_create(self, serializer):
+        from django.db import transaction
+
+        with transaction.atomic():
+            # Lock the community row so concurrent creates cannot overshoot the cap.
+            community = Community.objects.select_for_update().get(pk=self.get_community().pk)
+            if community.removal_reasons.count() >= self.MAX_PER_COMMUNITY:
+                raise ValidationError(
+                    f"A community can have at most {self.MAX_PER_COMMUNITY} removal reasons."
+                )
+            serializer.save(community=community)
+
+
+class RemovalReasonDetailView(
+    WriteThrottleMixin, _CommunityModView, generics.RetrieveUpdateDestroyAPIView
+):
+    serializer_class = RemovalReasonSerializer
+    throttle_scope = "write"
+
+    def get_queryset(self):
+        return self.get_community().removal_reasons.all()

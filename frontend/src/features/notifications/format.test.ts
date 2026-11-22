@@ -99,6 +99,20 @@ describe('formatNotification', () => {
       'A moderator acted on your content',
     );
   });
+
+  it('shows the removal reason title and body', () => {
+    const n = make({
+      verb: 'removal',
+      target_type: 'post',
+      link: '/posts/9',
+      reason_title: 'Spam',
+      reason_body_html: '<p>No spam</p>',
+    });
+    const f = formatNotification(n);
+    expect(f.text).toBe('A moderator removed your post: Spam');
+    expect(f.detailHtml).toBe('<p>No spam</p>');
+    expect(formatNotification(n, tr).text).toContain('Spam');
+  });
 });
 
 describe('formatNotification Q&A verbs', () => {

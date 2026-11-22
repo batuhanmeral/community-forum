@@ -19,6 +19,7 @@ class Community(models.Model):
     requires_approval = models.BooleanField(default=False)
     qa_enabled = models.BooleanField(default=True)
     allow_self_user_flair = models.BooleanField(default=False)
+    require_removal_reason = models.BooleanField(default=False)
     # AutoMod: newline-separated keywords; matching posts are held for mod approval.
     banned_keywords = models.CharField(max_length=2000, blank=True, default="")
     creator = models.ForeignKey(
