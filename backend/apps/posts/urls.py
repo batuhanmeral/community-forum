@@ -5,6 +5,8 @@ from .views import (
     ApprovalQueueView,
     CommunityPostListCreateView,
     PostApprovalView,
+    PostBountyView,
+    PostCrosspostView,
     PostDetailView,
     PostRevisionListView,
     PostSpoilerView,

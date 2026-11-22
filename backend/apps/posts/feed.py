@@ -1,10 +1,10 @@
-from django.db.models import Q
 from rest_framework import generics, permissions
 
 from apps.communities.services import joined_community_ids
 
 from .models import Post
 from .serializers import PostSerializer
+from .services import nsfw_q
 from .views import _annotate_score, _apply_sort, _apply_time_window, _base_post_qs
 
 

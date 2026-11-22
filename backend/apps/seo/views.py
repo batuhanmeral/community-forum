@@ -52,7 +52,10 @@ def _render(request, *, path: str, title: str, description: str, image=None) -> 
 @cache_page(CACHE_SECONDS)
 def post_og(request, pk: int):
     post = get_object_or_404(
-        Post.objects.select_related("community"), pk=pk, is_approved=True, deleted_at__isnull=True
+        Post.objects.select_related("community", "crosspost_parent__community"),
+        pk=pk,
+        is_approved=True,
+        deleted_at__isnull=True,
     )
     description = post.body or f"Posted in c/{post.community.slug} on {SITE_NAME}"
     if post.is_nsfw or post.community.is_nsfw:
@@ -62,6 +65,14 @@ def post_og(request, pk: int):
             path=f"/posts/{post.pk}",
             title=f"NSFW post in c/{post.community.slug}",
             description="This post is marked NSFW.",
+        )
+    if effective_spoiler(post):
+        # The title and body usually are the spoiler, so crawlers get neither, nor the image.
+        return _render(
+            request,
+            path=f"/posts/{post.pk}",
+            title=f"Spoiler post in c/{post.community.slug}",
+            description="This post is marked as a spoiler.",
         )
     return _render(
         request,

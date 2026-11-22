@@ -88,6 +88,7 @@ const post = (id: number): Post => ({
   url: '',
   image: null,
   is_nsfw: false,
+  crosspost_from: null, is_spoiler: false, is_question: false, accepted_comment: null, bounty_amount: 0, bounty_expires_at: null, bounty_status: '',
   is_pinned: false,
   is_approved: true,
   score: 0,

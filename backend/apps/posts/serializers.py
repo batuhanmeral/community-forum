@@ -6,6 +6,7 @@ from apps.communities.serializers import FlairSerializer
 from apps.polls.serializers import PollCreateInputSerializer, PollSerializer
 
 from .models import Post, PostRevision
+from .services import effective_nsfw, effective_spoiler, root_available
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
@@ -39,6 +40,7 @@ class PostSerializer(serializers.ModelSerializer):
     poll = serializers.SerializerMethodField()
     # Write-only payload used when kind='poll'
     poll_input = PollCreateInputSerializer(write_only=True, required=False)
+    crosspost_from = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -63,6 +65,7 @@ class PostSerializer(serializers.ModelSerializer):
             "bounty_amount",
             "bounty_expires_at",
             "bounty_status",
+            "crosspost_from",
             "is_pinned",
             "is_approved",
             "score",
@@ -102,6 +105,13 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_body_html(self, obj: Post) -> str:
         return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"
+    def get_crosspost_from(self, obj: Post):
+        root = obj.crosspost_parent
+        if root is None:
+            return None
+        if not root_available(root):
+            return {"id": root.pk, "community": None, "is_deleted": True}
+        return {"id": root.pk, "community": root.community.slug, "is_deleted": False}
 
     def get_is_deleted(self, obj: Post) -> bool:
         return obj.deleted_at is not None
@@ -159,6 +169,8 @@ class PostSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"image": "Image is only allowed on image posts."})
         if "poll_input" in attrs:
             raise serializers.ValidationError({"poll_input": "Polls cannot be edited."})
+        if self.instance.crosspost_parent_id and {"body", "url", "image"} & set(attrs):
+            raise serializers.ValidationError("A crosspost's content cannot be changed.")
 
     def validate(self, attrs):
         if self.instance is not None:
@@ -218,11 +230,25 @@ class PostSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["body"] = _mask_body(instance)
-        # Posts made before their community was flagged NSFW still carry is_nsfw=False.
-        data["is_nsfw"] = data["is_nsfw"] or instance.community.is_nsfw
+        # Posts made before their community (or a crosspost's original) was flagged NSFW or
+        # spoiler still carry the old flags.
+        data["is_nsfw"] = effective_nsfw(instance)
+        data["is_spoiler"] = effective_spoiler(instance)
         if instance.deleted_at is not None:
             # Removed content must not stay reachable through its link, media or poll.
             data.update(url="", image=None, poll=None)
+        elif instance.crosspost_parent is not None and not root_available(
+            instance.crosspost_parent
+        ):
+            # The copy was taken from a post that is gone or held; none of it may stay readable.
+            data.update(
+                title="[deleted]",
+                body="[deleted]",
+                body_html="<p>[deleted]</p>",
+                url="",
+                image=None,
+                poll=None,
+            )
         return data
 
     def validate_kind(self, value):

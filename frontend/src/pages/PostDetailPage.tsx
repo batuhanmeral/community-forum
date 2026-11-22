@@ -25,6 +25,7 @@ import { deletedBodyKey } from '@/lib/deletedBody';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { NsfwReveal } from '@/components/posts/NsfwReveal';
+import { CrosspostButton } from '@/components/posts/CrosspostButton';
 import { PollCard } from '@/components/posts/PollCard';
 import { SaveButton } from '@/components/saves/SaveButton';
 import { ShareButton } from '@/components/posts/ShareButton';
@@ -215,6 +216,18 @@ export function PostDetailPage() {
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(post.created_at)}</span>
+          {post.crosspost_from && (
+            <>
+              <span className="text-[var(--color-text-dim)]">·</span>
+              {post.crosspost_from.community ? (
+                <Link to={`/posts/${post.crosspost_from.id}`} className="hover:underline">
+                  {t('crosspost.from', { community: post.crosspost_from.community })}
+                </Link>
+              ) : (
+                <span className="italic">{t('crosspost.fromDeleted')}</span>
+              )}
+            </>
+          )}
           {post.edited_at &&
             (!post.is_deleted && (isAuthor || isMod) ? (
               <button type="button" onClick={() => setHistoryOpen(true)} className="italic hover:underline">
@@ -328,6 +341,9 @@ export function PostDetailPage() {
                 onChange={(saved) => setPost({ ...post, is_saved: saved })}
               />
               <div className="ml-auto flex flex-wrap items-center gap-2">
+                {isAuthed && post.is_approved && !post.is_deleted && post.kind !== 'poll' && (
+                  <CrosspostButton postId={post.id} title={post.title} />
+                )}
                 {isAuthor && post.is_question && !post.bounty_status && !post.accepted_comment && (
                   <Button variant="secondary" size="sm" onClick={() => setBountyOpen(true)}>
                     {t('qa.offerBounty')}

@@ -81,6 +81,17 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
               {post.flair_detail.name}
             </span>
           )}
+          {post.crosspost_from && (
+            <span className="relative z-10 text-[var(--color-text-muted)]">
+              {post.crosspost_from.community ? (
+                <Link to={`/posts/${post.crosspost_from.id}`} className="hover:text-[var(--color-link)]">
+                  {t('crosspost.from', { community: post.crosspost_from.community })}
+                </Link>
+              ) : (
+                t('crosspost.fromDeleted')
+              )}
+            </span>
+          )}
           {post.kind === 'poll' && <Flair kind="discussion">{t('post.kind_poll')}</Flair>}
           {post.kind === 'image' && <Flair kind="showcase">{t('post.kind_image')}</Flair>}
           {post.kind === 'link' && <Flair kind="news">{t('post.kind_link')}</Flair>}
