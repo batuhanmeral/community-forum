@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.http import JsonResponse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
@@ -22,10 +23,12 @@ from apps.social.services import with_social_annotations
 
 from .auth_cookie import clear_refresh_cookie, refresh_from_cookie, with_refresh_cookie
 from .emails import send_password_reset_email, send_verification_email
+from .models import MfaDevice, MfaRecoveryCode
 from .serializers import (
     AccountDeleteSerializer,
     ChangePasswordSerializer,
     EmailVerifySerializer,
+    MfaAwareTokenObtainPairSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     PublicUserSerializer,
@@ -45,6 +48,7 @@ User = get_user_model()
 
 
 class LoginView(TokenObtainPairView):
+    serializer_class = MfaAwareTokenObtainPairSerializer
     throttle_scope = "auth"
     # JSON only: a cross-site HTML form can't send it, so no other site can plant its session cookie here.
     parser_classes = (JSONParser,)
@@ -187,7 +191,7 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         # The old pair just became invalid; hand this session a fresh one.
-        refresh = RefreshToken.for_user(user)
+        refresh = NexusRefreshToken.for_user(user)
         return with_refresh_cookie(
             Response({"access": str(refresh.access_token), "refresh": str(refresh)})
         )
@@ -265,3 +269,197 @@ class UserProfileView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return with_social_annotations(User.objects.filter(is_active=True), self.request.user)
+
+
+# ── two-factor authentication ─────────────────────────────────────────────────
+
+MFA_GENERIC_FAILURE = {"detail": "Invalid or expired verification."}
+
+
+def _mfa_unavailable() -> Response:
+    return Response(
+        {"detail": "Two-factor authentication is not available on this server."},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
+def _client_ip(request) -> str | None:
+    # DRF resolves this through NUM_PROXIES, so a spoofed X-Forwarded-For is not trusted.
+    from rest_framework.throttling import BaseThrottle
+
+    return BaseThrottle().get_ident(request) or None
+
+
+def _session_response(user, **extra) -> Response:
+    """A fresh access token plus the refresh cookie, like a normal login."""
+    refresh = NexusRefreshToken.for_user(user)
+    data = {"access": str(refresh.access_token), "refresh": str(refresh), **extra}
+    return with_refresh_cookie(Response(data))
+
+
+class MfaVerifyView(APIView):
+    """Second login step: exchange the mfa_token plus a TOTP or recovery code for a session.
+
+    Every problem with the token or the code answers the same 401 body, so nothing tells an
+    attacker which part was wrong. A locked-out user gets 429.
+    """
+
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = ()
+    parser_classes = (JSONParser,)
+    throttle_scope = "mfa"
+
+    def post(self, request):
+        from . import mfa
+
+        generic = Response(MFA_GENERIC_FAILURE, status=status.HTTP_401_UNAUTHORIZED)
+        token = request.data.get("mfa_token") if hasattr(request.data, "get") else None
+        code = request.data.get("code") if hasattr(request.data, "get") else None
+        if not isinstance(token, str) or not isinstance(code, str):
+            return generic
+        challenge = mfa.load_challenge(token)
+        if challenge is None:
+            return generic
+        # Claim an attempt first (atomic), so parallel requests cannot exceed the per-token cap.
+        if not mfa.reserve_attempt(challenge):
+            return generic
+        user = challenge.user
+        method = mfa.verify_second_factor(user, code, ip=_client_ip(request), kind="verify")
+        if method is None:
+            return generic
+        if not mfa.consume_challenge(challenge):
+            return generic  # lost a race against another use of the same challenge
+        extra = (
+            {"recovery_codes_remaining": mfa.recovery_codes_remaining(user)}
+            if method == "recovery"
+            else {}
+        )
+        return _session_response(user, **extra)
+
+
+class _MfaManageView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "auth"
+    parser_classes = (JSONParser,)
+
+    def _check_password(self, request):
+        password = request.data.get("password")
+        if not isinstance(password, str) or not request.user.check_password(password):
+            raise ValidationError({"password": ["Password is incorrect."]})
+
+    def _check_code(self, request) -> None:
+        from . import mfa
+
+        code = request.data.get("code")
+        method = (
+            mfa.verify_second_factor(request.user, code, ip=_client_ip(request), kind="manage")
+            if isinstance(code, str)
+            else None
+        )
+        if method is None:
+            raise ValidationError({"code": ["Invalid code."]})
+
+    def dispatch(self, request, *args, **kwargs):
+        from . import mfa
+
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except mfa.MfaUnavailable:
+            return _mfa_unavailable()
+
+
+class MfaStatusView(_MfaManageView):
+    def get(self, request):
+        from . import mfa
+
+        enabled = MfaDevice.objects.filter(user=request.user, confirmed_at__isnull=False).exists()
+        return Response(
+            {
+                "available": mfa.mfa_available(),
+                "enabled": enabled,
+                "recovery_codes_remaining": mfa.recovery_codes_remaining(request.user)
+                if enabled
+                else 0,
+            }
+        )
+
+
+class MfaSetupView(_MfaManageView):
+    """Start enrolment: a pending secret, shown once as a URI/QR. Needs the password."""
+
+    def post(self, request):
+        from . import mfa
+
+        if not mfa.mfa_available():
+            return _mfa_unavailable()
+        self._check_password(request)
+        if MfaDevice.objects.filter(user=request.user, confirmed_at__isnull=False).exists():
+            return Response(
+                {"detail": "Two-factor authentication is already enabled."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        secret = mfa.new_secret()
+        MfaDevice.objects.update_or_create(
+            user=request.user,
+            defaults={
+                "secret_encrypted": mfa.encrypt_secret(secret),
+                "confirmed_at": None,
+                "last_used_step": 0,
+            },
+        )
+        uri = mfa.provisioning_uri(request.user.username, secret)
+        return Response({"secret": secret, "otpauth_uri": uri, "qr_data_uri": mfa.qr_data_uri(uri)})
+
+
+class MfaConfirmView(_MfaManageView):
+    """Finish enrolment with the first code; hands out the recovery codes once."""
+
+    def post(self, request):
+        from . import mfa
+
+        if not mfa.mfa_available():
+            return _mfa_unavailable()
+        device = MfaDevice.objects.filter(user=request.user, confirmed_at__isnull=True).first()
+        code = request.data.get("code")
+        if device is None or not isinstance(code, str):
+            raise ValidationError({"code": ["Start the setup first."]})
+        secret = mfa.decrypt_secret(device.secret_encrypted)
+
+        def check():
+            digits = mfa.normalize_totp(code)
+            step = mfa.matching_step(secret, digits) if digits else None
+            return "totp" if step is not None and mfa.consume_step(device, step) else None
+
+        if mfa.guarded_attempt(request.user, _client_ip(request), "confirm", check) is None:
+            raise ValidationError({"code": ["Invalid code."]})
+        MfaDevice.objects.filter(pk=device.pk).update(confirmed_at=timezone.now())
+        codes = mfa.replace_recovery_codes(request.user)
+        mfa.revoke_all_sessions(request.user)
+        return _session_response(request.user, recovery_codes=codes)
+
+
+class MfaDisableView(_MfaManageView):
+    def post(self, request):
+        from . import mfa
+
+        self._check_password(request)
+        self._check_code(request)
+        MfaDevice.objects.filter(user=request.user).delete()
+        MfaRecoveryCode.objects.filter(user=request.user).delete()
+        mfa.revoke_all_sessions(request.user)
+        return _session_response(request.user)
+
+
+class MfaRecoveryCodesView(_MfaManageView):
+    """Replace every recovery code. Needs the password and a current code."""
+
+    def post(self, request):
+        from . import mfa
+
+        if not MfaDevice.objects.filter(user=request.user, confirmed_at__isnull=False).exists():
+            raise ValidationError({"detail": ["Two-factor authentication is not enabled."]})
+        self._check_password(request)
+        self._check_code(request)
+        codes = mfa.replace_recovery_codes(request.user)
+        mfa.revoke_all_sessions(request.user)
+        return _session_response(request.user, recovery_codes=codes)

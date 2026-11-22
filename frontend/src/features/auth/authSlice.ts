@@ -40,6 +40,11 @@ const authSlice = createSlice({
       state.status = 'loading';
       state.error = null;
     },
+    /** Back to a quiet form, e.g. between the password step and the second factor. */
+    authIdle(state) {
+      state.status = 'idle';
+      state.error = null;
+    },
     authFailure(state, action: PayloadAction<string>) {
       state.status = 'error';
       state.error = action.payload;
@@ -75,6 +80,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { authStart, authFailure, setAccessToken, sessionChanged, setUser, logout } =
+export const { authStart, authIdle, authFailure, setAccessToken, sessionChanged, setUser, logout } =
   authSlice.actions;
 export default authSlice.reducer;

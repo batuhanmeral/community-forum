@@ -8,6 +8,12 @@ from .views import (
     LoginView,
     LogoutView,
     MeView,
+    MfaConfirmView,
+    MfaDisableView,
+    MfaRecoveryCodesView,
+    MfaSetupView,
+    MfaStatusView,
+    MfaVerifyView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     RefreshView,
@@ -20,6 +26,7 @@ from .views import (
 auth_urlpatterns = [
     path("register/", RegisterView.as_view(), name="auth-register"),
     path("login/", LoginView.as_view(), name="auth-login"),
+    path("mfa/verify/", MfaVerifyView.as_view(), name="auth-mfa-verify"),
     path("refresh/", RefreshView.as_view(), name="auth-refresh"),
     path("logout/", LogoutView.as_view(), name="auth-logout"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="auth-password-reset"),
@@ -38,6 +45,11 @@ auth_urlpatterns = [
 
 users_urlpatterns = [
     path("me/", MeView.as_view(), name="users-me"),
+    path("me/mfa/", MfaStatusView.as_view(), name="users-mfa"),
+    path("me/mfa/setup/", MfaSetupView.as_view(), name="users-mfa-setup"),
+    path("me/mfa/confirm/", MfaConfirmView.as_view(), name="users-mfa-confirm"),
+    path("me/mfa/disable/", MfaDisableView.as_view(), name="users-mfa-disable"),
+    path("me/mfa/recovery-codes/", MfaRecoveryCodesView.as_view(), name="users-mfa-recovery-codes"),
     path("me/password/", ChangePasswordView.as_view(), name="users-change-password"),
     path("me/export/", AccountExportView.as_view(), name="users-export"),
     path("me/unread-counts/", UnreadCountsView.as_view(), name="users-unread-counts"),

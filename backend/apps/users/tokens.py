@@ -1,4 +1,7 @@
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from rest_framework_simplejwt.tokens import RefreshToken
+
+AUTH_GENERATION_CLAIM = "auth_gen"
 
 
 class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
@@ -9,3 +12,13 @@ class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
 
 
 email_verification_token = EmailVerificationTokenGenerator()
+
+
+class NexusRefreshToken(RefreshToken):
+    """Refresh token that records the user's auth generation (access tokens inherit the claim)."""
+
+    @classmethod
+    def for_user(cls, user):
+        token = super().for_user(user)
+        token[AUTH_GENERATION_CLAIM] = user.auth_generation
+        return token

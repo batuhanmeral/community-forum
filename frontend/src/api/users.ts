@@ -108,3 +108,51 @@ export async function getUnreadCounts(): Promise<UnreadCounts> {
   const res = await api.get<UnreadCounts>('/users/me/unread-counts/');
   return res.data;
 }
+
+export interface MfaStatus {
+  available: boolean;
+  enabled: boolean;
+  recovery_codes_remaining: number;
+}
+
+export interface MfaSetup {
+  secret: string;
+  otpauth_uri: string;
+  qr_data_uri: string;
+}
+
+export interface MfaSessionResult extends AuthTokens {
+  recovery_codes?: string[];
+}
+
+export async function getMfaStatus(): Promise<MfaStatus> {
+  const res = await api.get<MfaStatus>('/users/me/mfa/');
+  return res.data;
+}
+
+export async function startMfaSetup(password: string): Promise<MfaSetup> {
+  const res = await api.post<MfaSetup>('/users/me/mfa/setup/', { password });
+  return res.data;
+}
+
+/** Turns 2FA on. Every other session is ended, so the answer carries a fresh access token. */
+export async function confirmMfa(code: string): Promise<MfaSessionResult> {
+  const res = await api.post<MfaSessionResult>('/users/me/mfa/confirm/', { code });
+  return res.data;
+}
+
+export async function disableMfa(password: string, code: string): Promise<MfaSessionResult> {
+  const res = await api.post<MfaSessionResult>('/users/me/mfa/disable/', { password, code });
+  return res.data;
+}
+
+export async function regenerateRecoveryCodes(
+  password: string,
+  code: string,
+): Promise<MfaSessionResult> {
+  const res = await api.post<MfaSessionResult>('/users/me/mfa/recovery-codes/', {
+    password,
+    code,
+  });
+  return res.data;
+}

@@ -18,6 +18,11 @@ vi.mock('@/api/users', () => ({
   deleteAccount: vi.fn(),
   downloadAccountExport: vi.fn(),
   updatePreferences: vi.fn(),
+  getMfaStatus: vi.fn().mockResolvedValue({ available: false, enabled: false, recovery_codes_remaining: 0 }),
+  startMfaSetup: vi.fn(),
+  confirmMfa: vi.fn(),
+  disableMfa: vi.fn(),
+  regenerateRecoveryCodes: vi.fn(),
 }));
 vi.mock('@/api/posts', () => ({ listFeedExclusions: vi.fn(), setFeedExclusion: vi.fn() }));
 

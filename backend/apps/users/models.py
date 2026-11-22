@@ -1,3 +1,6 @@
+import uuid
+
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
@@ -31,6 +34,9 @@ class User(AbstractUser):
     # Big so it never runs out; db_default so app instances predating the column can still insert
     # users during a rolling deploy.
     realtime_generation = models.PositiveBigIntegerField(default=0, db_default=0, editable=False)
+    # Embedded in every JWT; bumped when sessions are revoked wholesale (MFA changes) so older
+    # access and refresh tokens stop working at once.
+    auth_generation = models.PositiveBigIntegerField(default=0, db_default=0, editable=False)
     search_vector = SearchVectorField(null=True, blank=True)
 
     class Meta(AbstractUser.Meta):
@@ -83,3 +89,68 @@ class KarmaAdjustment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.reason} {self.amount:+d} for user {self.user_id}"
+class MfaDevice(models.Model):
+    """The user's TOTP secret, encrypted at rest. Pending until `confirmed_at` is set."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mfa_device"
+    )
+    secret_encrypted = models.BinaryField()
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    # Highest TOTP time step already accepted; a code is valid only for a strictly newer step.
+    last_used_step = models.BigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"mfa device of user {self.user_id}"
+
+
+class MfaRecoveryCode(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mfa_recovery_codes"
+    )
+    # Keyed digest used to find the row; the code itself is only stored in `code_hash`.
+    lookup = models.CharField(max_length=32)
+    code_hash = models.CharField(max_length=256)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("user", "lookup"))]
+
+    def __str__(self) -> str:
+        return f"recovery code of user {self.user_id}"
+
+
+class MfaChallenge(models.Model):
+    """One password-verified login waiting for its second factor. Single use, short lived."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mfa_challenges"
+    )
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    # Hash fingerprint of the password at login time: a password change voids the challenge.
+    fingerprint = models.CharField(max_length=64)
+
+    def __str__(self) -> str:
+        return f"mfa challenge {self.pk}"
+
+
+class MfaFailure(models.Model):
+    """A failed second-factor attempt; drives the per-user lockout and the audit trail."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mfa_failures"
+    )
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    kind = models.CharField(max_length=16)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("user", "created"))]
+
+    def __str__(self) -> str:
+        return f"mfa {self.kind} failure of user {self.user_id}"
