@@ -33,6 +33,7 @@ import { FeedLink } from '@/components/ui/FeedLink';
 import { PostSortTabs } from '@/components/posts/PostSortTabs';
 import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
 import { CreatePostLink } from '@/components/posts/CreatePostLink';
+import { NewModmailModal } from '@/components/modmail/NewModmailModal';
 import { cn } from '@/lib/cn';
 import { ArrowLeft, Bell, BellOff, ShieldCheck } from 'lucide-react';
 
@@ -43,6 +44,7 @@ export function CommunityDetailPage() {
   const dispatch = useAppDispatch();
 
   const [community, setCommunity] = useState<Community | null>(null);
+  const [contactingMods, setContactingMods] = useState(false);
   const [rules, setRules] = useState<CommunityRule[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -160,6 +162,9 @@ export function CommunityDetailPage() {
       }
     } finally {
       setActionLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!isAuthed || !slug) return;
     let cancelled = false;
@@ -272,6 +277,9 @@ export function CommunityDetailPage() {
                 >
                   {feedExcluded ? t('feedFilter.include') : t('feedFilter.exclude')}
                 </Button>
+                <Button variant="secondary" size="md" onClick={() => setContactingMods(true)}>
+                  {t('modmail.contact')}
+                </Button>
                 {community.is_member && (
                   <NotifyDropdown value={notifyLevel} onChange={handleNotifyChange} />
                 )}
@@ -363,6 +371,11 @@ export function CommunityDetailPage() {
           </p>
         )}
       </div>
+      <NewModmailModal
+        open={contactingMods}
+        slug={community.slug}
+        onClose={() => setContactingMods(false)}
+      />
     </div>
   );
 }

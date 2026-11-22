@@ -39,6 +39,7 @@ LOCAL_APPS = [
     "apps.polls",
     "apps.saves",
     "apps.moderation",
+    "apps.modmail",
     "apps.search",
     "apps.realtime",
 ]

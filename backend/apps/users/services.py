@@ -5,6 +5,7 @@ from django.utils import timezone
 from apps.comments.models import Comment
 from apps.communities.models import Community, Membership
 from apps.messaging.models import Message
+from apps.modmail.models import ModmailMessage
 from apps.notifications.models import Notification
 from apps.posts.models import CustomFeed, FeedExclusion, HiddenPost, Post
 from apps.realtime.publish import revoke_sessions
@@ -132,6 +133,19 @@ def export_account(user: User) -> dict:
         "messages_sent": [
             {"conversation_id": m.conversation_id, "body": m.body, "created_at": _iso(m.created_at)}
             for m in Message.objects.filter(sender=user).order_by("id")
+        ],
+        "modmail_messages": [
+            {
+                "thread_id": m.thread_id,
+                "community": m.thread.community.slug,
+                "subject": m.thread.subject,
+                "body": m.body,
+                "is_internal": m.is_internal,
+                "created_at": _iso(m.created),
+            }
+            for m in ModmailMessage.objects.filter(author=user)
+            .select_related("thread__community")
+            .order_by("id")
         ],
         "votes": [
             {"target": v.content_type.model, "target_id": v.object_id, "value": v.value}

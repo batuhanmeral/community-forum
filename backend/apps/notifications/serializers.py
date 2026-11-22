@@ -41,6 +41,8 @@ class NotificationSerializer(serializers.ModelSerializer):
             return f"/posts/{target.post_id}#comment-{target.pk}"
         if model == "message":
             return f"/messages/{target.conversation_id}"
+        if model == "modmailthread":
+            return f"/modmail/{target.pk}"
         if model == "user":
             return f"/u/{target.username}"
         if model == "community":

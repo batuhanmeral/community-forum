@@ -93,6 +93,12 @@ export function ModPage() {
       </div>
 
       {isAdmin && <CommunitySettingsCard community={community} onUpdated={setCommunity} />}
+      <Link
+        to={`/c/${community.slug}/modmail`}
+        className="self-start text-sm text-[var(--color-link)] hover:underline"
+      >
+        {t('modmail.openInbox')}
+      </Link>
       <ApprovalQueueCard slug={community.slug} />
       <ReportQueueCard slug={community.slug} />
       {isAdmin && <AutoModCard community={community} onUpdated={setCommunity} />}
@@ -188,6 +194,7 @@ function ModLogCard({ slug }: { slug: string }) {
                 <Link to={`/posts/${e.object_id}`} className="text-[var(--color-link)] hover:underline">
                   #{e.object_id}
                 </Link>
+              )}
               {e.reason_title && (
                 <span className="text-[var(--color-text-muted)]">— {e.reason_title}</span>
               )}

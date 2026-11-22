@@ -27,6 +27,7 @@ const BADGE_EVENTS = new Set([
   'unread.changed',
   'message.created',
   'message.read',
+  'modmail.updated',
   'resync',
 ]);
 const isBadgeEvent = (event: RealtimeEvent) => BADGE_EVENTS.has(event.type);
@@ -65,6 +66,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
   const navigate = useNavigate();
   const { user, status } = useAppSelector((s) => s.auth);
   const dmUnread = useAppSelector((s) => s.messaging.dmUnreadCount);
+  const modmailUnread = useAppSelector((s) => s.messaging.modmailUnreadCount);
   const notifUnread = useAppSelector((s) => s.notifications.unreadCount);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -235,6 +237,13 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
                     <div className="border-t border-[var(--color-border)]" />
                     <Link to={userPath(user.username)} onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">
                       {t('nav.profile')}
+                    <Link to="/modmail" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">
+                      {t('nav.modmail')}
+                      {modmailUnread > 0 && (
+                        <span className="rounded-full bg-[var(--color-link)] px-1.5 text-[11px] text-[var(--color-on-link)]">
+                          {modmailUnread}
+                        </span>
+                      )}
                     </Link>
                     <Link to="/settings" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">
                       {t('nav.settings')}
