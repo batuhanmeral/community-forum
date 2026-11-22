@@ -40,6 +40,9 @@ export const InboxPage = lazy(() =>
 export const SavedPage = lazy(() =>
   import('@/pages/SavedPage').then((m) => ({ default: m.SavedPage })),
 );
+export const HiddenPostsPage = lazy(() =>
+  import('@/pages/HiddenPostsPage').then((m) => ({ default: m.HiddenPostsPage })),
+);
 export const SearchPage = lazy(() =>
   import('@/pages/SearchPage').then((m) => ({ default: m.SearchPage })),
 );

@@ -8,11 +8,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/authSlice';
 import type { Post } from '@/features/posts/types';
 import { PostCard } from './PostCard';
+import { setUser } from '@/features/auth/authSlice';
+import * as postsApi from '@/api/posts';
 import i18n from '@/i18n';
 import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
 vi.mock('@/api/votes', () => ({ castVote: vi.fn() }));
 vi.mock('@/api/saves', () => ({ toggleSave: vi.fn() }));
+vi.mock('@/api/posts', () => ({ hidePost: vi.fn(), unhidePost: vi.fn() }));
 
 function makePost(overrides: Partial<Post> = {}): Post {
   return {
@@ -261,6 +264,58 @@ describe('PostCard crossposts', () => {
     renderCard(makePost({ crosspost_from: { id: 3, community: null, is_deleted: true } }));
     expect(screen.getByText('[original deleted]')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /crossposted from/ })).toBeNull();
+  });
+});
+
+describe('PostCard hide', () => {
+  function renderAuthed(post: Post) {
+    const store = configureStore({ reducer: { auth: authReducer } });
+    store.dispatch(
+      setUser({
+        id: 1,
+        username: 'me',
+        email: 'm@x.com',
+        email_verified: true,
+        avatar: null,
+        bio: '',
+        country: '',
+        show_nsfw: false,
+        post_karma: 0,
+        comment_karma: 0,
+      }),
+    );
+    return render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <PostCard post={post} />
+        </MemoryRouter>
+      </Provider>,
+    );
+  }
+
+  it('offers hide only to signed-in users', () => {
+    renderCard(makePost());
+    expect(screen.queryByRole('button', { name: 'Hide' })).toBeNull();
+  });
+
+  it('collapses to an undo strip and restores the card on undo', async () => {
+    vi.mocked(postsApi.hidePost).mockResolvedValue();
+    vi.mocked(postsApi.unhidePost).mockResolvedValue();
+    renderAuthed(makePost({ title: 'Hide me' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    expect(postsApi.hidePost).toHaveBeenCalledWith(1);
+    expect(await screen.findByRole('status')).toHaveTextContent('Post hidden');
+    expect(screen.queryByText('Hide me')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(postsApi.unhidePost).toHaveBeenCalledWith(1);
+    expect(await screen.findByText('Hide me')).toBeInTheDocument();
+  });
+
+  it('keeps the card when hiding fails', async () => {
+    vi.mocked(postsApi.hidePost).mockRejectedValue(new Error('x'));
+    renderAuthed(makePost({ title: 'Stay' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    expect(screen.getByText('Stay')).toBeInTheDocument();
   });
 });
 

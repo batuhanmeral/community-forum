@@ -162,3 +162,16 @@ export async function crosspostPost(postId: number, community: string, title?: s
   const res = await api.post<Post>(`/posts/${postId}/crosspost/`, { community, ...(title ? { title } : {}) });
   return res.data;
 }
+
+export async function hidePost(id: number): Promise<void> {
+  await api.post(`/posts/${id}/hide/`);
+}
+
+export async function unhidePost(id: number): Promise<void> {
+  await api.delete(`/posts/${id}/hide/`);
+}
+
+export async function listHiddenPosts(page = 1): Promise<Paginated<Post>> {
+  const res = await api.get<Paginated<Post>>('/users/me/hidden/', { params: { page } });
+  return res.data;
+}

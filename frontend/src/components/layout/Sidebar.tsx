@@ -26,6 +26,7 @@ const globeIcon = (
 const bookmarkIcon = (
   <Bookmark className="h-full w-full" />
 );
+const hiddenIcon = <EyeOff className="h-full w-full" />;
 const settingsIcon = (
   <Settings className="h-full w-full" />
 );
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
 
 const personalItems: NavItem[] = [
   { to: '/saved', label: 'sidebar.saved', icon: bookmarkIcon },
+  { to: '/hidden', label: 'sidebar.hidden', icon: hiddenIcon },
 ];
 
 export function Sidebar() {

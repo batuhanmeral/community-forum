@@ -7,21 +7,42 @@ import { NsfwReveal } from '@/components/posts/NsfwReveal';
 import { VoteCluster } from '@/components/votes/VoteCluster';
 import { SaveButton } from '@/components/saves/SaveButton';
 import { ShareButton } from '@/components/posts/ShareButton';
+import { hidePost, unhidePost } from '@/api/posts';
+import { useAppSelector } from '@/app/hooks';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { deletedBodyKey } from '@/lib/deletedBody';
 import { maskInlineSpoilers } from '@/lib/spoilers';
-import { MessageSquare, Pin } from 'lucide-react';
+import { EyeOff, MessageSquare, Pin } from 'lucide-react';
 
 interface PostCardProps {
   post: Post;
   hideCommunity?: boolean;
+  /** Hides the "hide post" action, e.g. on the hidden-posts list itself. */
+  hideAction?: boolean;
 }
 
-export function PostCard({ post, hideCommunity }: PostCardProps) {
+export function PostCard({ post, hideCommunity, hideAction }: PostCardProps) {
   // Subscribes to language changes so timeAgo() re-renders in the new language.
   const { t } = useTranslation();
+  const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
+  const [hidden, setHidden] = useState(false);
+  const [hideBusy, setHideBusy] = useState(false);
+
+  async function setHiddenState(next: boolean) {
+    if (hideBusy) return;
+    setHideBusy(true);
+    try {
+      await (next ? hidePost(post.id) : unhidePost(post.id));
+      setHidden(next);
+    } catch {
+      // The card stays as it was; the user can try again.
+    } finally {
+      setHideBusy(false);
+    }
+  }
+
   const isPinned = post.is_pinned;
   // Saved deleted posts still reach the card; the API's English body marker is swapped for the reader's language.
   const spoilerMask = t('spoiler.inlineMask');
@@ -33,6 +54,24 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
   const image = post.image && (
     <img src={post.image} alt={post.title} className="max-h-[420px] w-full object-contain" loading="lazy" />
   );
+  if (hidden) {
+    return (
+      <div
+        role="status"
+        className="mb-3 flex items-center justify-between gap-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-1)] px-4 py-3 text-[13px] text-[var(--color-text-muted)]"
+      >
+        <span>{t('hide.hidden')}</span>
+        <button
+          type="button"
+          onClick={() => setHiddenState(false)}
+          disabled={hideBusy}
+          className="font-medium text-[var(--color-link)] hover:underline"
+        >
+          {t('hide.undo')}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <article
@@ -221,6 +260,18 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         <ShareButton postId={post.id} title={post.title} />
 
         <SaveButton target="post" objectId={post.id} initialSaved={post.is_saved} />
+
+        {isAuthed && !hideAction && (
+          <button
+            type="button"
+            onClick={() => setHiddenState(true)}
+            disabled={hideBusy}
+            className={ACTION_BTN_CLASSES}
+          >
+            <EyeOff className="h-[15px] w-[15px]" />
+            {t('hide.action')}
+          </button>
+        )}
       </div>
     </article>
   );
