@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Post } from '@/features/posts/types';
@@ -10,6 +11,7 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { deletedBodyKey } from '@/lib/deletedBody';
+import { maskInlineSpoilers } from '@/lib/spoilers';
 import { MessageSquare, Pin } from 'lucide-react';
 
 interface PostCardProps {
@@ -22,7 +24,12 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
   const { t } = useTranslation();
   const isPinned = post.is_pinned;
   // Saved deleted posts still reach the card; the API's English body marker is swapped for the reader's language.
-  const body = post.is_deleted ? t(deletedBodyKey(post.body)) : post.body;
+  const spoilerMask = t('spoiler.inlineMask');
+  const maskedBody = useMemo(
+    () => maskInlineSpoilers(post.body, spoilerMask),
+    [post.body, spoilerMask],
+  );
+  const body = post.is_deleted ? t(deletedBodyKey(post.body)) : maskedBody;
   const image = post.image && (
     <img src={post.image} alt={post.title} className="max-h-[420px] w-full object-contain" loading="lazy" />
   );
@@ -78,6 +85,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           {post.kind === 'image' && <Flair kind="showcase">{t('post.kind_image')}</Flair>}
           {post.kind === 'link' && <Flair kind="news">{t('post.kind_link')}</Flair>}
           {post.is_nsfw && <Flair kind="news">{t('post.nsfw')}</Flair>}
+          {post.is_spoiler && <Flair kind="news">{t('spoiler.badge')}</Flair>}
           {isPinned && (
             <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-link)]">
               <Pin className="h-3 w-3" />
@@ -98,7 +106,11 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
         </h2>
 
         {/* Body / content */}
-        {post.kind === 'text' && body && (
+        {post.is_spoiler && !post.is_deleted && (post.kind === 'text' || post.kind === 'link') && body && (
+          <p className="mb-2 text-[14px] italic text-[var(--color-text-muted)]">{t('spoiler.cardHidden')}</p>
+        )}
+
+        {post.kind === 'text' && body && !(post.is_spoiler && !post.is_deleted) && (
           <p className="mb-2 line-clamp-3 max-w-[70ch] text-[14px] leading-relaxed text-[var(--color-text-soft)] whitespace-pre-wrap">
             {body}
           </p>
@@ -127,7 +139,7 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
                 {post.title}
               </div>
               <div className="line-clamp-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
-                {body || post.url}
+                {post.is_spoiler && !post.is_deleted ? post.url : body || post.url}
               </div>
             </div>
           </a>
@@ -137,7 +149,13 @@ export function PostCard({ post, hideCommunity }: PostCardProps) {
           <div
             className="mb-2 grid max-h-[420px] place-items-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)]"
           >
-            {post.is_nsfw ? <NsfwReveal>{image}</NsfwReveal> : image}
+            {post.is_nsfw ? (
+              <NsfwReveal>{image}</NsfwReveal>
+            ) : post.is_spoiler ? (
+              <NsfwReveal label={t('spoiler.reveal')}>{image}</NsfwReveal>
+            ) : (
+              image
+            )}
           </div>
         )}
 

@@ -106,3 +106,13 @@ class TestOGNsfw:
         html = api.get(reverse("og:og-post", args=[post.pk])).content.decode()
         assert "OG &lt;Title&gt;" in html
         assert "OG body" in html
+
+
+@pytest.mark.django_db
+def test_inline_spoiler_is_not_in_the_og_description(api, alice, community):
+    post = Post.objects.create(
+        author=alice, community=community, kind="text", title="Plot", body="It was >!the butler!<."
+    )
+    html = api.get(reverse("og:og-post", args=[post.pk])).content.decode()
+    assert "butler" not in html
+    assert '<meta property="og:title" content="Plot">' in html

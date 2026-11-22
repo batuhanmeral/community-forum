@@ -221,3 +221,31 @@ describe('PostCard in Turkish', () => {
     expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
   });
 });
+
+describe('PostCard spoilers', () => {
+  it('masks inline >!spoilers!< in the body preview', () => {
+    renderCard(makePost({ body: 'The butler >!did it\nwith a rope!< in the end. >!Twice!<' }));
+    expect(screen.queryByText(/did it|rope|Twice/)).toBeNull();
+    expect(screen.getByText(/The butler \[spoiler\] in the end\. \[spoiler\]/)).toBeInTheDocument();
+  });
+
+  it('shows the title but hides the body of a spoiler post', () => {
+    renderCard(makePost({ is_spoiler: true, title: 'Ending', body: 'he dies' }));
+    expect(screen.getByText('Ending')).toBeInTheDocument();
+    expect(screen.queryByText('he dies')).toBeNull();
+    expect(screen.getByText('Spoiler: open the post to read it.')).toBeInTheDocument();
+    expect(screen.getByText('Spoiler')).toBeInTheDocument();
+  });
+
+  it('hides a spoiler image behind a reveal button', async () => {
+    renderCard(makePost({ is_spoiler: true, kind: 'image', image: '/x.jpg' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show spoiler' }));
+    expect(screen.queryByRole('button', { name: 'Show spoiler' })).toBeNull();
+  });
+
+  it('shows the body of an ordinary post', () => {
+    renderCard(makePost({ body: 'plain body' }));
+    expect(screen.getByText('plain body')).toBeInTheDocument();
+  });
+});
+

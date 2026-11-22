@@ -7,6 +7,7 @@ from .views import (
     PostApprovalView,
     PostDetailView,
     PostRevisionListView,
+    PostSpoilerView,
     PostStickyView,
     UserPostListView,
 )

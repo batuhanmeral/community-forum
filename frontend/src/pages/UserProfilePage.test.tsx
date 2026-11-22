@@ -166,6 +166,39 @@ describe('UserProfilePage', () => {
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 
+  it('masks inline spoilers in the comment list', async () => {
+    api.getUserProfile.mockResolvedValue(bob);
+    api.getUserComments.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: 8,
+          post: 3,
+          author: 2,
+          author_username: 'bob',
+          author_avatar: null,
+          parent: null,
+          body: 'It was >!the butler!< again',
+          body_html: '',
+          is_deleted: false,
+          is_accepted: false,
+          score: 0,
+          user_vote: null,
+          is_saved: false,
+          created_at: '2026-10-01T00:00:00Z',
+          updated_at: '2026-10-01T00:00:00Z',
+          edited_at: null,
+        },
+      ],
+    });
+    renderProfile(null);
+    await userEvent.click(await screen.findByRole('button', { name: 'Comments' }));
+    expect(await screen.findByText('It was [spoiler] again')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/butler/);
+  });
+
   it('shows a deleted comment body in Turkish in the comment list', async () => {
     await i18n.changeLanguage('tr');
     api.getUserProfile.mockResolvedValue(bob);

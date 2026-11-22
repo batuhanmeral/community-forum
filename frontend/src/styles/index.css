@@ -168,6 +168,25 @@ body {
 .prose-nexus a:hover {
   color: var(--color-link-hover);
 }
+/* >!spoiler!< text: hidden (and not selectable) until activated, see useSpoilers. */
+.prose-nexus .spoiler:not(.spoiler-revealed) {
+  background: var(--color-text-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.prose-nexus .spoiler:not(.spoiler-revealed),
+.prose-nexus .spoiler:not(.spoiler-revealed) * {
+  color: transparent;
+  pointer-events: none;
+}
+.prose-nexus .spoiler:not(.spoiler-revealed) {
+  pointer-events: auto;
+}
+.prose-nexus .spoiler:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
 
 ::-webkit-scrollbar {
   width: 10px;

@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { deletedBodyKey } from '@/lib/deletedBody';
+import { maskInlineSpoilers } from '@/lib/spoilers';
 import { PostCard } from '@/components/posts/PostCard';
 import { blockUser, unblockUser } from '@/api/follow';
 import { FollowButton } from '@/components/follow/FollowButton';
@@ -357,7 +358,9 @@ function ProfileCommentRow({ comment }: { comment: Comment }) {
         </span>
       </div>
       <p className="line-clamp-3 text-sm text-[var(--color-text-soft)] whitespace-pre-wrap">
-        {comment.is_deleted ? t(deletedBodyKey(comment.body)) : comment.body}
+        {comment.is_deleted
+          ? t(deletedBodyKey(comment.body))
+          : maskInlineSpoilers(comment.body, t('spoiler.inlineMask'))}
       </p>
     </Link>
   );

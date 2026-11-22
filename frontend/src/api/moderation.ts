@@ -75,6 +75,8 @@ export async function unbanUser(slug: string, username: string): Promise<void> {
 export type ModLogAction =
   | 'post_pin'
   | 'post_unpin'
+  | 'post_spoiler'
+  | 'post_unspoiler'
   | 'post_approve'
   | 'post_reject'
   | 'post_remove'

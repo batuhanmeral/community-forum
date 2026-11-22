@@ -34,6 +34,7 @@ export interface Post {
   url: string;
   image: string | null;
   is_nsfw: boolean;
+  is_spoiler: boolean;
   is_question: boolean;
   accepted_comment: number | null;
   bounty_amount: number;

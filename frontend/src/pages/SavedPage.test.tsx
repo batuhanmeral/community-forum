@@ -86,3 +86,33 @@ describe('SavedPage in Turkish', () => {
     expect(visibleText()).not.toMatch(/\[(deleted|removed)\]/);
   });
 });
+
+describe('SavedPage previews', () => {
+  it('masks inline spoilers in a saved comment', async () => {
+    const spoilerComment: Comment = {
+      ...removedComment,
+      id: 8,
+      author_username: 'bob',
+      body: 'The ending: >!he was the ghost!< all along.',
+      body_html: '',
+      is_deleted: false,
+    };
+    vi.mocked(savesApi.listSaved).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        { id: 3, target_type: 'comment', object_id: 8, target: spoilerComment, created_at: '2026-10-02T00:00:00Z' },
+      ],
+    });
+    render(
+      <Provider store={configureStore({ reducer: { auth: authReducer } })}>
+        <MemoryRouter>
+          <SavedPage />
+        </MemoryRouter>
+      </Provider>,
+    );
+    expect(await screen.findByText('The ending: [spoiler] all along.')).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/ghost/);
+  });
+});
