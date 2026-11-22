@@ -16,10 +16,10 @@ def _upload(size: tuple[int, int], fmt: str = "PNG") -> SimpleUploadedFile:
 
 
 class TestDownscaleImage:
-    def test_small_image_untouched(self):
-        original = _upload((100, 80))
-        result = downscale_image(original, 512)
-        assert result is original
+    def test_small_image_keeps_its_size_but_is_re_encoded(self):
+        # Re-encoding is what drops embedded metadata (see test_storage for the EXIF cases).
+        result = downscale_image(_upload((100, 80)), 512)
+        assert Image.open(result).size == (100, 80)
 
     def test_aspect_ratio_preserved(self):
         result = downscale_image(_upload((1600, 800)), 400)

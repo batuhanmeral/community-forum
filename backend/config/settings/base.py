@@ -3,6 +3,7 @@ from pathlib import Path
 
 from decouple import Csv, config
 from config.realtime import channel_layers, websocket_origins
+from config.settings.storage import build_media_storage
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -108,6 +109,11 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# User uploads: local disk by default, or an S3-compatible bucket (see config/settings/storage.py).
+STORAGES = {
+    "default": build_media_storage(lambda key, default="": config(key, default=default)),
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

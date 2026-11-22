@@ -36,5 +36,28 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Optional (profile "storage"): an S3-compatible object store for trying STORAGE_BACKEND=s3
+  # locally. SeaweedFS stands in for MinIO because MinIO no longer publishes pullable community
+  # images. Development only: the credentials in docker/seaweedfs-s3.json are fake, anonymous
+  # users may read objects (never list them), and data lives in a throwaway volume.
+  s3:
+    image: chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+    container_name: nexus-s3
+    profiles: ["storage"]
+    command:
+      - server
+      - -dir=/data
+      - -s3
+      - -s3.config=/etc/seaweedfs/s3.json
+      - -s3.port=8333
+      - -master.volumeSizeLimitMB=256
+    ports:
+      - "127.0.0.1:${S3_PORT:-8333}:8333"
+    volumes:
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+      - nexus_s3data:/data
+    restart: unless-stopped
+
 volumes:
   nexus_pgdata:
+  nexus_s3data:

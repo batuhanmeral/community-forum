@@ -13,6 +13,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Four post kinds: text, link, image (with upload validation), and poll
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
 - Member flairs: mods define per-community badges shown beside author names and assign them; admins can let members pick their own (cleared on ban/leave, logged in the mod log)
+- Object storage: uploads can live in an S3-compatible bucket behind a CDN (random immutable keys, metadata-free re-encoded images) with a migration command; local disk stays the default
 - Two-step verification: TOTP authenticator codes plus ten single-use recovery codes. TOTP secrets are encrypted at rest with `MFA_ENCRYPTION_KEY` (feature stays off without it); codes cannot be replayed, failures lock the account for 15 minutes after five tries, and any 2FA change ends the other sessions. Recovery codes keep working across a `SECRET_KEY` rotation as long as the old key is listed in `SECRET_KEY_FALLBACKS`. Without a usable `MFA_ENCRYPTION_KEY`, enrolled users can still log in with a recovery code (never without a factor). A user who lost both device and codes is reset by an operator with `python manage.py reset_mfa --user NAME` (or `--all --yes`), which also ends every session; verify their identity first. The Django admin has its own login and is mounted only when `ADMIN_ENABLED=True` (default off in production); staff with 2FA must enter a code there too. MFA changes bump a token generation, so existing access tokens stop working immediately.
 - Removal reasons: mods keep per-community templates; removing someone's post/comment records the reason in the mod log (title only is shown) and notifies the author; admins can require a reason
 - Modmail: users (including banned ones, max 5 new threads per community per day) message the mod team; a shared moderator inbox with assignment, archive and internal notes that users never see; unread counts and realtime wake-ups
@@ -150,6 +151,36 @@ npm install
 cp .env.example .env          # VITE_API_URL
 npm run dev
 ```
+
+### Object storage (optional)
+
+Uploads (avatars, community icons, post images) go to local disk by default. To use an S3-compatible
+bucket instead, set `STORAGE_BACKEND=s3`, `S3_BUCKET`, the `AWS_*` keys, optionally `S3_ENDPOINT_URL`
+(e.g. Cloudflare R2) and `MEDIA_BASE_URL` (the public CDN or bucket URL images are served from), and
+for the Docker stack also `MEDIA_CDN_ORIGIN` (the same site as one exact `https://host` origin; it is
+added to the CSP `img-src` and nothing else, and the web container refuses a wildcard or path).
+
+- Object keys are random UUIDs (`posts/<uuid>.jpg`), never overwritten, and served with
+  `Cache-Control: public, max-age=86400`. The lifetime is deliberately one day: a file deleted on
+  account erasure or replaced as an avatar can stay on CDN edges for up to that long, so purge the
+  CDN (by URL or prefix) when something must disappear at once. Uploads still pass through the server,
+  which re-encodes every image, animated ones included (size limit, format check, EXIF/XMP/comment
+  metadata removed). The stored `Content-Type` is derived from the generated key's extension, never
+  from what the client declared. `MEDIA_BASE_URL` must be `https` in production.
+- Make the bucket publicly **readable but not listable**: a policy allowing only `s3:GetObject` on
+  `arn:aws:s3:::<bucket>/*` (no `s3:ListBucket`, no public write). Keep the access keys private to the backend.
+- Move existing files with `python manage.py migrate_media_to_s3 [--dry-run]`. It copies each file the
+  database references under the same key, verifies the size, skips what is already there, never
+  overwrites a differing object, and exits non-zero on any problem, so it is safe to re-run.
+- Local trial: `docker compose --profile storage up -d s3` starts SeaweedFS as a development S3 store
+  (fake keys from `docker/seaweedfs-s3.json`; MinIO would be the usual choice but no longer publishes
+  pullable community images). Create the bucket once, then point `.env` at it:
+
+  ```bash
+  STORAGE_BACKEND=s3 S3_BUCKET=nexus-media S3_ENDPOINT_URL=http://127.0.0.1:8333 S3_ADDRESSING_STYLE=path \
+  AWS_ACCESS_KEY_ID=nexus-dev-access AWS_SECRET_ACCESS_KEY=nexus-dev-secret-key AWS_S3_REGION_NAME=us-east-1 \
+  MEDIA_BASE_URL=http://127.0.0.1:8333/nexus-media python -c "import boto3,os; boto3.client('s3', endpoint_url=os.environ['S3_ENDPOINT_URL'], region_name='us-east-1').create_bucket(Bucket='nexus-media')"
+  ```
 
 ### Updating Python dependencies
 

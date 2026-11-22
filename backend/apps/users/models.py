@@ -8,6 +8,8 @@ from django.db import models
 from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
+from apps.common.uploads import UuidUpload
+
 from .validators import username_validator, validate_country_code
 
 
@@ -20,7 +22,7 @@ class User(AbstractUser):
         validators=[username_validator],
         error_messages={"unique": _("A user with that username already exists.")},
     )
-    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    avatar = models.ImageField(upload_to=UuidUpload("avatars"), blank=True, null=True)
     bio = models.CharField(max_length=500, blank=True, default="")
     country = models.CharField(
         max_length=2, blank=True, default="", validators=[validate_country_code]
@@ -89,6 +91,8 @@ class KarmaAdjustment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.reason} {self.amount:+d} for user {self.user_id}"
+
+
 class MfaDevice(models.Model):
     """The user's TOTP secret, encrypted at rest. Pending until `confirmed_at` is set."""
 

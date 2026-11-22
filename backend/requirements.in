@@ -30,6 +30,11 @@ websockets==17.4
 cryptography==50.0.2
 segno==1.6.6
 
+# ─── Object storage (optional S3/R2 backend for user uploads) ─
+# django-storages is the Django file-storage adapter; boto3 is its S3 client.
+django-storages[s3]==1.14.6
+boto3==1.44.9
+
 # ─── Content rendering ────────────────────────
 markdown-it-py==4.2.0
 nh3==0.3.7

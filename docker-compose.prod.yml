@@ -67,6 +67,15 @@ services:
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
       MFA_ISSUER: ${MFA_ISSUER:-Nexus}
       ADMIN_ENABLED: ${ADMIN_ENABLED:-False}
+      # Media storage: filesystem (the nexus_media volume) or s3 (external S3/R2 bucket + CDN).
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-filesystem}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      S3_ADDRESSING_STYLE: ${S3_ADDRESSING_STYLE:-auto}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-}
+      MEDIA_BASE_URL: ${MEDIA_BASE_URL:-}
     volumes:
       - nexus_media:/app/media
     healthcheck:
@@ -142,6 +151,9 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
+    environment:
+      # Exact https origin of the media CDN/bucket allowed in the CSP img-src (empty = same origin).
+      MEDIA_CDN_ORIGIN: ${MEDIA_CDN_ORIGIN:-}
     ports:
       - "${WEB_PORT:-80}:8080"
     volumes:
