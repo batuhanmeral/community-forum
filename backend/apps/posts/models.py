@@ -5,6 +5,7 @@ from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 
 from apps.common.rendered_body import RenderedBodyModel
+from apps.common.uploads import UuidUpload
 from apps.communities.models import Community, Flair
 
 
@@ -41,7 +42,7 @@ class Post(RenderedBodyModel):
     bounty_amount = models.PositiveSmallIntegerField(default=0)
     bounty_expires_at = models.DateTimeField(null=True, blank=True)
     bounty_status = models.CharField(max_length=8, default="", blank=True)
-    image = models.ImageField(upload_to="posts/", blank=True, null=True)
+    image = models.ImageField(upload_to=UuidUpload("posts"), blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     is_spoiler = models.BooleanField(default=False)
     crosspost_parent = models.ForeignKey(

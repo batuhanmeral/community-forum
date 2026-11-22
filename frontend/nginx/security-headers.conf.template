@@ -1,0 +1,2 @@
+# Rendered by the nginx image's envsubst step into /etc/nginx/snippets/security-headers.conf.
+# MEDIA_CDN_ORIGIN is checked by 15-validate-media-cdn-origin.sh first: one exact https origin or empty.

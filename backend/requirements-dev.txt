@@ -13,6 +13,20 @@ asgiref==3.13.0 \
     #   channels-redis
     #   django
     #   django-cors-headers
+boto3==1.44.9 \
+    --hash=sha256:aff889e8ca6f6006f0b5658b712941471d21e4675d6d48421974a20a5a17a918 \
+    --hash=sha256:da4199076833547445a7181e38e833f476808142df95084b2b46c8b2a107aa66
+    # via
+    #   -c requirements.txt
+    #   -r requirements.in
+    #   django-storages
+botocore==1.44.9 \
+    --hash=sha256:1f783e0b31f0053f41f4239b7a7e2e73957f25cdc6b2f45d113f1b575a4db10b \
+    --hash=sha256:6966752d38514a8e457ea062ea171b2b320c55bad23c8ae4f74f88296e00890d
+    # via
+    #   -c requirements.txt
+    #   boto3
+    #   s3transfer
 build==1.6.1 \
     --hash=sha256:51cc11666391ab6f092070437ac747002ff46f3e4113a3622177ee6b488bfc53 \
     --hash=sha256:ecd351a4be9d35a9eaaba244a7687143c9c7d4aea6ac964e7e7ddab20cbcf4e7
@@ -339,6 +353,7 @@ django==6.1.2 \
     #   -r requirements.in
     #   channels
     #   django-cors-headers
+    #   django-storages
     #   django-stubs-ext
     #   django-tasks-db
     #   djangorestframework
@@ -346,6 +361,12 @@ django==6.1.2 \
 django-cors-headers==4.9.0 \
     --hash=sha256:15c7f20727f90044dcee2216a9fd7303741a864865f0c3657e28b7056f61b449 \
     --hash=sha256:fe5d7cb59fdc2c8c646ce84b727ac2bca8912a247e6e68e1fb507372178e59e8
+django-storages==1.14.6 \
+    --hash=sha256:11b7b6200e1cb5ffcd9962bd3673a39c7d6a6109e8096f0e03d46fab3d3aabd9 \
+    --hash=sha256:7a25ce8f4214f69ac9c7ce87e2603887f7ae99326c316bc8d2d75375e09341c9
+    # via
+    #   -c requirements.txt
+    #   -r requirements.in
 django-stubs-ext==6.1.2 \
     --hash=sha256:2142da7fffbbe897ccecf9b4c97e09ea1a2e9291760b0a824b4c402b375ce6f9 \
     --hash=sha256:7334e687ab6dc78a6c3da90ab1ccb0e412efd827ea11de8d3f85adbad948abb1
@@ -387,6 +408,13 @@ iniconfig==2.3.1 \
     --hash=sha256:67f4b9c50da0dedf52af349e7749a80a9057a5031199791b906c3bb3ae878960 \
     --hash=sha256:9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7
     # via pytest
+jmespath==1.1.0 \
+    --hash=sha256:472c87d80f36026ae83c6ddd0f1d05d4e510134ed462851fd5f754c8c3cbb88d \
+    --hash=sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64
+    # via
+    #   -c requirements.txt
+    #   boto3
+    #   botocore
 markdown-it-py==4.2.0 \
     --hash=sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49 \
     --hash=sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
@@ -742,6 +770,12 @@ pytest-django==4.14.0 \
     --hash=sha256:26787dd3f422cfbab8f55b80a776e2edea7a11092cb74e960bef1312515708ef \
     --hash=sha256:c533b08d89cc675efcd5398eea270b34547e35f9a3608e2c9748dd88428ea187
     # via -r requirements-dev.in
+python-dateutil==2.9.0.post0 \
+    --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
+    --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
+    # via
+    #   -c requirements.txt
+    #   botocore
 python-decouple==3.8 \
     --hash=sha256:ba6e2657d4f376ecc46f77a3a615e058d93ba5e465c01bbe57289bfb7cce680f \
     --hash=sha256:d0d45340815b25f4de59c974b855bb38d03151d81b037d9e3f463b0c9f8cbd66
@@ -775,6 +809,12 @@ ruff==0.17.2 \
     --hash=sha256:c555a877f8f41447e318101cfefea9bf12dfa9f82eedf90c376e57e069f917d0 \
     --hash=sha256:c60f93fec7142dba5b8f487f94bf2f6231dae24dc11e4c48648347c8b0720004
     # via -r requirements-dev.in
+s3transfer==0.19.3 \
+    --hash=sha256:24eb7535804306355e31c952a90022bf5b2f9d760f9a11062c7493a217c08553 \
+    --hash=sha256:8326acc3d056d7f7b8a37110c7d2aea41f67e83f6ae79cd3b5fbcca34c726406
+    # via
+    #   -c requirements.txt
+    #   boto3
 segno==1.6.6 \
     --hash=sha256:28c7d081ed0cf935e0411293a465efd4d500704072cdb039778a2ab8736190c7 \
     --hash=sha256:e60933afc4b52137d323a4434c8340e0ce1e58cec71439e46680d4db188f11b3
@@ -787,6 +827,12 @@ sentry-sdk==2.73.0 \
     # via
     #   -c requirements.txt
     #   -r requirements.in
+six==1.17.0 \
+    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
+    --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
+    # via
+    #   -c requirements.txt
+    #   python-dateutil
 sqlparse==0.6.1 \
     --hash=sha256:3be5a72d04c873d690d7c6dedd33d6fae2ef82759881ceec02fc2efd0cba564f \
     --hash=sha256:ca722573f848ff2d30e40ea30f53a104b7dea7635ea9285891263eb2c58fb6e7
@@ -806,6 +852,7 @@ urllib3==2.8.0 \
     --hash=sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63
     # via
     #   -c requirements.txt
+    #   botocore
     #   sentry-sdk
 uvicorn==0.54.0 \
     --hash=sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf \

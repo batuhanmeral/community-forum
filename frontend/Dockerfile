@@ -23,7 +23,16 @@ USER root
 RUN apk upgrade --no-cache
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
+# The CSP is a template so an external media CDN origin can be allowed in img-src (and only there).
+# The image's entrypoint renders it with envsubst, restricted to MEDIA_CDN_* variables, after the
+# validation script has checked the origin. Empty (the default) keeps the CSP at 'self' data: blob:.
+COPY nginx/security-headers.conf.template /etc/nginx/templates/security-headers.conf.template
+COPY nginx/15-validate-media-cdn-origin.sh /docker-entrypoint.d/15-validate-media-cdn-origin.sh
+RUN mkdir -p /etc/nginx/snippets && chown nginx:nginx /etc/nginx/snippets \
+    && chmod 755 /docker-entrypoint.d/15-validate-media-cdn-origin.sh
+ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/snippets \
+    NGINX_ENVSUBST_FILTER=MEDIA_CDN_ \
+    MEDIA_CDN_ORIGIN=
 COPY --from=build /app/dist /usr/share/nginx/html
 
 USER nginx

@@ -5,6 +5,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 
 from apps.common.text_match import normalize_for_match
+from apps.common.uploads import UuidUpload
 
 HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}\Z"
 DEFAULT_FLAIR_COLOR = "#888888"
@@ -14,7 +15,7 @@ class Community(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=500, blank=True, default="")
-    avatar = models.ImageField(upload_to="community_avatars/", blank=True, null=True)
+    avatar = models.ImageField(upload_to=UuidUpload("community_avatars"), blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     qa_enabled = models.BooleanField(default=True)

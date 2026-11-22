@@ -1,0 +1,13 @@
+{
+  "identities": [
+    {
+      "name": "anonymous",
+      "actions": ["Read"]
+    },
+    {
+      "name": "nexus-dev",
+      "credentials": [{ "accessKey": "nexus-dev-access", "secretKey": "nexus-dev-secret-key" }],
+      "actions": ["Admin", "Read", "Write", "List"]
+    }
+  ]
+}

@@ -2,10 +2,15 @@ from decouple import Csv, config
 from django.core.exceptions import ImproperlyConfigured
 
 from config.realtime import websocket_origins
+from config.settings.storage import require_https_media
+
 from .base import *  # noqa: F401,F403
-from .base import DATABASES, MIDDLEWARE
+from .base import DATABASES, FRONTEND_URL, MIDDLEWARE, STORAGES
 
 DEBUG = False
+
+# Off unless an operator opts in: the admin is a second front door with its own login.
+ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
 
 # No default: prod must never boot with the insecure dev key from base.py.
 MIN_SECRET_KEY_LENGTH = 50
@@ -36,10 +41,8 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     *MIDDLEWARE[1:],
 ]
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
-}
+require_https_media(STORAGES["default"])
+STORAGES["staticfiles"] = {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
 
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 # Cross-site WebSocket hijacking guard: only the SPA's origins may open a socket.
