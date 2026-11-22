@@ -9,6 +9,7 @@ import { listFeedExclusions, setFeedExclusion, type FeedExclusionItem } from '@/
 import { listBlocked, unblockUser, type FollowUser } from '@/api/follow';
 import { logout, setAccessToken, setUser } from '@/features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { PushCard } from '@/components/settings/PushCard';
 import { TwoFactorCard } from '@/components/settings/TwoFactorCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +39,7 @@ export function SettingsPage() {
       <PreferencesCard />
       <PasswordCard />
       <TwoFactorCard />
+      <PushCard />
       <BlockedUsersCard />
       <FeedExclusionsCard />
       <DataExportCard />

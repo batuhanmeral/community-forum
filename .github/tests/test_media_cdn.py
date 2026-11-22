@@ -29,6 +29,12 @@ class MediaCdnTests(unittest.TestCase):
         )
         self.assertIn("${MEDIA_CDN_ORIGIN}", directive)
 
+    def test_service_worker_and_manifest_are_allowed_and_nothing_wider(self):
+        csp = next(line for line in render("").splitlines() if "Content-Security-Policy" in line)
+        self.assertIn("worker-src 'self'", csp)
+        self.assertIn("manifest-src 'self'", csp)
+        self.assertNotIn("script-src 'self' 'unsafe", csp)
+
     def test_empty_origin_keeps_the_policy_tight(self):
         csp = next(line for line in render("").splitlines() if "Content-Security-Policy" in line)
         self.assertIn("img-src 'self' data: blob:", csp)

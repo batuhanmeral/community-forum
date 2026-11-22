@@ -1,4 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
+
 from apps.realtime.publish import publish_to_user
 
 from .models import Notification
@@ -67,6 +68,9 @@ def notify(
         kwargs["target_id"] = target.pk
     notification = Notification.objects.create(**kwargs)
     publish_to_user(recipient.pk, {"type": "notification.created"})
+    from apps.push.tasks import enqueue_push
+
+    enqueue_push(notification)
     return notification
 
 

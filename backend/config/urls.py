@@ -16,6 +16,7 @@ from apps.posts.urls import (
     feed_urlpatterns,
     posts_urlpatterns,
 )
+from apps.push.urls import urlpatterns as push_urlpatterns
 from apps.realtime.urls import urlpatterns as realtime_urlpatterns
 from apps.saves.urls import urlpatterns as saves_urlpatterns
 from apps.search.urls import urlpatterns as search_urlpatterns
@@ -24,6 +25,7 @@ from apps.seo.urls import urlpatterns as seo_urlpatterns
 from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
 from apps.votes.urls import urlpatterns as votes_urlpatterns
+
 
 def admin_patterns(enabled: bool):
     """The admin site, only when ADMIN_ENABLED, with the 2FA-aware login form."""
@@ -53,6 +55,7 @@ api_v1_patterns = [
     path("", include((saves_urlpatterns, "saves"))),
     path("", include((moderation_urlpatterns, "moderation"))),
     path("", include((modmail_urlpatterns, "modmail"))),
+    path("", include((push_urlpatterns, "push"))),
     path("", include((search_urlpatterns, "search"))),
     path("", include((common_urlpatterns, "common"))),
     path("", include((realtime_urlpatterns, "realtime"))),

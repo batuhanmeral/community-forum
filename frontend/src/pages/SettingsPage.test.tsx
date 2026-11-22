@@ -24,6 +24,17 @@ vi.mock('@/api/users', () => ({
   disableMfa: vi.fn(),
   regenerateRecoveryCodes: vi.fn(),
 }));
+
+vi.mock('@/lib/push', () => ({
+  getPushState: vi.fn().mockResolvedValue('unsupported'),
+  enablePush: vi.fn(),
+  disablePush: vi.fn(),
+}));
+vi.mock('@/api/push', () => ({
+  getPushPreferences: vi.fn().mockRejectedValue(new Error('off')),
+  updatePushPreferences: vi.fn(),
+}));
+
 vi.mock('@/api/posts', () => ({ listFeedExclusions: vi.fn(), setFeedExclusion: vi.fn() }));
 
 vi.mock('@/api/follow', () => ({

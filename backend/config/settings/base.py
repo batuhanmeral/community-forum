@@ -2,6 +2,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from decouple import Csv, config
+
 from config.realtime import channel_layers, websocket_origins
 from config.settings.storage import build_media_storage
 
@@ -41,6 +42,7 @@ LOCAL_APPS = [
     "apps.saves",
     "apps.moderation",
     "apps.modmail",
+    "apps.push",
     "apps.search",
     "apps.realtime",
 ]
@@ -226,7 +228,13 @@ TASKS = {
 # keep 2FA off. Comma separate several keys to rotate (first encrypts, all decrypt).
 MFA_ENCRYPTION_KEY = config("MFA_ENCRYPTION_KEY", default="")
 MFA_ISSUER = config("MFA_ISSUER", default="Nexus")
+
 # The Django admin has its own login (session based, outside the JWT flow). It is mounted only
 # when enabled; production defaults to off. Staff with 2FA must also give a code there.
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=True, cast=bool)
 
+# Web push (VAPID, RFC 8292). All three must be set and consistent, else push stays off.
+# `manage.py generate_vapid_keys` prints a pair; keep the private key secret.
+VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="")
+VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
+VAPID_SUBJECT = config("VAPID_SUBJECT", default="")

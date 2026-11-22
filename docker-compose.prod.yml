@@ -67,6 +67,9 @@ services:
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
       MFA_ISSUER: ${MFA_ISSUER:-Nexus}
       ADMIN_ENABLED: ${ADMIN_ENABLED:-False}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       # Media storage: filesystem (the nexus_media volume) or s3 (external S3/R2 bucket + CDN).
       STORAGE_BACKEND: ${STORAGE_BACKEND:-filesystem}
       S3_BUCKET: ${S3_BUCKET:-}

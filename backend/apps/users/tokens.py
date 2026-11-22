@@ -2,6 +2,8 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from rest_framework_simplejwt.tokens import RefreshToken
 
 AUTH_GENERATION_CLAIM = "auth_gen"
+# Identifies a login session across refresh rotations (the first refresh token's jti).
+SESSION_CLAIM = "sid"
 
 
 class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
@@ -21,4 +23,5 @@ class NexusRefreshToken(RefreshToken):
     def for_user(cls, user):
         token = super().for_user(user)
         token[AUTH_GENERATION_CLAIM] = user.auth_generation
+        token[SESSION_CLAIM] = str(token["jti"])
         return token

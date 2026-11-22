@@ -1,2 +1,7 @@
 # Rendered by the nginx image's envsubst step into /etc/nginx/snippets/security-headers.conf.
 # MEDIA_CDN_ORIGIN is checked by 15-validate-media-cdn-origin.sh first: one exact https origin or empty.
+# Fonts: Google Fonts until self-hosting (design milestone). 'unsafe-inline' styles: Navbar's inline <style> (M6).
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: ${MEDIA_CDN_ORIGIN}; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;

@@ -38,5 +38,14 @@ class NginxConfTests(unittest.TestCase):
         self.assertIn("limit_conn_status 429;", ws)
 
 
+class ServiceWorkerTests(unittest.TestCase):
+    def test_service_worker_and_manifest_are_never_cached(self):
+        for path in ("= /sw.js", "= /manifest.webmanifest"):
+            with self.subTest(path=path):
+                block = location_block(path)
+                self.assertIn('Cache-Control "no-cache"', block)
+                self.assertIn("security-headers.conf", block)
+
+
 if __name__ == "__main__":
     unittest.main()

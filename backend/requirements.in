@@ -35,6 +35,10 @@ segno==1.6.6
 django-storages[s3]==1.14.6
 boto3==1.44.9
 
+# ─── Web push ─────────────────────────────────
+# Sends VAPID-signed push messages (pulls py-vapid, http-ece and requests).
+pywebpush==2.5.0
+
 # ─── Content rendering ────────────────────────
 markdown-it-py==4.2.0
 nh3==0.3.7
