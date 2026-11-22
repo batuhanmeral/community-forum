@@ -2,6 +2,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from decouple import Csv, config
+from config.realtime import channel_layers, websocket_origins
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -39,6 +40,7 @@ LOCAL_APPS = [
     "apps.saves",
     "apps.moderation",
     "apps.search",
+    "apps.realtime",
 ]
 
 # Local management commands override the task package commands.
@@ -126,6 +128,8 @@ REST_FRAMEWORK = {
         "refresh": config("THROTTLE_REFRESH", default="60/min"),
         "write": config("THROTTLE_WRITE", default="60/min"),
         "vote": config("THROTTLE_VOTE", default="120/min"),
+        # One ticket per (re)connect; generous enough for flaky networks and many tabs.
+        "realtime_ticket": config("THROTTLE_REALTIME_TICKET", default="30/min"),
     },
     # Reverse proxies in front of Django. 0 = trust REMOTE_ADDR only; never the client's XFF.
     "NUM_PROXIES": config("NUM_PROXIES", default=0, cast=int),
@@ -176,6 +180,34 @@ EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=30, cast=float)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Nexus <noreply@localhost>")
 
+# ─── Realtime (WebSocket) ──────────────────────
+# Off without REDIS_URL: the API and the realtime service must share the channel layer and the
+# ticket cache. Clients then keep polling, so nothing breaks.
+REDIS_URL = config("REDIS_URL", default="")
+CHANNEL_LAYERS = channel_layers(REDIS_URL, db=config("REALTIME_REDIS_DB", default=2, cast=int))
+REALTIME_ALLOWED_ORIGINS = websocket_origins(FRONTEND_URL, [])
+# Seconds a one-time socket ticket stays valid.
+REALTIME_TICKET_TTL = 30
+# Seconds an accepted socket may stay unauthenticated.
+REALTIME_AUTH_TIMEOUT = 5.0
+# Seconds between the server's own re-checks of an open socket's user (active, same password,
+# not logged out). Every event is checked as well; client pings play no part in it.
+REALTIME_REVALIDATE_INTERVAL = 60.0
+# Admission limits (apps/realtime/admission.py). Sockets waiting for their auth frame, per
+# realtime process; nginx also caps sockets per client address and in total.
+REALTIME_MAX_PENDING_SOCKETS = config("REALTIME_MAX_PENDING_SOCKETS", default=256, cast=int)
+# Open sockets per user across all processes (one per tab, several devices).
+REALTIME_MAX_SOCKETS_PER_USER = config("REALTIME_MAX_SOCKETS_PER_USER", default=10, cast=int)
+# Where the per-user slots live; shared by every realtime process. Empty = in-process only.
+REALTIME_SLOT_REDIS_URL = REDIS_URL
+# A connection slot lapses this long after its socket's last server-side refresh (crashed process).
+REALTIME_SLOT_TTL = 3 * REALTIME_REVALIDATE_INTERVAL
+# Upper bound on releasing a closing socket's group membership and slot; what is left lapses.
+REALTIME_CLEANUP_TIMEOUT = 2.0
+# Upper bound on a publish from a request; a slow Redis must not hold the response.
+REALTIME_PUBLISH_TIMEOUT = 1.0
+
+# PostgreSQL queue shared by the API and db_worker; tasks do not go through Redis.
 TASKS = {
     "default": {
         "BACKEND": "django_tasks_db.DatabaseBackend",

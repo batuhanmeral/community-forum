@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 
 from apps.common.throttling import WriteThrottleMixin
 from apps.notifications.services import notify
+from apps.realtime.publish import publish_to_user
+from apps.social.models import is_blocked_between
 
 from .models import Conversation, Message
 from .permissions import IsParticipant
@@ -86,8 +88,6 @@ class MessageListCreateView(
     def perform_create(self, serializer):
         from rest_framework.exceptions import PermissionDenied
 
-        from apps.social.models import is_blocked_between
-
         conv = self.get_conversation()
         recipient = (
             conv.participant_b
@@ -98,6 +98,10 @@ class MessageListCreateView(
             raise PermissionDenied("You cannot message this user.")
         msg = serializer.save(sender=self.request.user, conversation=conv)
         notify(recipient, actor=self.request.user, verb="dm", target=msg)
+        # The sender's other tabs show the message too.
+        event = {"type": "message.created", "conversation_id": conv.pk}
+        for user_id in (recipient.pk, self.request.user.pk):
+            publish_to_user(user_id, event)
 
 
 class ConversationReadView(_ConversationScopedView, APIView):
@@ -108,4 +112,15 @@ class ConversationReadView(_ConversationScopedView, APIView):
             .exclude(sender=request.user)
             .update(read_at=timezone.now())
         )
+        if updated:
+            event = {"type": "message.read", "conversation_id": conv.pk}
+            publish_to_user(request.user.pk, event)
+            other = (
+                conv.participant_b
+                if conv.participant_a_id == request.user.pk
+                else conv.participant_a
+            )
+            # A read receipt is not worth a signal across a block.
+            if not is_blocked_between(request.user, other):
+                publish_to_user(other.pk, event)
         return Response({"marked_read": updated})

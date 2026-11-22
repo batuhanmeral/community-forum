@@ -7,10 +7,12 @@ import { router } from '@/router';
 import { startAuthStorageSync } from '@/features/auth/storageSync';
 import { retryPendingLogout } from '@/api/auth';
 import { startThemeSync } from '@/lib/theme';
+import { startRealtimeSync } from '@/features/realtime/realtime';
 import '@/i18n';
 import '@/styles/index.css';
 
 startAuthStorageSync(store);
+startRealtimeSync(store);
 void retryPendingLogout();
 startThemeSync();
 

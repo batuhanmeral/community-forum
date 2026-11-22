@@ -1,6 +1,7 @@
 from decouple import Csv, config
 from django.core.exceptions import ImproperlyConfigured
 
+from config.realtime import websocket_origins
 from .base import *  # noqa: F401,F403
 from .base import DATABASES, MIDDLEWARE
 
@@ -41,6 +42,8 @@ STORAGES = {
 }
 
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+# Cross-site WebSocket hijacking guard: only the SPA's origins may open a socket.
+REALTIME_ALLOWED_ORIGINS = websocket_origins(FRONTEND_URL, CSRF_TRUSTED_ORIGINS)
 
 # Shared Redis cache — also backs DRF throttle counters and cache_page views,
 # which are per-process (LocMem) in dev.

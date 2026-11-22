@@ -18,6 +18,13 @@ whitenoise==6.12.0
 redis==8.1.0
 sentry-sdk==2.73.0
 
+# ─── Realtime (WebSocket) ─────────────────────
+# Separate ASGI service; uvicorn without [standard] extras, websockets as its only WS backend.
+channels==4.3.2
+channels-redis==4.3.0
+uvicorn==0.54.0
+websockets==17.4
+
 # ─── Content rendering ────────────────────────
 markdown-it-py==4.2.0
 nh3==0.3.7

@@ -24,10 +24,18 @@ import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { usePolling } from '@/lib/usePolling';
+import { useRealtime, useRealtimeConnected, type RealtimeEvent } from '@/features/realtime/realtime';
 import { Check, CheckCheck, ChevronLeft } from 'lucide-react';
 
 const POLL_MS = 4_000;
 const CONVERSATIONS_POLL_MS = 30_000;
+// While the socket is up, events trigger the fetches; these slow polls only cover dropped events.
+const LIVE_POLL_MS = 60_000;
+const LIVE_CONVERSATIONS_POLL_MS = 5 * 60_000;
+const isMessageEvent = (event: RealtimeEvent) =>
+  event.type === 'message.created' || event.type === 'message.read';
+const isConversationListEvent = (event: RealtimeEvent) =>
+  event.type === 'resync' || isMessageEvent(event);
 // How close to the bottom still counts as "reading the latest messages".
 const BOTTOM_SLACK_PX = 40;
 
@@ -91,7 +99,13 @@ export function MessagesPage() {
   }
 
   // Keeps unread counts and previews of the other conversations current.
-  usePolling(refreshConversations, CONVERSATIONS_POLL_MS, !convsLoading);
+  const live = useRealtimeConnected();
+  usePolling(
+    refreshConversations,
+    live ? LIVE_CONVERSATIONS_POLL_MS : CONVERSATIONS_POLL_MS,
+    !convsLoading,
+  );
+  useRealtime(isConversationListEvent, refreshConversations);
 
   const selected = useMemo(
     () => conversations.find((c) => c.id === Number(id)) ?? null,
@@ -300,9 +314,13 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    markConversationRead(conversation.id)
-      .then(() => onRead())
-      .catch(() => undefined);
+    // Opened in a background tab (e.g. restored on startup): nobody has read it yet. The
+    // visibility handler below acknowledges it once the tab comes to the front.
+    if (!document.hidden) {
+      markConversationRead(conversation.id)
+        .then(() => onRead())
+        .catch(() => undefined);
+    }
     return () => {
       cancelled = true;
     };
@@ -344,7 +362,12 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
             return [...refreshed, ...fresh].sort(byTimeThenId);
           });
         }
-        if (d.results.some((m) => m.sender !== currentUserId && m.read_at === null)) {
+        // A realtime event can land in a background tab: nobody has seen the message yet. Coming
+        // back to the tab triggers a resync, which runs this poll again and acknowledges it then.
+        if (
+          !document.hidden &&
+          d.results.some((m) => m.sender !== currentUserId && m.read_at === null)
+        ) {
           markConversationRead(conversation.id)
             .then(() => onRead())
             .catch(() => undefined);
@@ -357,7 +380,29 @@ function ChatPane({ conversation, currentUserId, onMessageSent, onRead }: ChatPa
       });
   }, [conversation.id, currentUserId, onRead]);
 
-  usePolling(pollLatest, POLL_MS, !loading && !lost);
+  const live = useRealtimeConnected();
+  const pollable = !loading && !lost;
+  usePolling(pollLatest, live ? LIVE_POLL_MS : POLL_MS, pollable);
+  const isThisConversation = useCallback(
+    (event: RealtimeEvent) =>
+      event.type === 'resync' ||
+      (isMessageEvent(event) && event.conversation_id === conversation.id),
+    [conversation.id],
+  );
+  useRealtime(isThisConversation, () => {
+    if (pollable) pollLatest();
+  });
+
+  // Back on the tab: catch up and acknowledge what arrived while it was hidden. With the socket
+  // up, the client's resync event (handled above) already does this.
+  useEffect(() => {
+    if (live || !pollable) return;
+    const onVisible = () => {
+      if (!document.hidden) pollLatest();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [live, pollable, pollLatest]);
 
   function handleScroll() {
     const el = scrollRef.current;

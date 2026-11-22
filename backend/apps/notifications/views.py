@@ -4,6 +4,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.realtime.publish import publish_to_user
+
 from .models import Notification
 from .serializers import NotificationSerializer
 
@@ -27,6 +29,8 @@ class NotificationReadView(APIView):
         if notif.read_at is None:
             notif.read_at = timezone.now()
             notif.save(update_fields=["read_at"])
+            # The user's other tabs refresh their badge.
+            publish_to_user(request.user.pk, {"type": "unread.changed"})
         return Response(NotificationSerializer(notif).data, status=status.HTTP_200_OK)
 
 
@@ -37,4 +41,6 @@ class NotificationMarkAllReadView(APIView):
         updated = Notification.objects.filter(recipient=request.user, read_at__isnull=True).update(
             read_at=timezone.now()
         )
+        if updated:
+            publish_to_user(request.user.pk, {"type": "unread.changed"})
         return Response({"marked_read": updated})

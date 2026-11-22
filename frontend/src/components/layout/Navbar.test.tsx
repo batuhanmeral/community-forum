@@ -14,11 +14,14 @@ import * as notificationsApi from '@/api/notifications';
 import * as authApi from '@/api/auth';
 import i18n from '@/i18n';
 import { resetLanguage, visibleText } from '@/test/i18nHelpers';
+import { COALESCE_MS, realtime } from '@/features/realtime/realtime';
+import { FakeWebSocket, acceptLastSocket } from '@/test/fakeWebSocket';
 
 vi.mock('@/api/users', () => ({ getUnreadCounts: vi.fn() }));
 vi.mock('@/api/messaging', () => ({ listConversations: vi.fn() }));
 vi.mock('@/api/notifications', () => ({ listNotifications: vi.fn() }));
 vi.mock('@/api/auth', () => ({ logoutRequest: vi.fn() }));
+vi.mock('@/api/realtime', () => ({ requestRealtimeTicket: vi.fn().mockResolvedValue('tkt') }));
 
 const users = vi.mocked(usersApi);
 
@@ -59,6 +62,71 @@ function renderNavbar(props: ComponentProps<typeof Navbar> = {}) {
 function setHidden(hidden: boolean) {
   Object.defineProperty(document, 'hidden', { configurable: true, value: hidden });
 }
+
+async function advance(ms: number) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+}
+
+describe('Navbar realtime', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    users.getUnreadCounts.mockResolvedValue({ notifications: 1, messages: 0 });
+    FakeWebSocket.reset();
+    vi.stubGlobal('WebSocket', FakeWebSocket);
+  });
+
+  afterEach(() => {
+    realtime.stop();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  async function goLive() {
+    realtime.start();
+    await advance(0);
+    act(() => acceptLastSocket());
+    await advance(COALESCE_MS);
+  }
+
+  it('refetches the badges once per burst of events', async () => {
+    renderNavbar();
+    await advance(0);
+    await goLive();
+    const before = users.getUnreadCounts.mock.calls.length;
+    act(() => {
+      FakeWebSocket.last.receive({ type: 'notification.created' });
+      FakeWebSocket.last.receive({ type: 'message.created', conversation_id: 4 });
+    });
+    await advance(COALESCE_MS);
+    expect(users.getUnreadCounts).toHaveBeenCalledTimes(before + 1);
+  });
+
+  it('ignores events that do not touch the badges', async () => {
+    renderNavbar();
+    await advance(0);
+    await goLive();
+    const before = users.getUnreadCounts.mock.calls.length;
+    act(() => FakeWebSocket.last.receive({ type: 'something.else' }));
+    await advance(COALESCE_MS);
+    expect(users.getUnreadCounts).toHaveBeenCalledTimes(before);
+  });
+
+  it('polls only as a safety net while connected and every 30 s again after a drop', async () => {
+    renderNavbar();
+    await advance(0);
+    await goLive();
+    const live = users.getUnreadCounts.mock.calls.length;
+    await advance(60_000);
+    expect(users.getUnreadCounts).toHaveBeenCalledTimes(live);
+
+    act(() => FakeWebSocket.last.drop());
+    await advance(30_000);
+    expect(users.getUnreadCounts.mock.calls.length).toBeGreaterThan(live);
+  });
+});
 
 describe('Navbar unread badges', () => {
   beforeEach(() => {

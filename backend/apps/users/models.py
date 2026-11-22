@@ -26,6 +26,11 @@ class User(AbstractUser):
     comment_karma = models.IntegerField(default=0)
     show_nsfw = models.BooleanField(default=False)
     email_verified = models.BooleanField(default=False)
+    # Bumped by logout: realtime sockets and tickets bound to an older value are revoked. Kept in
+    # the database because a cache entry could be evicted and quietly re-validate old sockets.
+    # Big so it never runs out; db_default so app instances predating the column can still insert
+    # users during a rolling deploy.
+    realtime_generation = models.PositiveBigIntegerField(default=0, db_default=0, editable=False)
     search_vector = SearchVectorField(null=True, blank=True)
 
     class Meta(AbstractUser.Meta):

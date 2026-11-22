@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from apps.comments.models import Comment
@@ -6,6 +7,7 @@ from apps.communities.models import Community, Membership
 from apps.messaging.models import Message
 from apps.notifications.models import Notification
 from apps.posts.models import Post
+from apps.realtime.publish import revoke_sessions
 from apps.saves.models import SavedItem
 from apps.social.models import Block, Follow
 from apps.votes.models import Vote
@@ -24,6 +26,16 @@ def delete_file_on_commit(field_file) -> None:
         return
     storage, name = field_file.storage, field_file.name
     transaction.on_commit(lambda: storage.delete(name))
+def end_realtime_sessions(user_id: int) -> None:
+    """Logout: close every realtime socket of the user, including any that miss the event.
+
+    User-wide on purpose. Sockets are opened with tickets bought by short-lived access tokens,
+    which carry no link to the refresh token being logged out; bumping one counter is the simplest
+    revocation that cannot leave a socket of the ended session behind. The user's other devices
+    just reconnect with a fresh ticket.
+    """
+    User.objects.filter(pk=user_id).update(realtime_generation=F("realtime_generation") + 1)
+    revoke_sessions(user_id)
 
 
 def _hand_over_communities(user: User) -> None:

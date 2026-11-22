@@ -21,5 +21,20 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Optional: realtime (WebSocket) needs Redis. Set REDIS_URL=redis://localhost:6379/1 for the
+  # API and the uvicorn process; without it the app keeps polling.
+  redis:
+    image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    container_name: nexus-redis
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   nexus_pgdata:

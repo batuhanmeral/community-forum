@@ -15,6 +15,7 @@ from apps.posts.urls import (
     feed_urlpatterns,
     posts_urlpatterns,
 )
+from apps.realtime.urls import urlpatterns as realtime_urlpatterns
 from apps.saves.urls import urlpatterns as saves_urlpatterns
 from apps.search.urls import urlpatterns as search_urlpatterns
 from apps.seo.urls import urlpatterns as seo_urlpatterns
@@ -40,6 +41,7 @@ api_v1_patterns = [
     path("", include((moderation_urlpatterns, "moderation"))),
     path("", include((search_urlpatterns, "search"))),
     path("", include((common_urlpatterns, "common"))),
+    path("", include((realtime_urlpatterns, "realtime"))),
 ]
 
 urlpatterns = [

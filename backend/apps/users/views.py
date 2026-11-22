@@ -11,6 +11,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -30,6 +31,12 @@ from .serializers import (
     RegisterSerializer,
     RevocationAwareTokenRefreshSerializer,
     UserSerializer,
+)
+from .services import (
+    delete_account,
+    delete_file_on_commit,
+    end_realtime_sessions,
+    export_account,
 )
 from .services import delete_account, delete_file_on_commit, export_account
 
@@ -76,9 +83,13 @@ class LogoutView(APIView):
         if not token:
             return response
         try:
-            RefreshToken(token).blacklist()
+            refresh = RefreshToken(token)
+            refresh.blacklist()
         except TokenError:
             pass  # Already dead; the cookie is cleared below either way.
+        else:
+            # Only a live session ends its sockets, so a stale cookie cannot disconnect anyone.
+            end_realtime_sessions(refresh[jwt_settings.USER_ID_CLAIM])
         return clear_refresh_cookie(response)
 
 
