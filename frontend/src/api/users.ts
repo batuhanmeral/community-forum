@@ -101,6 +101,7 @@ export async function downloadAccountExport(): Promise<Blob> {
 export interface UnreadCounts {
   notifications: number;
   messages: number;
+  modmail?: number;
 }
 
 export async function getUnreadCounts(): Promise<UnreadCounts> {

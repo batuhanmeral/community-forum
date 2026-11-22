@@ -7,6 +7,9 @@ export type NotificationVerb =
   | 'mod_action'
   | 'answer_accepted'
   | 'bounty_awarded'
+  | 'bounty_refunded'
+  | 'removal'
+  | 'modmail';
 
 export type NotificationTargetType = 'post' | 'comment' | 'user' | string | null;
 

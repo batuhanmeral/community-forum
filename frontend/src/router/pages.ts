@@ -55,6 +55,12 @@ export const SearchPage = lazy(() =>
 export const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
+export const ModmailListPage = lazy(() =>
+  import('@/pages/ModmailListPage').then((m) => ({ default: m.ModmailListPage })),
+);
+export const ModmailThreadPage = lazy(() =>
+  import('@/pages/ModmailThreadPage').then((m) => ({ default: m.ModmailThreadPage })),
+);
 export const ModPage = lazy(() => import('@/pages/ModPage').then((m) => ({ default: m.ModPage })));
 export const ForgotPasswordPage = lazy(() =>
   import('@/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),

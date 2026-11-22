@@ -40,6 +40,8 @@ export function formatNotification(n: Notification, t: TFunction): FormattedNoti
       return { kind: 'bounty', text: t('notifications.bountyAwarded'), to };
     case 'bounty_refunded':
       return { kind: 'bounty', text: t('notifications.bountyRefunded'), to };
+    case 'modmail':
+      return { kind: 'mod', text: t('notifications.modmail'), to };
     case 'removal':
       return {
         kind: 'mod',

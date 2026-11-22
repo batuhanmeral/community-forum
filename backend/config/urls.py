@@ -8,6 +8,7 @@ from apps.common.urls import urlpatterns as common_urlpatterns
 from apps.communities.urls import urlpatterns as communities_urlpatterns
 from apps.messaging.urls import urlpatterns as messaging_urlpatterns
 from apps.moderation.urls import urlpatterns as moderation_urlpatterns
+from apps.modmail.urls import urlpatterns as modmail_urlpatterns
 from apps.notifications.urls import urlpatterns as notifications_urlpatterns
 from apps.polls.urls import urlpatterns as polls_urlpatterns
 from apps.posts.urls import (
@@ -40,6 +41,7 @@ api_v1_patterns = [
     path("", include((polls_urlpatterns, "polls"))),
     path("", include((saves_urlpatterns, "saves"))),
     path("", include((moderation_urlpatterns, "moderation"))),
+    path("", include((modmail_urlpatterns, "modmail"))),
     path("", include((search_urlpatterns, "search"))),
     path("", include((common_urlpatterns, "common"))),
     path("", include((realtime_urlpatterns, "realtime"))),

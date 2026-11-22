@@ -55,7 +55,7 @@ def test_unread_counts_ignore_own_and_foreign_messages(api, me, django_assert_ma
     with django_assert_max_num_queries(3):
         resp = api.get(UNREAD)
     assert resp.status_code == 200
-    assert resp.json() == {"notifications": 2, "messages": 2}
+    assert resp.json() == {"notifications": 2, "messages": 2, "modmail": 0}
 
 
 @pytest.mark.django_db

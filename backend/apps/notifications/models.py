@@ -16,6 +16,7 @@ class Notification(models.Model):
         BOUNTY_AWARDED = "bounty_awarded", "Bounty awarded"
         BOUNTY_REFUNDED = "bounty_refunded", "Bounty refunded"
         REMOVAL = "removal", "Removal"
+        MODMAIL = "modmail", "Modmail"
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,

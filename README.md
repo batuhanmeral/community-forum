@@ -14,6 +14,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
 - Member flairs: mods define per-community badges shown beside author names and assign them; admins can let members pick their own (cleared on ban/leave, logged in the mod log)
 - Removal reasons: mods keep per-community templates; removing someone's post/comment records the reason in the mod log (title only is shown) and notifies the author; admins can require a reason
+- Modmail: users (including banned ones, max 5 new threads per community per day) message the mod team; a shared moderator inbox with assignment, archive and internal notes that users never see; unread counts and realtime wake-ups
 - Nested comment trees with author avatars, inline replies, `@username` mention autocomplete and mentions rendered as profile links
 - Markdown editor with server-rendered, sanitized preview; links keep only absolute `http(s)`/`mailto`, site-root (`/…`) and `#…` targets (anything else renders as plain text) and always carry `rel="nofollow noopener noreferrer ugc"`
 - Post drafts — debounced autosave to localStorage with restore/discard

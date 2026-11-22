@@ -113,6 +113,14 @@ describe('formatNotification', () => {
     expect(f.detailHtml).toBe('<p>No spam</p>');
     expect(formatNotification(n, tr).text).toContain('Spam');
   });
+
+  it('describes a modmail notification and links to the thread', () => {
+    const f = formatNotification(
+      make({ verb: 'modmail', target_type: 'modmailthread', link: '/modmail/3' }),
+    );
+    expect(f.text).toBe('New modmail message');
+    expect(f.to).toBe('/modmail/3');
+  });
 });
 
 describe('formatNotification Q&A verbs', () => {

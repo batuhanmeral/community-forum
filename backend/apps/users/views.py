@@ -16,6 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.messaging.services import unread_message_count
+from apps.modmail.services import unread_modmail_count
 from apps.notifications.services import unread_notification_count
 from apps.social.services import with_social_annotations
 
@@ -172,6 +173,7 @@ class UnreadCountsView(APIView):
             {
                 "notifications": unread_notification_count(request.user),
                 "messages": unread_message_count(request.user),
+                "modmail": unread_modmail_count(request.user),
             }
         )
 
