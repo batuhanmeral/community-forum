@@ -175,3 +175,23 @@ export async function listHiddenPosts(page = 1): Promise<Paginated<Post>> {
   const res = await api.get<Paginated<Post>>('/users/me/hidden/', { params: { page } });
   return res.data;
 }
+
+export interface FeedExclusionItem {
+  slug: string;
+  name: string;
+}
+
+export async function getFeedExclusion(slug: string): Promise<boolean> {
+  const res = await api.get<{ excluded: boolean }>(`/communities/${slug}/feed-exclusion/`);
+  return res.data.excluded;
+}
+
+export async function setFeedExclusion(slug: string, excluded: boolean): Promise<void> {
+  if (excluded) await api.post(`/communities/${slug}/feed-exclusion/`);
+  else await api.delete(`/communities/${slug}/feed-exclusion/`);
+}
+
+export async function listFeedExclusions(): Promise<FeedExclusionItem[]> {
+  const res = await api.get<FeedExclusionItem[]>('/users/me/feed-exclusions/');
+  return res.data;
+}

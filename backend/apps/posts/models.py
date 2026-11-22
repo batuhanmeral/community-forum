@@ -128,3 +128,25 @@ class HiddenPost(models.Model):
 
     def __str__(self) -> str:
         return f"user {self.user_id} hid post {self.post_id}"
+
+
+class FeedExclusion(models.Model):
+    """A community a user keeps out of their Popular/All and trending lists (not Home)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feed_exclusions"
+    )
+    community = models.ForeignKey(
+        Community, on_delete=models.CASCADE, related_name="feed_exclusions"
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "community"), name="posts_feedexclusion_user_community_uniq"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"user {self.user_id} excludes community {self.community_id}"

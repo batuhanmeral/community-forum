@@ -32,6 +32,7 @@ class TrendingCommunitiesView(ListAPIView):
     def get_queryset(self):
         from apps.comments.models import Comment
         from apps.posts.models import Post as PostModel
+        from apps.posts.views import _exclude_feed_communities
 
         since = _since()
         recent_posts = (
@@ -59,6 +60,7 @@ class TrendingCommunitiesView(ListAPIView):
             )
             .order_by("-recent_posts", "-recent_comments", "-id")
         )
+        communities = _exclude_feed_communities(communities, self.request.user, field="pk")
         return prefetch_viewer_membership(communities, self.request.user)[:20]
 
 
@@ -69,18 +71,26 @@ class TrendingPostsView(ListAPIView):
     permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
-        from apps.posts.views import _annotate_score, _base_post_qs
+        from apps.posts.services import nsfw_q
+        from apps.posts.views import (
+            _annotate_score,
+            _base_post_qs,
+            _exclude_feed_communities,
+            _exclude_hidden,
+        )
 
         since = _since()
-        return _annotate_score(
-            _base_post_qs(
-                Post.objects.filter(
-                    created_at__gte=since,
-                    is_nsfw=False,
-                    community__is_nsfw=False,
-                    is_approved=True,
-                    deleted_at__isnull=True,
+        return _exclude_hidden(
+            _exclude_feed_communities(
+                _annotate_score(
+                    _base_post_qs(
+                        Post.objects.filter(
+                            created_at__gte=since, is_approved=True, deleted_at__isnull=True
+                        ).exclude(nsfw_q()),
+                        user=self.request.user,
+                    )
                 ),
-                user=self.request.user,
-            )
+                self.request.user,
+            ),
+            self.request.user,
         ).order_by("-score", "-created_at")[:20]

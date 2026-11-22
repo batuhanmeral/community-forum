@@ -5,6 +5,7 @@ import { AxiosError } from 'axios';
 import { resendVerificationEmail } from '@/api/auth';
 import { changePassword, deleteAccount, downloadAccountExport, updatePreferences } from '@/api/users';
 import { withAuthLock } from '@/api/client';
+import { listFeedExclusions, setFeedExclusion, type FeedExclusionItem } from '@/api/posts';
 import { listBlocked, unblockUser, type FollowUser } from '@/api/follow';
 import { logout, setAccessToken, setUser } from '@/features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -36,6 +37,7 @@ export function SettingsPage() {
       <PreferencesCard />
       <PasswordCard />
       <BlockedUsersCard />
+      <FeedExclusionsCard />
       <DataExportCard />
       <DangerZoneCard />
     </div>
@@ -316,6 +318,61 @@ function BlockedUsersCard() {
                 onClick={() => handleUnblock(u)}
               >
                 {t('follow.unblock')}
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function FeedExclusionsCard() {
+  const { t } = useTranslation();
+  const [items, setItems] = useState<FeedExclusionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    listFeedExclusions()
+      .then(setItems)
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleInclude(slug: string) {
+    setBusy(slug);
+    try {
+      await setFeedExclusion(slug, false);
+      setItems((arr) => arr.filter((x) => x.slug !== slug));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="text-base font-semibold tracking-tight">{t('feedFilter.title')}</h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('feedFilter.settingsHint')}</p>
+      <div className="mt-3 flex flex-col gap-2">
+        {loading ? (
+          <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading')}</p>
+        ) : items.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-dim)]">{t('feedFilter.empty')}</p>
+        ) : (
+          items.map((c) => (
+            <div
+              key={c.slug}
+              className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2"
+            >
+              <span className="truncate text-sm font-medium">c/{c.slug}</span>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={busy === c.slug}
+                onClick={() => handleInclude(c.slug)}
+              >
+                {t('feedFilter.include')}
               </Button>
             </div>
           ))
