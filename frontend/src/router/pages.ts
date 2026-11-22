@@ -43,6 +43,12 @@ export const SavedPage = lazy(() =>
 export const HiddenPostsPage = lazy(() =>
   import('@/pages/HiddenPostsPage').then((m) => ({ default: m.HiddenPostsPage })),
 );
+export const CustomFeedsPage = lazy(() =>
+  import('@/pages/CustomFeedsPage').then((m) => ({ default: m.CustomFeedsPage })),
+);
+export const CustomFeedPage = lazy(() =>
+  import('@/pages/CustomFeedPage').then((m) => ({ default: m.CustomFeedPage })),
+);
 export const SearchPage = lazy(() =>
   import('@/pages/SearchPage').then((m) => ({ default: m.SearchPage })),
 );

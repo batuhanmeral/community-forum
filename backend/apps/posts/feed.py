@@ -27,7 +27,21 @@ def nsfw_allowed(request) -> bool:
 def _apply_nsfw_filter(qs, request):
     if nsfw_allowed(request):
         return qs
-    return qs.exclude(Q(is_nsfw=True) | Q(community__is_nsfw=True))
+    return qs.exclude(nsfw_q())
+
+
+def build_post_feed(request, qs, default_sort: str):
+    """The shared feed pipeline: visibility, score, NSFW, hidden, time window, filters and sort.
+
+    Every list of posts (Home, Following, custom feeds, ...) goes through this so the
+    rules cannot drift apart.
+    """
+    qs = qs.filter(is_approved=True, deleted_at__isnull=True)
+    qs = _annotate_score(_base_post_qs(qs, user=request.user))
+    qs = _exclude_hidden(_apply_nsfw_filter(qs, request), request.user)
+    sort = request.query_params.get("sort", default_sort)
+    qs = _apply_time_window(qs, request.query_params.get("t"))
+    return _apply_sort(_apply_answered_filter(qs, request), sort)
 
 
 class FeedView(generics.ListAPIView):
@@ -43,12 +57,9 @@ class FeedView(generics.ListAPIView):
             qs = Post.objects.filter(community_id__in=joined_community_ids(request.user))
         else:
             qs = Post.objects.all()
-        qs = qs.filter(is_approved=True, deleted_at__isnull=True)
-        qs = _annotate_score(_base_post_qs(qs, user=request.user))
-        qs = _apply_nsfw_filter(qs, request)
-        sort = request.query_params.get("sort", "new" if request.user.is_authenticated else "top")
-        qs = _apply_time_window(qs, request.query_params.get("t"))
-        return _apply_sort(qs, sort)
+            # Popular/All only: Home (joined communities) is deliberately left alone.
+            qs = _exclude_feed_communities(qs, request.user)
+        return build_post_feed(request, qs, "new" if request.user.is_authenticated else "top")
 
 
 class FollowingFeedView(generics.ListAPIView):
@@ -59,13 +70,5 @@ class FollowingFeedView(generics.ListAPIView):
 
     def get_queryset(self):
         request = self.request
-        qs = Post.objects.filter(
-            author__followers__follower=request.user,
-            is_approved=True,
-            deleted_at__isnull=True,
-        ).distinct()
-        qs = _annotate_score(_base_post_qs(qs, user=request.user))
-        qs = _apply_nsfw_filter(qs, request)
-        sort = request.query_params.get("sort", "new")
-        qs = _apply_time_window(qs, request.query_params.get("t"))
-        return _apply_sort(qs, sort)
+        qs = Post.objects.filter(author__followers__follower=request.user).distinct()
+        return build_post_feed(request, qs, "new")

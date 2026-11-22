@@ -150,3 +150,45 @@ class FeedExclusion(models.Model):
 
     def __str__(self) -> str:
         return f"user {self.user_id} excludes community {self.community_id}"
+
+
+class CustomFeed(models.Model):
+    """A user-built list of communities, shown as one feed (private unless is_public)."""
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="custom_feeds"
+    )
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(max_length=50)
+    description = models.CharField(max_length=280, blank=True, default="")
+    is_public = models.BooleanField(default=False)
+    communities = models.ManyToManyField(
+        Community, through="CustomFeedItem", related_name="custom_feeds"
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("owner", "slug"), name="posts_customfeed_owner_slug_uniq"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.owner_id}/{self.slug}"
+
+
+class CustomFeedItem(models.Model):
+    feed = models.ForeignKey(CustomFeed, on_delete=models.CASCADE, related_name="items")
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="feed_items")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("feed", "community"), name="posts_customfeeditem_feed_community_uniq"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"feed {self.feed_id} has community {self.community_id}"
