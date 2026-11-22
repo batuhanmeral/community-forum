@@ -22,6 +22,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { deletedBodyKey } from '@/lib/deletedBody';
+import { FeedLink } from '@/components/ui/FeedLink';
 import { Modal } from '@/components/ui/Modal';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { NsfwReveal } from '@/components/posts/NsfwReveal';
@@ -183,6 +184,9 @@ export function PostDetailPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <PageTitle title={post.title} />
+      {post.is_approved && !post.is_deleted && !post.is_nsfw && !post.is_spoiler && (
+        <FeedLink path={`/posts/${post.id}/comments.atom`} title={post.title} />
+      )}
       <Card>
         {!post.is_approved && !post.is_deleted && (
           <div

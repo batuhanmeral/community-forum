@@ -15,6 +15,7 @@ import { setUser } from '@/features/auth/authSlice';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { FeedLink } from '@/components/ui/FeedLink';
 import { Modal } from '@/components/ui/Modal';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { deletedBodyKey } from '@/lib/deletedBody';
@@ -111,6 +112,7 @@ export function UserProfilePage() {
   return (
     <div className="flex flex-col gap-4">
       <PageTitle title={`u/${profile.username}`} />
+      <FeedLink path={`/users/${encodeURIComponent(profile.username)}/posts.atom`} title={`u/${profile.username}`} />
       <Card>
         <div className="flex items-start gap-4">
           <Avatar src={profile.avatar} alt={profile.username} size="lg" />
