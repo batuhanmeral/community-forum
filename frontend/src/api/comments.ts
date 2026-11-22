@@ -1,4 +1,5 @@
 import { api } from './client';
+import { removalBody } from './removal';
 import type { Paginated } from '@/features/communities/types';
 import type { Comment, CommentRevision, CommentSort } from '@/features/comments/types';
 
@@ -24,8 +25,11 @@ export async function updateComment(id: number, body: string): Promise<Comment> 
   return res.data;
 }
 
-export async function deleteComment(id: number): Promise<void> {
-  await api.delete(`/comments/${id}/`);
+export async function deleteComment(
+  id: number,
+  removal?: { reason: number | null; note: string },
+): Promise<void> {
+  await api.delete(`/comments/${id}/`, removal ? { data: removalBody(removal) } : undefined);
 }
 
 export async function listCommentRevisions(

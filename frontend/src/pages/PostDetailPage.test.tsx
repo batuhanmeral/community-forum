@@ -8,6 +8,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer, { setUser } from '@/features/auth/authSlice';
 import type { Post } from '@/features/posts/types';
 import { PostDetailPage } from './PostDetailPage';
+import * as moderationApi from '@/api/moderation';
 import * as postsApi from '@/api/posts';
 import * as communitiesApi from '@/api/communities';
 import * as commentsApi from '@/api/comments';
@@ -30,6 +31,7 @@ vi.mock('@/api/comments', () => ({
   createComment: vi.fn(),
   listCommentRevisions: vi.fn(),
 }));
+vi.mock('@/api/moderation', () => ({ listRemovalReasons: vi.fn().mockResolvedValue([]) }));
 vi.mock('@/api/search', () => ({ searchUsers: vi.fn() }));
 
 const basePost = {
@@ -111,6 +113,36 @@ describe('PostDetailPage comment form', () => {
     renderPage();
     expect(await screen.findByText(/comments?$/i)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Add a comment...')).not.toBeInTheDocument();
+  });
+});
+
+describe('PostDetailPage moderator removal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(postsApi.getPost).mockResolvedValue(basePost);
+  });
+
+  it('sends the chosen removal reason when a moderator removes a post', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({
+      my_role: 'moderator',
+      require_removal_reason: true,
+    } as never);
+    vi.mocked(moderationApi.listRemovalReasons).mockResolvedValue([
+      { id: 3, title: 'Spam', body: 'No spam', order: 0 },
+    ]);
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    await screen.findByRole('option', { name: 'Spam' });
+    expect(screen.getAllByRole('button', { name: 'Remove' }).at(-1)).toBeDisabled();
+    await userEvent.selectOptions(screen.getByLabelText('Reason'), '3');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Remove' }).at(-1)!);
+    await waitFor(() => expect(postsApi.deletePost).toHaveBeenCalledWith(5, { reason: 3, note: '' }));
   });
 });
 
@@ -224,13 +256,13 @@ describe('PostDetailPage in Turkish', () => {
   });
   afterEach(resetLanguage);
 
-  it('renders no English in Turkish for a moderator and the delete dialog', async () => {
+  it('renders no English in Turkish for a moderator and the removal dialog', async () => {
     vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'moderator' } as never);
     vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, title: 'Merhaba', is_pinned: true });
     await i18n.changeLanguage('tr');
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: 'Kaldır' }));
-    expect(await screen.findByText(/geri alınamaz/)).toBeInTheDocument();
+    expect(await screen.findByText('İçeriği kaldır')).toBeInTheDocument();
     expect(visibleText()).not.toMatch(ENGLISH_PROBE);
   });
 

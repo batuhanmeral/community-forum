@@ -86,7 +86,11 @@ export type ModLogAction =
   | 'role_change'
   | 'report_resolve'
   | 'report_dismiss'
-  | 'automod_hold';
+  | 'automod_hold'
+  | 'user_flair_create'
+  | 'user_flair_update'
+  | 'user_flair_delete'
+  | 'user_flair_assign';
 
 export interface ModLogEntry {
   id: number;
@@ -96,6 +100,7 @@ export interface ModLogEntry {
   target_type: string | null;
   object_id: number | null;
   detail: string;
+  reason_title?: string;
   created_at: string;
 }
 
@@ -132,4 +137,37 @@ export async function listBans(slug: string, page = 1): Promise<Paginated<Banned
     params: { page },
   });
   return res.data;
+}
+
+export interface RemovalReason {
+  id: number;
+  title: string;
+  body: string;
+  order: number;
+}
+
+export interface RemovalChoice {
+  reason: number | null;
+  note: string;
+}
+
+export async function listRemovalReasons(slug: string): Promise<RemovalReason[]> {
+  const res = await api.get<RemovalReason[]>(`/communities/${slug}/mod/removal-reasons/`);
+  return res.data;
+}
+
+export async function createRemovalReason(
+  slug: string,
+  title: string,
+  body: string,
+): Promise<RemovalReason> {
+  const res = await api.post<RemovalReason>(`/communities/${slug}/mod/removal-reasons/`, {
+    title,
+    body,
+  });
+  return res.data;
+}
+
+export async function deleteRemovalReason(slug: string, id: number): Promise<void> {
+  await api.delete(`/communities/${slug}/mod/removal-reasons/${id}/`);
 }

@@ -19,11 +19,22 @@ interface CommentSectionProps {
   onAcceptToggle?: (commentId: number, accepted: boolean) => Promise<number | null>;
   /** Changes when the accepted answer changes so the list reloads (pinned first). */
   acceptedId?: number | null;
+  /** Needed for moderator removals with a reason. */
+  communitySlug?: string;
+  requireRemovalReason?: boolean;
 }
 
 const SORTS = ['best', 'top', 'new', 'old', 'controversial'] as const satisfies readonly CommentSort[];
 
-export function CommentSection({ postId, canComment = true, isModerator = false }: CommentSectionProps) {
+export function CommentSection({
+  postId,
+  canComment = true,
+  isModerator = false,
+  onAcceptToggle,
+  acceptedId = null,
+  communitySlug,
+  requireRemovalReason = false,
+}: CommentSectionProps) {
   const { t } = useTranslation();
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
   const [comments, setComments] = useState<Comment[]>([]);
@@ -172,6 +183,8 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
             depth={0}
             isModerator={isModerator}
             onAcceptToggle={onAcceptToggle && ((id, accepted) => void onAcceptToggle(id, accepted))}
+            communitySlug={communitySlug}
+            requireRemovalReason={requireRemovalReason}
             onReply={handleReply}
             onUpdate={handleUpdate}
             onDelete={handleDelete}

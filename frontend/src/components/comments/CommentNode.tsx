@@ -9,6 +9,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import type { VoteValue } from '@/api/votes';
 import { toggleSave } from '@/api/saves';
 import { useAppSelector } from '@/app/hooks';
+import { RemovalReasonModal } from '@/components/moderation/RemovalReasonModal';
+import type { RemovalChoice } from '@/api/moderation';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import { EditHistoryModal } from '@/components/revisions/EditHistoryModal';
 import { CommentForm } from './CommentForm';
@@ -27,6 +29,8 @@ interface CommentNodeProps {
   isModerator: boolean;
   /** Set when the viewer may accept answers on this question (asker or moderator). */
   onAcceptToggle?: (commentId: number, accepted: boolean) => void;
+  communitySlug?: string;
+  requireRemovalReason?: boolean;
   onReply: (parentId: number, created: Comment) => void;
   onUpdate: (updated: Comment) => void;
   onDelete: (id: number) => void;
@@ -38,6 +42,8 @@ export function CommentNode({
   depth,
   isModerator,
   onAcceptToggle,
+  communitySlug,
+  requireRemovalReason = false,
   onReply,
   onUpdate,
   onDelete,
@@ -48,9 +54,11 @@ export function CommentNode({
   const [editing, setEditing] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const isAuthor = currentUserId !== undefined && node.author === currentUserId;
   const canModify = isAuthor && !node.is_deleted;
+  const canRemove = isModerator && !isAuthor && !node.is_deleted && Boolean(communitySlug);
   const canReport = isAuthed && !isAuthor && !node.is_deleted;
   const { t } = useTranslation();
   const onBodyClick = useInternalLinkClick();
@@ -68,8 +76,8 @@ export function CommentNode({
     setEditing(false);
   }
 
-  async function handleDelete() {
-    await deleteComment(node.id);
+  async function handleDelete(choice?: RemovalChoice) {
+    await deleteComment(node.id, choice);
     onDelete(node.id);
   }
 
@@ -192,6 +200,15 @@ export function CommentNode({
                     {t('common.report')}
                   </button>
                 )}
+                {canRemove && (
+                  <button
+                    type="button"
+                    onClick={() => setRemoving(true)}
+                    className="hover:text-[var(--color-danger)]"
+                  >
+                    {t('mod.remove')}
+                  </button>
+                )}
                 {canModify && (
                   <>
                     <button
@@ -203,7 +220,7 @@ export function CommentNode({
                     </button>
                     <button
                       type="button"
-                      onClick={handleDelete}
+                      onClick={() => void handleDelete()}
                       className="hover:text-[var(--color-danger)]"
                     >
                       {t('common.delete')}
@@ -243,6 +260,8 @@ export function CommentNode({
                     depth={depth + 1}
                     isModerator={isModerator}
                     onAcceptToggle={onAcceptToggle}
+                    communitySlug={communitySlug}
+                    requireRemovalReason={requireRemovalReason}
                     onReply={onReply}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
@@ -264,6 +283,18 @@ export function CommentNode({
         )}
       </div>
 
+      {communitySlug && (
+        <RemovalReasonModal
+          open={removing}
+          slug={communitySlug}
+          required={requireRemovalReason}
+          onClose={() => setRemoving(false)}
+          onConfirm={async (choice) => {
+            await handleDelete(choice);
+            setRemoving(false);
+          }}
+        />
+      )}
       <ReportModal
         open={reporting}
         onClose={() => setReporting(false)}

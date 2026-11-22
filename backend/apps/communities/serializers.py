@@ -24,6 +24,7 @@ class CommunitySerializer(serializers.ModelSerializer):
             "requires_approval",
             "qa_enabled",
             "allow_self_user_flair",
+            "require_removal_reason",
             "creator",
             "created_at",
             "member_count",
@@ -42,6 +43,13 @@ class CommunitySerializer(serializers.ModelSerializer):
         if m is None or m.is_banned or m.role not in MOD_ROLES:
             data.pop("banned_keywords", None)
         return data
+
+    def validate_require_removal_reason(self, value: bool) -> bool:
+        if value and (self.instance is None or not self.instance.removal_reasons.exists()):
+            raise serializers.ValidationError(
+                "Create at least one removal reason before requiring one."
+            )
+        return value
 
     def validate_slug(self, value: str) -> str:
         if self.instance is not None and value != self.instance.slug:

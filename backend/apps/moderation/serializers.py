@@ -7,7 +7,7 @@ from apps.communities.models import Membership
 from apps.posts.models import Post
 from apps.posts.services import can_see_unapproved
 
-from .models import ModAction, Report
+from .models import ModAction, RemovalReason, Report
 
 ALLOWED_TARGETS = {"post", "comment", "user"}
 _APP_FOR = {"post": "posts", "comment": "comments", "user": "users"}
@@ -100,6 +100,7 @@ class ModActionSerializer(serializers.ModelSerializer):
             "target_type",
             "object_id",
             "detail",
+            "reason_title",
             "created_at",
         )
         read_only_fields = fields
@@ -126,3 +127,10 @@ class BannedMemberSerializer(serializers.ModelSerializer):
         model = Membership
         fields = ("id", "username", "avatar", "banned_by_username", "banned_at", "joined_at")
         read_only_fields = fields
+
+
+class RemovalReasonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RemovalReason
+        fields = ("id", "title", "body", "order")
+        read_only_fields = ("id",)

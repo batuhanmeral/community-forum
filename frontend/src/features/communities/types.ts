@@ -11,6 +11,7 @@ export interface Community {
   requires_approval: boolean;
   qa_enabled: boolean;
   allow_self_user_flair?: boolean;
+  require_removal_reason?: boolean;
   creator: number;
   created_at: string;
   member_count: number;

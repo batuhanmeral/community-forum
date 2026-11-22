@@ -29,7 +29,7 @@ from apps.common.viewer import viewer_prefetches
 from apps.communities.models import Community
 from apps.communities.services import active_membership, is_banned, is_moderator
 from apps.moderation.models import ModAction
-from apps.moderation.services import log_mod_action
+from apps.moderation.services import log_mod_action, notify_removal, parse_removal
 from apps.notifications.services import notify
 from apps.polls.services import poll_prefetches
 
@@ -40,6 +40,9 @@ from .serializers import PostRevisionSerializer, PostSerializer
 from .services import can_see_unapproved
 
 User = get_user_model()
+
+MAX_HIDDEN_PER_USER = 5000
+MAX_FEED_EXCLUSIONS = 200
 
 MAX_STICKY_PER_COMMUNITY = 2
 
@@ -74,9 +77,15 @@ def _base_post_qs(qs=None, user=None):
     """Common relations every PostSerializer render needs (avoids N+1)."""
     if qs is None:
         qs = Post.objects.all()
-    return qs.select_related("author", "community", "flair", "poll").prefetch_related(
-        *viewer_prefetches(user), *poll_prefetches(user, "poll__")
+    from apps.communities.services import annotate_author_flair
+
+    return (
+        annotate_author_flair(qs)
+        .select_related("author", "community", "flair", "poll", "crosspost_parent__community")
+        .prefetch_related(*viewer_prefetches(user), *poll_prefetches(user, "poll__"))
     )
+
+
 def _exclude_hidden(qs, user):
     """Drop the posts the signed-in viewer hid; anonymous viewers hide nothing."""
     if not user or not user.is_authenticated:
@@ -112,6 +121,8 @@ def _annotate_hot(qs):
     # Cast: Postgres LOG(10, int) and EXTRACT return numeric; the API wants a float.
     hot = Sign(score) * Log(10, Greatest(Abs(score), 1)) + Extract("created_at", "epoch") / 45000
     return qs.annotate(hot=Cast(hot, FloatField()))
+
+
 def _apply_answered_filter(qs, request):
     answered = request.query_params.get("answered")
     if answered in ("true", "false"):
@@ -306,18 +317,22 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         if instance.deleted_at is not None:
             return
+        by_moderator = instance.author_id != self.request.user.id
+        reason = parse_removal(self.request, instance.community) if by_moderator else None
         instance.deleted_at = timezone.now()
         instance.deleted_by = self.request.user
         instance.is_pinned = False
         instance.save(update_fields=["deleted_at", "deleted_by", "is_pinned"])
-        if instance.author_id != self.request.user.id:
+        qa.refund_bounty(instance.pk)
+        if by_moderator:
             log_mod_action(
                 instance.community,
                 actor=self.request.user,
                 action=ModAction.Action.POST_REMOVE,
                 target=instance,
+                reason=reason,
             )
-            notify(instance.author, actor=self.request.user, verb="mod_action", target=instance)
+            notify_removal(instance.author, self.request.user, instance, reason)
 
     def perform_update(self, serializer):
         with transaction.atomic():

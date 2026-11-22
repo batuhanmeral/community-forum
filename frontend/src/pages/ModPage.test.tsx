@@ -34,6 +34,9 @@ vi.mock('@/api/moderation', () => ({
   listModLog: vi.fn(),
   listBans: vi.fn(),
   unbanUser: vi.fn(),
+  listRemovalReasons: vi.fn(),
+  createRemovalReason: vi.fn(),
+  deleteRemovalReason: vi.fn(),
 }));
 vi.mock('@/api/posts', () => ({
   listApprovalQueue: vi.fn(),
@@ -79,6 +82,7 @@ describe('ModPage', () => {
     vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
     vi.mocked(communitiesApi.listUserFlairs).mockResolvedValue([]);
     vi.mocked(moderationApi.listModReports).mockResolvedValue(empty);
+    vi.mocked(moderationApi.listRemovalReasons).mockResolvedValue([]);
     vi.mocked(moderationApi.listModLog).mockResolvedValue(empty);
     vi.mocked(moderationApi.listBans).mockResolvedValue(empty);
     vi.mocked(postsApi.listApprovalQueue).mockResolvedValue(empty);

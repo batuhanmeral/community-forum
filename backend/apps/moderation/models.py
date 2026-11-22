@@ -72,6 +72,10 @@ class ModAction(models.Model):
     object_id = models.PositiveBigIntegerField(null=True, blank=True)
     target = GenericForeignKey("content_type", "object_id")
     detail = models.CharField(max_length=255, blank=True, default="")
+    # Copied from the removal reason at action time so later template edits never rewrite history.
+    reason_title = models.CharField(max_length=60, blank=True, default="")
+    reason_body = models.CharField(max_length=1000, blank=True, default="")
+    reason_note = models.CharField(max_length=500, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -80,3 +84,21 @@ class ModAction(models.Model):
 
     def __str__(self) -> str:
         return f"{self.community_id}: {self.action} by {self.actor_id or 'automod'}"
+
+
+class RemovalReason(models.Model):
+    """Moderator-managed template offered when removing someone else's content."""
+
+    community = models.ForeignKey(
+        "communities.Community", on_delete=models.CASCADE, related_name="removal_reasons"
+    )
+    title = models.CharField(max_length=60)
+    body = models.CharField(max_length=1000)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ("order", "id")
+        indexes = [models.Index(fields=("community", "order"))]
+
+    def __str__(self) -> str:
+        return self.title

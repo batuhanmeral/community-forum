@@ -21,4 +21,6 @@ export interface Notification {
   link: string | null;
   created_at: string;
   read_at: string | null;
+  reason_title?: string;
+  reason_body_html?: string;
 }

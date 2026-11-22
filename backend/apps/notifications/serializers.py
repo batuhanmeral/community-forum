@@ -20,6 +20,8 @@ class NotificationSerializer(serializers.ModelSerializer):
             "target_type",
             "target_id",
             "link",
+            "reason_title",
+            "reason_body_html",
             "created_at",
             "read_at",
         )
