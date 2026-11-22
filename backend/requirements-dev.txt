@@ -153,11 +153,22 @@ django==6.1.2 \
     #   -c requirements.txt
     #   -r requirements.in
     #   django-cors-headers
+    #   django-stubs-ext
+    #   django-tasks-db
     #   djangorestframework
     #   djangorestframework-simplejwt
 django-cors-headers==4.9.0 \
     --hash=sha256:15c7f20727f90044dcee2216a9fd7303741a864865f0c3657e28b7056f61b449 \
     --hash=sha256:fe5d7cb59fdc2c8c646ce84b727ac2bca8912a247e6e68e1fb507372178e59e8
+django-stubs-ext==6.1.2 \
+    --hash=sha256:2142da7fffbbe897ccecf9b4c97e09ea1a2e9291760b0a824b4c402b375ce6f9 \
+    --hash=sha256:7334e687ab6dc78a6c3da90ab1ccb0e412efd827ea11de8d3f85adbad948abb1
+    # via
+    #   -c requirements.txt
+    #   django-tasks-db
+django-tasks-db==0.13.0 \
+    --hash=sha256:09630d417cf722b07e1439b837403e18e86455908ba532fa6795b0d23dc3ff23 \
+    --hash=sha256:a3a47250b09d40e9b289851d2a550d840d29e59ee3e7115129831e291bb35576
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -487,6 +498,8 @@ typing-extensions==4.16.0 \
     --hash=sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5
     # via
     #   -c requirements.txt
+    #   django-stubs-ext
+    #   django-tasks-db
     #   psycopg
 urllib3==2.8.0 \
     --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 \

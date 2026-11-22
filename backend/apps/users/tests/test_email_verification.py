@@ -24,7 +24,7 @@ def _link_params(body: str) -> dict:
     return match.groupdict()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestEmailVerification:
     def _register(self, api):
         resp = api.post(

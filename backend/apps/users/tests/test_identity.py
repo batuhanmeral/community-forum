@@ -32,7 +32,7 @@ def bob(db):
     return user
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestMeUpdate:
     def test_username_is_read_only(self, api, alice, bob):
         api.force_authenticate(bob)

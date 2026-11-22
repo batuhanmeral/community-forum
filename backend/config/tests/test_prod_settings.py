@@ -68,3 +68,17 @@ _CONN_CODE = (
 def test_conn_max_age(env, expected):
     result = _run_prod(_CONN_CODE, SECRET_KEY=secrets.token_urlsafe(50), **env)
     assert result.stdout.split() == expected
+
+
+@pytest.mark.parametrize(
+    "env, expected",
+    [
+        # Bounded by default so a stuck SMTP server cannot outlive the worker's grace period.
+        pytest.param({}, "30.0", id="default"),
+        pytest.param({"EMAIL_TIMEOUT": "10"}, "10.0", id="from-env"),
+    ],
+)
+def test_email_timeout(env, expected):
+    code = "import django; django.setup(); from django.conf import settings; print(settings.EMAIL_TIMEOUT)"
+    result = _run_prod(code, SECRET_KEY=secrets.token_urlsafe(50), **env)
+    assert result.stdout.strip() == expected
