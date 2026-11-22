@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { authFailure, authStart, setAccessToken, setUser } from '@/features/auth/authSlice';
-import { fetchMe, login, register } from '@/api/auth';
+import { fetchMe, login, needsSecondFactor, register } from '@/api/auth';
 import { withAuthLock } from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -40,8 +40,10 @@ export function RegisterPage() {
     try {
       await register({ username, email, password });
       await withAuthLock(async () => {
-        const tokens = await login({ username, password });
-        dispatch(setAccessToken(tokens.access));
+        const result = await login({ username, password });
+        // A brand new account cannot have a second factor yet.
+        if (needsSecondFactor(result)) throw new Error('unexpected second factor');
+        dispatch(setAccessToken(result.access));
       });
       const me = await fetchMe();
       dispatch(setUser(me));

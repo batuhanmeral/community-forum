@@ -112,9 +112,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("apps.users.authentication.NexusJWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticatedOrReadOnly",),
     "DEFAULT_PAGINATION_CLASS": "config.pagination.DefaultPagination",
     "DEFAULT_THROTTLE_CLASSES": (
@@ -131,6 +129,8 @@ REST_FRAMEWORK = {
         "vote": config("THROTTLE_VOTE", default="120/min"),
         # One ticket per (re)connect; generous enough for flaky networks and many tabs.
         "realtime_ticket": config("THROTTLE_REALTIME_TICKET", default="30/min"),
+        # Second-factor verification per IP; the per-user lockout in apps.users.mfa is separate.
+        "mfa": config("THROTTLE_MFA", default="10/min"),
     },
     # Reverse proxies in front of Django. 0 = trust REMOTE_ADDR only; never the client's XFF.
     "NUM_PROXIES": config("NUM_PROXIES", default=0, cast=int),
@@ -215,3 +215,12 @@ TASKS = {
         "QUEUES": ["default"],
     }
 }
+
+# Two-factor authentication. TOTP secrets are Fernet-encrypted with this key; leave it empty to
+# keep 2FA off. Comma separate several keys to rotate (first encrypts, all decrypt).
+MFA_ENCRYPTION_KEY = config("MFA_ENCRYPTION_KEY", default="")
+MFA_ISSUER = config("MFA_ISSUER", default="Nexus")
+# The Django admin has its own login (session based, outside the JWT flow). It is mounted only
+# when enabled; production defaults to off. Staff with 2FA must also give a code there.
+ADMIN_ENABLED = config("ADMIN_ENABLED", default=True, cast=bool)
+

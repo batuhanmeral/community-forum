@@ -1,6 +1,6 @@
 import { AUTH_REQUEST_TIMEOUT_MS, api, withAuthLock } from './client';
 import { readSessionUserId } from '@/features/auth/authSlice';
-import type { AuthTokens, User } from '@/features/auth/types';
+import type { AuthTokens, MfaChallenge, User } from '@/features/auth/types';
 
 export interface RegisterPayload {
   username: string;
@@ -21,10 +21,27 @@ export async function register(payload: RegisterPayload): Promise<User> {
 // Set when a logout request failed: the HttpOnly cookie may still hold a live session.
 const LOGOUT_PENDING_KEY = 'nexus.logoutPending';
 
-export async function login(payload: LoginPayload): Promise<AuthTokens> {
+export type LoginResult = AuthTokens | MfaChallenge;
+
+export function needsSecondFactor(result: LoginResult): result is MfaChallenge {
+  return 'mfa_required' in result;
+}
+
+export async function login(payload: LoginPayload): Promise<LoginResult> {
   // Callers hold the cross-tab auth lock; a hung login must not block every tab's refresh.
-  const res = await api.post<AuthTokens>('/auth/login/', payload, { timeout: AUTH_REQUEST_TIMEOUT_MS });
-  // The new cookie replaced the old one; a retried logout must not end this session.
+  const res = await api.post<LoginResult>('/auth/login/', payload, { timeout: AUTH_REQUEST_TIMEOUT_MS });
+  // A challenge sets no cookie; only a real session replaced the old one.
+  if (!needsSecondFactor(res.data)) localStorage.removeItem(LOGOUT_PENDING_KEY);
+  return res.data;
+}
+
+/** Second login step: the one-time token from `login` plus an authenticator or recovery code. */
+export async function verifyMfa(mfaToken: string, code: string): Promise<AuthTokens> {
+  const res = await api.post<AuthTokens>(
+    '/auth/mfa/verify/',
+    { mfa_token: mfaToken, code },
+    { timeout: AUTH_REQUEST_TIMEOUT_MS },
+  );
   localStorage.removeItem(LOGOUT_PENDING_KEY);
   return res.data;
 }

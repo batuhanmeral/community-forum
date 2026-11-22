@@ -13,7 +13,7 @@ from apps.saves.models import SavedItem
 from apps.social.models import Block, Follow
 from apps.votes.models import Vote
 
-from .models import User
+from .models import MfaChallenge, MfaDevice, MfaFailure, MfaRecoveryCode, User
 
 
 def deleted_username(user: User) -> str:
@@ -86,6 +86,9 @@ def delete_account(user: User) -> None:
     FeedExclusion.objects.filter(user=user).delete()
     CustomFeed.objects.filter(owner=user).delete()
     Notification.objects.filter(recipient=user).delete()
+    # Authentication material is destroyed, not just disabled.
+    for model in (MfaDevice, MfaRecoveryCode, MfaChallenge, MfaFailure):
+        model.objects.filter(user=user).delete()
     Membership.objects.filter(user=user).delete()
 
 

@@ -63,6 +63,10 @@ services:
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Nexus <noreply@localhost>}
       # nginx only = 1; add 1 for every extra proxy (e.g. a TLS edge) in front of it.
       NUM_PROXIES: ${NUM_PROXIES:-1}
+      # Empty keeps two-step verification off. Comma separate keys to rotate.
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
+      MFA_ISSUER: ${MFA_ISSUER:-Nexus}
+      ADMIN_ENABLED: ${ADMIN_ENABLED:-False}
     volumes:
       - nexus_media:/app/media
     healthcheck:

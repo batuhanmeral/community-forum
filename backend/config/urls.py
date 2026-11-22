@@ -25,6 +25,17 @@ from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
 from apps.votes.urls import urlpatterns as votes_urlpatterns
 
+def admin_patterns(enabled: bool):
+    """The admin site, only when ADMIN_ENABLED, with the 2FA-aware login form."""
+    if not enabled:
+        return []
+    from apps.users.admin_mfa import MfaAdminAuthenticationForm
+
+    admin.site.login_form = MfaAdminAuthenticationForm
+    admin.site.login_template = "users/admin_login.html"
+    return [path("admin/", admin.site.urls)]
+
+
 api_v1_patterns = [
     path("auth/", include((auth_urlpatterns, "auth"))),
     path("users/", include((users_urlpatterns, "users"))),
@@ -49,7 +60,7 @@ api_v1_patterns = [
 ]
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    *admin_patterns(settings.ADMIN_ENABLED),
     path("api/v1/", include((api_v1_patterns, "api_v1"))),
     # Open Graph pages for crawlers (nginx routes bot user agents here).
     path("og/", include((seo_urlpatterns, "og"))),

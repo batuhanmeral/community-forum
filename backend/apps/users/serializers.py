@@ -4,12 +4,14 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.serializers import TokenObtainSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.utils import get_md5_hash_password
 
 from apps.realtime.publish import revoke_sessions
 
+from .models import MfaDevice
+from .tokens import AUTH_GENERATION_CLAIM, NexusRefreshToken
 from .validators import username_validator
 
 User = get_user_model()
@@ -260,6 +262,23 @@ class EmailVerifySerializer(_UidTokenSerializer):
         return self._user
 
 
+class MfaAwareTokenObtainPairSerializer(TokenObtainSerializer):
+    """Password step of login. With MFA on it returns a one-time challenge, never tokens."""
+
+    token_class = NexusRefreshToken
+
+    def validate(self, attrs):
+        from . import mfa
+
+        super().validate(attrs)  # authenticates; sets self.user or raises the usual 401
+        if MfaDevice.objects.filter(user=self.user, confirmed_at__isnull=False).exists():
+            # Always a challenge, even when the encryption key is gone: recovery codes still work
+            # then, and the second factor is never skipped.
+            return {"mfa_required": True, "mfa_token": mfa.create_challenge(self.user)}
+        refresh = self.token_class.for_user(self.user)
+        return {"refresh": str(refresh), "access": str(refresh.access_token)}
+
+
 class RevocationAwareTokenRefreshSerializer(TokenRefreshSerializer):
     """Reject refresh tokens minted before the user's latest password change."""
 
@@ -272,5 +291,9 @@ class RevocationAwareTokenRefreshSerializer(TokenRefreshSerializer):
         ):
             raise AuthenticationFailed(
                 "Session expired. Please log in again.", code="password_changed"
+            )
+        if refresh.payload.get(AUTH_GENERATION_CLAIM, 0) != user.auth_generation:
+            raise AuthenticationFailed(
+                "Session expired. Please log in again.", code="session_revoked"
             )
         return super().validate(attrs)
