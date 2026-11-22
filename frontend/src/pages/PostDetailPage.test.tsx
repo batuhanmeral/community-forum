@@ -408,3 +408,33 @@ describe('PostDetailPage spoilers', () => {
   });
 });
 
+describe('PostDetailPage feed discovery', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'member' } as never);
+  });
+
+  const feedLink = () => document.head.querySelector('link[type="application/atom+xml"]');
+
+  it('advertises the comment feed of an ordinary post', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost } as Post);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Title' });
+    expect(feedLink()?.getAttribute('href')).toMatch(/\/posts\/5\/comments\.atom$/);
+  });
+
+  it.each([{ is_nsfw: true }, { is_spoiler: true }])('advertises no feed for %o', async (flags) => {
+    document.head.querySelectorAll('link[type="application/atom+xml"]').forEach((n) => n.remove());
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost, ...flags } as Post);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Title' });
+    expect(feedLink()).toBeNull();
+  });
+});
+

@@ -18,6 +18,7 @@ from apps.posts.urls import (
 from apps.realtime.urls import urlpatterns as realtime_urlpatterns
 from apps.saves.urls import urlpatterns as saves_urlpatterns
 from apps.search.urls import urlpatterns as search_urlpatterns
+from apps.seo.urls import atom_urlpatterns
 from apps.seo.urls import urlpatterns as seo_urlpatterns
 from apps.social.urls import urlpatterns as social_urlpatterns
 from apps.users.urls import auth_urlpatterns, users_urlpatterns
@@ -42,6 +43,7 @@ api_v1_patterns = [
     path("", include((search_urlpatterns, "search"))),
     path("", include((common_urlpatterns, "common"))),
     path("", include((realtime_urlpatterns, "realtime"))),
+    path("", include((atom_urlpatterns, "atom"))),
 ]
 
 urlpatterns = [

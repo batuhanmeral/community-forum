@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { PostCard } from '@/components/posts/PostCard';
+import { FeedLink } from '@/components/ui/FeedLink';
 import { PostSortTabs } from '@/components/posts/PostSortTabs';
 import { TimeRangeSelect } from '@/components/posts/TimeRangeSelect';
 import { CreatePostLink } from '@/components/posts/CreatePostLink';
@@ -221,6 +222,9 @@ export function CommunityDetailPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageTitle title={`c/${community.slug}`} />
+      {!community.is_nsfw && (
+        <FeedLink path={`/communities/${community.slug}/feed.atom`} title={`c/${community.slug}`} />
+      )}
       <Card padded={false} className="overflow-hidden">
         <div className="h-24 w-full bg-[var(--color-bg-3)]" />
         <div className="px-5 py-4">
