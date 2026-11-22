@@ -10,6 +10,7 @@ export interface Community {
   is_nsfw: boolean;
   requires_approval: boolean;
   qa_enabled: boolean;
+  allow_self_user_flair?: boolean;
   creator: number;
   created_at: string;
   member_count: number;
@@ -36,6 +37,13 @@ export interface CommunityRule {
   short: string;
   description: string;
   created_at: string;
+}
+
+export interface UserFlair {
+  id: number;
+  text: string;
+  color: string;
+  order: number;
 }
 
 export interface Flair {

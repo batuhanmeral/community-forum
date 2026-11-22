@@ -1,8 +1,11 @@
+import type { UserFlair } from '@/features/communities/types';
+
 export interface Comment {
   id: number;
   post: number;
   author: number | null;
   author_username: string | null;
+  author_flair?: UserFlair | null;
   author_avatar: string | null;
   parent: number | null;
   body: string;

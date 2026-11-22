@@ -7,12 +7,18 @@ from .views import (
     CommunityViewSet,
     FlairDetailView,
     FlairListCreateView,
+    UserFlairAssignView,
+    UserFlairDetailView,
+    UserFlairListCreateView,
 )
 
 router = DefaultRouter()
 router.register(r"communities", CommunityViewSet, basename="community")
 
 urlpatterns = router.urls + [
+    path("communities/<slug:slug>/user-flairs/", UserFlairListCreateView.as_view()),
+    path("communities/<slug:slug>/user-flairs/<int:pk>/", UserFlairDetailView.as_view()),
+    path("communities/<slug:slug>/user-flair/", UserFlairAssignView.as_view()),
     path(
         "communities/<slug:slug>/rules/",
         CommunityRuleListCreateView.as_view(),

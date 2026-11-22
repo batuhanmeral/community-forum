@@ -12,6 +12,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Communities with membership roles (admin / moderator / member), icons, rules, and NSFW flags
 - Four post kinds: text, link, image (with upload validation), and poll
 - Post flairs (per-community, managed by mods), sticky/pinned posts, NSFW tagging
+- Member flairs: mods define per-community badges shown beside author names and assign them; admins can let members pick their own (cleared on ban/leave, logged in the mod log)
 - Nested comment trees with author avatars, inline replies, `@username` mention autocomplete and mentions rendered as profile links
 - Markdown editor with server-rendered, sanitized preview; links keep only absolute `http(s)`/`mailto`, site-root (`/…`) and `#…` targets (anything else renders as plain text) and always carry `rel="nofollow noopener noreferrer ugc"`
 - Post drafts — debounced autosave to localStorage with restore/discard

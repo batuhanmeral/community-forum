@@ -59,6 +59,13 @@ function renderCard(post: Post) {
 }
 
 describe('PostCard', () => {
+  it('shows the author community flair as text', () => {
+    renderCard(
+      makePost({ author_flair: { id: 3, text: 'Helper', color: '#123456', order: 0 } }),
+    );
+    expect(screen.getByText('Helper')).toBeInTheDocument();
+  });
+
   it('links the author through userPath', () => {
     renderCard(makePost({ author_username: 'a b' }));
     expect(screen.getByRole('link', { name: 'u/a b' })).toHaveAttribute('href', '/u/a%20b');

@@ -24,6 +24,7 @@ def _mask_body(obj: Comment) -> str:
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
+    author_flair = serializers.SerializerMethodField()
     author_avatar = serializers.SerializerMethodField()
     score = serializers.IntegerField(read_only=True, default=0)
     user_vote = serializers.SerializerMethodField()
@@ -40,6 +41,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "post",
             "author",
             "author_username",
+            "author_flair",
             "author_avatar",
             "parent",
             "body",
@@ -60,6 +62,11 @@ class CommentSerializer(serializers.ModelSerializer):
             return None
         return obj.author_id
 
+    def get_author_flair(self, obj):
+        from apps.communities.services import author_flair_data
+
+        return author_flair_data(obj, obj.post.community_id)
+
     def get_author_username(self, obj: Comment):
         # Removed content and deleted accounts both show as "[deleted]".
         if obj.deleted_at is not None or not obj.author.is_active:
@@ -76,6 +83,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_body_html(self, obj: Comment) -> str:
         return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"
+
     def get_is_accepted(self, obj: Comment) -> bool:
         post = self.context.get("post")
         return post is not None and post.accepted_comment_id == obj.pk

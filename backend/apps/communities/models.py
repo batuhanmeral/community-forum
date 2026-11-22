@@ -18,6 +18,7 @@ class Community(models.Model):
     is_nsfw = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     qa_enabled = models.BooleanField(default=True)
+    allow_self_user_flair = models.BooleanField(default=False)
     # AutoMod: newline-separated keywords; matching posts are held for mod approval.
     banned_keywords = models.CharField(max_length=2000, blank=True, default="")
     creator = models.ForeignKey(
@@ -100,6 +101,9 @@ class Membership(models.Model):
         related_name="+",
     )
     banned_at = models.DateTimeField(null=True, blank=True)
+    user_flair = models.ForeignKey(
+        "UserFlair", on_delete=models.SET_NULL, null=True, blank=True, related_name="memberships"
+    )
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -138,3 +142,19 @@ class Flair(models.Model):
 
     def __str__(self) -> str:
         return f"{self.community.slug}:{self.name}"
+
+
+class UserFlair(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="user_flairs")
+    text = models.CharField(max_length=40)
+    color = models.CharField(
+        max_length=7, default=DEFAULT_FLAIR_COLOR, validators=[RegexValidator(HEX_COLOR_PATTERN)]
+    )
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ("order", "id")
+        indexes = [models.Index(fields=("community", "order"))]
+
+    def __str__(self):
+        return self.text

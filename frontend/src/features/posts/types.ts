@@ -1,4 +1,4 @@
-import type { Flair } from '@/features/communities/types';
+import type { Flair, UserFlair } from '@/features/communities/types';
 
 export type PostKind = 'text' | 'link' | 'image' | 'poll';
 
@@ -23,6 +23,7 @@ export interface Post {
   id: number;
   author: number | null;
   author_username: string | null;
+  author_flair?: UserFlair | null;
   community: string;
   flair: number | null;
   flair_detail: Flair | null;

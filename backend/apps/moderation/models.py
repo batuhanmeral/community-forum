@@ -37,6 +37,10 @@ class ModAction(models.Model):
     """Audit log entry for a moderator action inside a community."""
 
     class Action(models.TextChoices):
+        USER_FLAIR_CREATE = "user_flair_create", "User flair created"
+        USER_FLAIR_UPDATE = "user_flair_update", "User flair updated"
+        USER_FLAIR_DELETE = "user_flair_delete", "User flair deleted"
+        USER_FLAIR_ASSIGN = "user_flair_assign", "User flair assigned"
         POST_PIN = "post_pin", "Post pinned"
         POST_UNPIN = "post_unpin", "Post unpinned"
         POST_SPOILER = "post_spoiler", "Post marked spoiler"

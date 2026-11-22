@@ -177,3 +177,108 @@ class FlairDetailView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         _require_mod(self.request.user, self.get_community())
         instance.delete()
+
+
+class UserFlairListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
+    from .serializers import UserFlairSerializer
+
+    serializer_class = UserFlairSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    throttle_scope = "write"
+    pagination_class = None
+
+    def get_queryset(self):
+        return get_object_or_404(Community, slug=self.kwargs["slug"]).user_flairs.all()
+
+    def perform_create(self, serializer):
+        from django.db import transaction
+
+        from apps.moderation.services import log_mod_action
+
+        with transaction.atomic():
+            community = get_object_or_404(
+                Community.objects.select_for_update(), slug=self.kwargs["slug"]
+            )
+            _require_mod(self.request.user, community)
+            if community.user_flairs.count() >= 30:
+                raise ValidationError("A community can have at most 30 user flairs.")
+            flair = serializer.save(community=community)
+            log_mod_action(
+                community, actor=self.request.user, action="user_flair_create", target=flair
+            )
+
+
+class UserFlairDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
+    from .serializers import UserFlairSerializer
+
+    serializer_class = UserFlairSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    throttle_scope = "write"
+
+    def get_queryset(self):
+        return get_object_or_404(Community, slug=self.kwargs["slug"]).user_flairs.all()
+
+    def perform_update(self, serializer):
+        from apps.moderation.services import log_mod_action
+
+        _require_mod(self.request.user, serializer.instance.community)
+        flair = serializer.save()
+        log_mod_action(
+            flair.community, actor=self.request.user, action="user_flair_update", target=flair
+        )
+
+    def perform_destroy(self, instance):
+        from apps.moderation.services import log_mod_action
+
+        _require_mod(self.request.user, instance.community)
+        log_mod_action(
+            instance.community, actor=self.request.user, action="user_flair_delete", target=instance
+        )
+        instance.delete()
+
+
+class UserFlairAssignView(WriteThrottleMixin, generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "write"
+
+    def patch(self, request, slug):
+        from django.db import transaction
+        from rest_framework import serializers
+
+        from apps.moderation.services import log_mod_action
+
+        from .services import can_moderate_member
+
+        with transaction.atomic():
+            community = get_object_or_404(Community.objects.select_for_update(), slug=slug)
+
+            class Input(serializers.Serializer):
+                user = serializers.IntegerField(required=False, min_value=1)
+                user_flair = serializers.PrimaryKeyRelatedField(
+                    queryset=community.user_flairs.all(), allow_null=True
+                )
+
+            data = Input(data=request.data)
+            data.is_valid(raise_exception=True)
+            target_id = data.validated_data.get("user", request.user.pk)
+            membership = get_object_or_404(
+                Membership.objects.select_for_update().select_related("user"),
+                community=community,
+                user_id=target_id,
+                is_banned=False,
+            )
+            if target_id == request.user.pk:
+                if not community.allow_self_user_flair and not is_moderator(
+                    request.user, community
+                ):
+                    raise PermissionDenied("Self selection is disabled.")
+            elif not can_moderate_member(request.user, membership.user, community):
+                raise PermissionDenied("You can only assign flair to members ranked below you.")
+            membership.user_flair = data.validated_data["user_flair"]
+            membership.save(update_fields=("user_flair",))
+            # Only a moderator acting on someone else is a moderation action.
+            if target_id != request.user.pk:
+                log_mod_action(
+                    community, actor=request.user, action="user_flair_assign", target=membership
+                )
+            return Response(MembershipSerializer(membership).data)

@@ -41,7 +41,13 @@ def _annotate_score(qs):
 
 
 def _base_comment_qs(qs, user):
-    return qs.select_related("author").prefetch_related(*viewer_prefetches(user))
+    from apps.communities.services import annotate_author_flair
+
+    return (
+        annotate_author_flair(qs, "post__community_id")
+        .select_related("author", "post")
+        .prefetch_related(*viewer_prefetches(user))
+    )
 
 
 def _apply_comment_sort(qs, sort: str):
