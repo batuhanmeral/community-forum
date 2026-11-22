@@ -35,6 +35,8 @@ export interface Post {
   image: string | null;
   is_nsfw: boolean;
   is_spoiler: boolean;
+  /** Set on crossposts: the original post; `is_deleted` once it is gone or held. */
+  crosspost_from: { id: number; community: string | null; is_deleted: boolean } | null;
   is_question: boolean;
   accepted_comment: number | null;
   bounty_amount: number;

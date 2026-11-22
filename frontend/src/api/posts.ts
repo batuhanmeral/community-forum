@@ -157,3 +157,8 @@ export async function placeBounty(postId: number, amount: number): Promise<QaSta
   const res = await api.post<QaState>(`/posts/${postId}/bounty/`, { amount });
   return res.data;
 }
+
+export async function crosspostPost(postId: number, community: string, title?: string): Promise<Post> {
+  const res = await api.post<Post>(`/posts/${postId}/crosspost/`, { community, ...(title ? { title } : {}) });
+  return res.data;
+}

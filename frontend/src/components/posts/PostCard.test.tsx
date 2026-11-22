@@ -30,6 +30,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     url: '',
     image: null,
     is_nsfw: false,
+    crosspost_from: null, is_spoiler: false, is_question: false, accepted_comment: null, bounty_amount: 0, bounty_expires_at: null, bounty_status: '',
     is_pinned: false,
     is_approved: true,
     score: 0,
@@ -246,6 +247,20 @@ describe('PostCard spoilers', () => {
   it('shows the body of an ordinary post', () => {
     renderCard(makePost({ body: 'plain body' }));
     expect(screen.getByText('plain body')).toBeInTheDocument();
+  });
+});
+
+describe('PostCard crossposts', () => {
+  it('links a crosspost to its original post', () => {
+    renderCard(makePost({ crosspost_from: { id: 3, community: 'src', is_deleted: false } }));
+    const link = screen.getByRole('link', { name: 'crossposted from c/src' });
+    expect(link).toHaveAttribute('href', '/posts/3');
+  });
+
+  it('shows a placeholder, not a link, when the original is gone', () => {
+    renderCard(makePost({ crosspost_from: { id: 3, community: null, is_deleted: true } }));
+    expect(screen.getByText('[original deleted]')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /crossposted from/ })).toBeNull();
   });
 });
 

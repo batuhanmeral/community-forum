@@ -44,6 +44,9 @@ class Post(RenderedBodyModel):
     image = models.ImageField(upload_to="posts/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     is_spoiler = models.BooleanField(default=False)
+    crosspost_parent = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="crossposts"
+    )
     is_pinned = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -67,6 +70,14 @@ class Post(RenderedBodyModel):
 
     class Meta:
         ordering = ("-is_pinned", "-created_at")
+        constraints = [
+            # One live crosspost of a root per user and community; deleting it frees the slot.
+            models.UniqueConstraint(
+                fields=("author", "crosspost_parent", "community"),
+                condition=models.Q(crosspost_parent__isnull=False, deleted_at__isnull=True),
+                name="posts_one_crosspost_per_user_root_community",
+            ),
+        ]
         indexes = [
             models.Index(fields=("community", "-created_at")),
             models.Index(

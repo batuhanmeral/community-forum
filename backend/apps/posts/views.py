@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import (
     Count,
     F,
@@ -26,7 +26,7 @@ from apps.common.text_match import html_text, link_targets, url_forms
 from apps.common.throttling import WriteThrottleMixin
 from apps.common.viewer import viewer_prefetches
 from apps.communities.models import Community
-from apps.communities.services import is_banned, is_moderator
+from apps.communities.services import active_membership, is_banned, is_moderator
 from apps.moderation.models import ModAction
 from apps.moderation.services import log_mod_action
 from apps.notifications.services import notify
@@ -169,6 +169,22 @@ def _edit_hold_reason(post: Post, validated_data: dict) -> str | None:
     return None
 
 
+def _intake_state(user, community, title, body, url, poll_options=()):
+    """(is_approved, matched_keyword) for a new post: approval queue plus AutoMod keywords."""
+    author_is_mod = is_moderator(user, community)
+    # If community requires approval, hide post until a mod approves.
+    is_approved = not community.requires_approval or author_is_mod
+    # AutoMod: hold posts matching a banned keyword (mods bypass).
+    matched_kw = None
+    if is_approved and not author_is_mod and community.banned_keyword_list():
+        matched_kw = community.matches_banned_keyword(
+            *_automod_texts(title, body, url), *poll_options
+        )
+        if matched_kw:
+            is_approved = False
+    return is_approved, matched_kw
+
+
 class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsCommunityMember)
@@ -202,20 +218,15 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
 
     def perform_create(self, serializer):
         community = self.get_community()
-        author_is_mod = is_moderator(self.request.user, community)
-        # If community requires approval, hide post until a mod approves.
-        is_approved = not community.requires_approval or author_is_mod
-        # AutoMod: hold posts matching a banned keyword (mods bypass).
-        matched_kw = None
-        if is_approved and not author_is_mod and community.banned_keyword_list():
-            data = serializer.validated_data
-            poll_options = (data.get("poll_input") or {}).get("options", [])
-            matched_kw = community.matches_banned_keyword(
-                *_automod_texts(data.get("title", ""), data.get("body", ""), data.get("url", "")),
-                *poll_options,
-            )
-            if matched_kw:
-                is_approved = False
+        data = serializer.validated_data
+        is_approved, matched_kw = _intake_state(
+            self.request.user,
+            community,
+            data.get("title", ""),
+            data.get("body", ""),
+            data.get("url", ""),
+            (data.get("poll_input") or {}).get("options", []),
+        )
         post = serializer.save(
             author=self.request.user,
             community=community,
@@ -314,9 +325,10 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
         # One write carries the hold, so no reader or racing edit ever sees the held edit approved.
         hold = {"is_approved": False, "is_pinned": False} if reason else {}
         post = serializer.save(
-            # An NSFW community's posts can't be un-flagged by their author.
+            # An NSFW community's posts can't be un-flagged by their author, nor can a crosspost.
             is_nsfw=serializer.validated_data.get("is_nsfw", instance.is_nsfw)
-            or instance.community.is_nsfw,
+            or instance.community.is_nsfw
+            or bool(instance.crosspost_parent_id and instance.is_nsfw),
             **hold,
         )
         if (post.title, post.body) != (old_title, old_body):
@@ -558,4 +570,14 @@ class PostSpoilerView(WriteThrottleMixin, APIView):
 
     def post(self, request, pk):
         return self._set(request, pk, True)
+
+    def delete(self, request, pk):
+        return self._set(request, pk, False)
+
+
+class PostCrosspostView(WriteThrottleMixin, APIView):
+    """POST {community, title?}: share a post into another community the user belongs to."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "write"
 
