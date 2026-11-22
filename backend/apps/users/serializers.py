@@ -8,6 +8,7 @@ from rest_framework_simplejwt.serializers import TokenObtainSerializer, TokenRef
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.utils import get_md5_hash_password
 
+from apps.push.services import drop_subscriptions
 from apps.realtime.publish import revoke_sessions
 
 from .models import MfaDevice
@@ -91,6 +92,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_total_karma(self, obj: User) -> int:
         return obj.post_karma + obj.comment_karma
+
     def get_bounty_held(self, obj: User) -> int:
         held = getattr(obj, "held_bounty_karma", None)
         if held is not None:
@@ -167,6 +169,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
         revoke_sessions(user.pk)
+        drop_subscriptions(user)
         return user
 
 
@@ -244,6 +247,7 @@ class PasswordResetConfirmSerializer(_UidTokenSerializer):
         self._user.set_password(self.validated_data["new_password"])
         self._user.save(update_fields=["password"])
         revoke_sessions(self._user.pk)
+        drop_subscriptions(self._user)
         return self._user
 
 

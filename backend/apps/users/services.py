@@ -8,6 +8,7 @@ from apps.messaging.models import Message
 from apps.modmail.models import ModmailMessage
 from apps.notifications.models import Notification
 from apps.posts.models import CustomFeed, FeedExclusion, HiddenPost, Post
+from apps.push.services import erase_push_data
 from apps.realtime.publish import revoke_sessions
 from apps.saves.models import SavedItem
 from apps.social.models import Block, Follow
@@ -27,6 +28,8 @@ def delete_file_on_commit(field_file) -> None:
         return
     storage, name = field_file.storage, field_file.name
     transaction.on_commit(lambda: storage.delete(name))
+
+
 def end_realtime_sessions(user_id: int) -> None:
     """Logout: close every realtime socket of the user, including any that miss the event.
 
@@ -90,6 +93,8 @@ def delete_account(user: User) -> None:
     for model in (MfaDevice, MfaRecoveryCode, MfaChallenge, MfaFailure):
         model.objects.filter(user=user).delete()
     Membership.objects.filter(user=user).delete()
+    erase_push_data(user)
+    revoke_sessions(user.pk)
 
 
 def _iso(value) -> str | None:
@@ -157,6 +162,27 @@ def export_account(user: User) -> dict:
         "saved": [
             {"target": s.content_type.model, "target_id": s.object_id}
             for s in SavedItem.objects.filter(user=user).select_related("content_type")
+        ],
+        "custom_feeds": [
+            {
+                "name": feed.name,
+                "slug": feed.slug,
+                "description": feed.description,
+                "is_public": feed.is_public,
+                "communities": sorted(c.slug for c in feed.communities.all()),
+            }
+            for feed in CustomFeed.objects.filter(owner=user).prefetch_related("communities")
+        ],
+        "feed_exclusions": list(
+            FeedExclusion.objects.filter(user=user)
+            .order_by("community__slug")
+            .values_list("community__slug", flat=True)
+        ),
+        "hidden": [
+            {"post_id": post_id}
+            for post_id in HiddenPost.objects.filter(user=user)
+            .order_by("id")
+            .values_list("post_id", flat=True)
         ],
         "following": list(
             Follow.objects.filter(follower=user).values_list("followed__username", flat=True)

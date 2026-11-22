@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type { RootState } from '@/app/store';
 import { logout } from '@/features/auth/authSlice';
 import { logoutRequest } from '@/api/auth';
+import { removePushOnLogout } from '@/lib/push';
 import { withAuthLock } from '@/api/client';
 import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
 import { userPath } from '@/lib/paths';
@@ -144,6 +145,8 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
 
   async function handleLogout() {
     // Under the refresh lock so a refresh in flight can't store a new session after this logout.
+    // This browser stops receiving this account's pushes while the token still works.
+    await removePushOnLogout();
     await withAuthLock(async () => {
       await logoutRequest();
       dispatch(logout());
@@ -237,6 +240,7 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
                     <div className="border-t border-[var(--color-border)]" />
                     <Link to={userPath(user.username)} onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">
                       {t('nav.profile')}
+                    </Link>
                     <Link to="/modmail" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[var(--color-surface-hover)]">
                       {t('nav.modmail')}
                       {modmailUnread > 0 && (

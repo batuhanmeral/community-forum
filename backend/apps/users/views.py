@@ -42,7 +42,7 @@ from .services import (
     end_realtime_sessions,
     export_account,
 )
-from .services import delete_account, delete_file_on_commit, export_account
+from .tokens import SESSION_CLAIM, NexusRefreshToken
 
 User = get_user_model()
 
@@ -95,6 +95,14 @@ class LogoutView(APIView):
         else:
             # Only a live session ends its sockets, so a stale cookie cannot disconnect anyone.
             end_realtime_sessions(refresh[jwt_settings.USER_ID_CLAIM])
+            # This browser's push subscriptions belong to the session that just ended.
+            session_id = refresh.payload.get(SESSION_CLAIM, "")
+            if session_id:
+                from apps.push.models import PushSubscription
+
+                PushSubscription.objects.filter(
+                    user_id=refresh[jwt_settings.USER_ID_CLAIM], session_id=session_id
+                ).delete()
         return clear_refresh_cookie(response)
 
 

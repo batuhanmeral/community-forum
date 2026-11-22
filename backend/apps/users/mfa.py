@@ -349,6 +349,8 @@ def consume_challenge(challenge: MfaChallenge) -> bool:
 
 def revoke_all_sessions(user) -> None:
     """Blacklist every outstanding refresh token and close every realtime socket of the user."""
+    from apps.push.services import drop_subscriptions
+
     from .services import end_realtime_sessions
 
     live = OutstandingToken.objects.filter(user=user, blacklistedtoken__isnull=True)
@@ -361,3 +363,4 @@ def revoke_all_sessions(user) -> None:
     User.objects.filter(pk=user.pk).update(auth_generation=F("auth_generation") + 1)
     user.refresh_from_db(fields=["auth_generation"])
     end_realtime_sessions(user.pk)
+    drop_subscriptions(user)
