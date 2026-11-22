@@ -8,6 +8,8 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.utils import get_md5_hash_password
 
+from apps.realtime.publish import revoke_sessions
+
 from .validators import username_validator
 
 User = get_user_model()
@@ -153,6 +155,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         user = self.context["request"].user
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
+        revoke_sessions(user.pk)
         return user
 
 
@@ -229,6 +232,7 @@ class PasswordResetConfirmSerializer(_UidTokenSerializer):
     def save(self, **kwargs) -> User:
         self._user.set_password(self.validated_data["new_password"])
         self._user.save(update_fields=["password"])
+        revoke_sessions(self._user.pk)
         return self._user
 
 

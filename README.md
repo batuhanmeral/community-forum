@@ -24,9 +24,9 @@ The project is split into two independent applications: a Django REST Framework 
 
 **Social**
 - Follow system with followers/following lists
-- Direct messages: conversations, read receipts (✓ / ✓✓), unread counters
-- Notifications (comment, reply, mention, follow, DM, mod action) with bell dropdown, inbox page, and 30s polling
-- Navbar badges for unread notifications and messages come from one call, `GET /api/v1/users/me/unread-counts/` (`{notifications, messages}`), polled every 30s and paused in hidden tabs
+- Direct messages: conversations, read receipts (✓ / ✓✓), unread counters; new messages and receipts show up live
+- Notifications (comment, reply, mention, follow, DM, mod action) with bell dropdown and inbox page, delivered live over a WebSocket with polling as the fallback
+- Navbar badges for unread notifications and messages come from one call, `GET /api/v1/users/me/unread-counts/` (`{notifications, messages}`), refetched on realtime events; polling (30s without the socket, 5 min with it) pauses in hidden tabs
 - User blocking — cuts DMs and follows both ways, suppresses notifications
 - Public user profiles with karma badges, post/comment tabs, profile editing, and an optional country shown with its flag
 
@@ -70,7 +70,7 @@ The project is split into two independent applications: a Django REST Framework 
 | Frontend | React 19 (Vite, TypeScript), React Router, Redux Toolkit, TailwindCSS 4, Lucide icons |
 | Testing  | pytest + pytest-cov (backend), Vitest + React Testing Library (frontend) |
 | Tooling  | ruff (lint + format), ESLint |
-| Deploy   | Docker (gunicorn + WhiteNoise, nginx SPA + API proxy), Redis, docker-compose |
+| Deploy   | Docker (gunicorn + WhiteNoise, uvicorn + Django Channels for WebSockets, nginx SPA + API/WebSocket proxy), Redis, docker-compose |
 
 ## Project Structure
 
@@ -78,7 +78,7 @@ The project is split into two independent applications: a Django REST Framework 
 community-forum/
 ├── .github/workflows/ci.yml    CI: backend lint + tests on PostgreSQL, frontend lint, build and tests
 ├── backend/                    Django + DRF API
-│   ├── config/                 settings (base / dev / prod), root URLs, pagination, WSGI/ASGI
+│   ├── config/                 settings (base / dev / prod), root URLs, pagination, WSGI (API) / ASGI (realtime)
 │   ├── apps/
 │   │   ├── users/              accounts, JWT auth and refresh cookie, profiles, data export, account deletion
 │   │   ├── communities/        communities, memberships and roles, rules, flairs, bans
@@ -93,6 +93,7 @@ community-forum/
 │   │   ├── moderation/         reports and the mod action log
 │   │   ├── search/             full-text search and trending widgets
 │   │   ├── seo/                Open Graph pages for link previews
+│   │   ├── realtime/           WebSocket event stream: one-time tickets, consumer, event publishing
 │   │   └── common/             markdown rendering, image handling, throttling, health check
 │   ├── Dockerfile              gunicorn image; entrypoint.sh runs migrations on start
 │   └── requirements*.in/.txt   runtime and dev dependencies (.in = direct pins, .txt = hashed lock)
@@ -105,14 +106,14 @@ community-forum/
 │   │   ├── pages/              route-level screens
 │   │   ├── router/             routes, protected routes, error page
 │   │   ├── i18n/               English and Turkish strings
-│   │   ├── lib/                shared helpers (theme, time, paths, paging, polling, drafts)
+│   │   ├── lib/                shared helpers (theme, time, paths, paging, polling, realtime connection, drafts)
 │   │   └── styles/             design tokens (dark and light) and self-hosted font faces
 │   ├── public/                 logo, fonts, theme-init script
 │   ├── nginx.conf, nginx/      SPA serving, API/media proxy, security headers
 │   └── Dockerfile              build with Node, serve with nginx
 ├── docs/screenshots/           README images
-├── docker-compose.yml          local PostgreSQL for development
-└── docker-compose.prod.yml     production stack: PostgreSQL, Redis, backend, nginx frontend
+├── docker-compose.yml          local PostgreSQL (and optional Redis for realtime) for development
+└── docker-compose.prod.yml     production stack: PostgreSQL, Redis, backend, realtime, task worker, nginx frontend
 ```
 
 ## Installation
@@ -149,6 +150,7 @@ pip-compile --allow-unsafe --generate-hashes --strip-extras --output-file=requir
 ```
 ### Background email worker
 
+Account emails (registration, email changes, verification resend and password reset) are queued in PostgreSQL after transaction commit. The production Compose stack starts `worker` from the same backend image after the API is healthy; only the API container runs migrations. The queue does not use Redis.
 
 For local development, run a second backend terminal with the same database and email environment:
 
@@ -169,6 +171,26 @@ python manage.py prune_db_task_results --min-age-days 14 --failed-min-age-days 3
 docker compose -f docker-compose.prod.yml exec worker python manage.py prune_db_task_results --min-age-days 14 --failed-min-age-days 30
 ```
 
+### Realtime updates
+
+Notifications, unread badges, new direct messages and read receipts arrive over a WebSocket served by a separate ASGI process (`config/asgi.py`, Django Channels on uvicorn); the API itself stays on gunicorn. In the production stack the `realtime` service runs from the backend image and nginx forwards `/ws/` to it, so the SPA connects on its own origin.
+
+- **Signals only**: events carry a type and ids (`{"type": "message.created", "conversation_id": 12}`); the SPA then refetches through the REST API, so permissions, blocks and NSFW rules are enforced in one place and no content travels over the socket.
+- **Authentication**: the SPA asks `POST /api/v1/realtime/ticket/` (JWT, throttled by `THROTTLE_REALTIME_TICKET`, default `30/min`) for a one-time ticket valid for 30 seconds, opens `/ws/v1/stream/` and sends `{"type": "auth", "ticket": "..."}` as the first frame. Neither the JWT nor the ticket ever appears in a URL. The ticket is bound to the session it was issued in: one bought before a password change or a logout is refused. A socket also lives no longer than the access token that bought its ticket: it closes with code 4002 when that token expires, and the SPA reconnects with a fresh token.
+- **Revocation**: password changes, password resets, account deletion and logout close the user's open sockets. Logout is user-wide: it ends the sockets on every device, and the user's other signed-in tabs reconnect with a fresh ticket. The server also re-checks the account on its own timer (about once a minute) and before forwarding every event, so a socket that misses the revocation event, or a client that never pings, is closed anyway.
+- **Limits**: nginx allows 30 sockets per client address and 1000 in total on `/ws/` (429 beyond that; behind another proxy, configure the realip module first). The realtime service accepts at most `REALTIME_MAX_PENDING_SOCKETS` (default 256) sockets per process that have not authenticated yet, and the whole handshake must finish within 5 seconds. Each user may hold `REALTIME_MAX_SOCKETS_PER_USER` (default 10) sockets across all processes; further ones close with code 4029. These slots live in Redis (`REALTIME_SLOT_REDIS_URL`, default `REDIS_URL`), where they are taken, refreshed and released with atomic owner checks; backend tests run them against a real Redis when `REALTIME_TEST_REDIS_URL` is set.
+- **Origins**: sockets are accepted only from `FRONTEND_URL` and `CSRF_TRUSTED_ORIGINS`; anything else, or a missing `Origin`, is refused.
+- **Fallback**: realtime needs `REDIS_URL` (the channel layer uses its own database, `REALTIME_REDIS_DB`, default `2`). Without it the ticket endpoint answers 503 and the SPA keeps polling (badges every 30s, an open conversation every 4s). With the socket up those polls slow down to a safety net, and the SPA resyncs after every reconnect, because Redis may evict events under memory pressure.
+
+For local development, start Redis and run uvicorn next to `runserver`, with the same `REDIS_URL` in both (it also moves the dev cache to Redis, so both processes see the tickets):
+
+```bash
+docker compose up -d redis            # from the repo root; listens on 127.0.0.1:6379
+# in backend/.env: REDIS_URL=redis://localhost:6379/1
+DJANGO_SETTINGS_MODULE=config.settings.dev uvicorn config.asgi:application --reload --port 8001 --ws websockets-sansio
+```
+
+The Vite dev server proxies `/ws` to port 8001. Set `VITE_REALTIME_URL` only when the SPA and the realtime service are on different origins.
 
 ## Testing
 

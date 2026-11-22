@@ -1,4 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
+from apps.realtime.publish import publish_to_user
 
 from .models import Notification
 
@@ -56,7 +57,9 @@ def notify(
     if target is not None:
         kwargs["target_ct"] = ContentType.objects.get_for_model(target.__class__)
         kwargs["target_id"] = target.pk
-    return Notification.objects.create(**kwargs)
+    notification = Notification.objects.create(**kwargs)
+    publish_to_user(recipient.pk, {"type": "notification.created"})
+    return notification
 
 
 def unread_notification_count(user) -> int:

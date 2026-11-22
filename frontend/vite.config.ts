@@ -12,5 +12,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // The SPA opens its socket on its own origin; in dev that is this server.
+    proxy: {
+      '/ws': { target: 'ws://localhost:8001', ws: true },
+    },
   },
 });

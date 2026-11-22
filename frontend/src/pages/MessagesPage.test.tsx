@@ -12,6 +12,8 @@ import * as messagingApi from '@/api/messaging';
 import * as usersApi from '@/api/users';
 import i18n from '@/i18n';
 import { resetLanguage, visibleText } from '@/test/i18nHelpers';
+import { COALESCE_MS, realtime } from '@/features/realtime/realtime';
+import { FakeWebSocket, acceptLastSocket } from '@/test/fakeWebSocket';
 
 vi.mock('@/api/messaging', () => ({
   listConversations: vi.fn(),
@@ -20,6 +22,8 @@ vi.mock('@/api/messaging', () => ({
   sendMessage: vi.fn(),
   startConversation: vi.fn(),
 }));
+
+vi.mock('@/api/realtime', () => ({ requestRealtimeTicket: vi.fn().mockResolvedValue('tkt') }));
 
 vi.mock('@/api/users', () => ({
   getUnreadCounts: vi.fn().mockResolvedValue({ notifications: 0, messages: 0 }),
@@ -188,6 +192,23 @@ describe('MessagesPage polling', () => {
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it('does not mark a conversation read when it opens in a hidden tab', async () => {
+    api.listMessages.mockResolvedValue(page([msg(1)], null));
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    try {
+      renderAt('/messages/1');
+      expect(await screen.findByText('m1')).toBeInTheDocument();
+      await act(async () => {});
+      expect(api.markConversationRead).not.toHaveBeenCalled();
+    } finally {
+      hidden.mockRestore();
+    }
+
+    // Seen once the tab comes to the front, without waiting for the next poll.
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await waitFor(() => expect(api.markConversationRead).toHaveBeenCalledWith(1));
+  });
 
   it('merges new messages from a poll without duplicates', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -359,6 +380,96 @@ function scrollUp(container: HTMLElement) {
   Object.defineProperty(container, 'scrollTop', { configurable: true, writable: true, value: 100 });
   fireEvent.scroll(container);
 }
+
+describe('MessagesPage realtime', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    api.listConversations.mockResolvedValue(convs([conversation, otherConversation]));
+    api.listMessages.mockResolvedValue(page([msg(1)], null));
+    api.markConversationRead.mockResolvedValue();
+    FakeWebSocket.reset();
+    vi.stubGlobal('WebSocket', FakeWebSocket);
+  });
+
+  afterEach(() => {
+    realtime.stop();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  async function advance(ms: number) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
+  }
+
+  async function openLive() {
+    renderAt('/messages/1');
+    expect(await screen.findByText('m1')).toBeInTheDocument();
+    realtime.start();
+    await advance(0);
+    act(() => acceptLastSocket());
+    await advance(COALESCE_MS);
+    api.listMessages.mockClear();
+    api.listConversations.mockClear();
+  }
+
+  it('refetches the open conversation when it gets a message, without the 4 s poll', async () => {
+    await openLive();
+    await advance(4_000);
+    expect(api.listMessages).not.toHaveBeenCalled();
+
+    api.listMessages.mockResolvedValue(page([msg(2), msg(1)], null));
+    act(() => FakeWebSocket.last.receive({ type: 'message.created', conversation_id: 1 }));
+    await advance(COALESCE_MS);
+    expect(api.listMessages).toHaveBeenCalledWith(1);
+    expect(await screen.findByText('m2')).toBeInTheDocument();
+    expect(api.listConversations).toHaveBeenCalled();
+  });
+
+  it('only refreshes the list for another conversation', async () => {
+    await openLive();
+    act(() => FakeWebSocket.last.receive({ type: 'message.created', conversation_id: 2 }));
+    await advance(COALESCE_MS);
+    expect(api.listMessages).not.toHaveBeenCalled();
+    expect(api.listConversations).toHaveBeenCalledTimes(1);
+  });
+
+  it('refetches read receipts of the open conversation', async () => {
+    await openLive();
+    act(() => FakeWebSocket.last.receive({ type: 'message.read', conversation_id: 1 }));
+    await advance(COALESCE_MS);
+    expect(api.listMessages).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not mark messages read while the tab is hidden, and catches up on return', async () => {
+    await openLive();
+    api.markConversationRead.mockClear();
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    try {
+      api.listMessages.mockResolvedValue(page([msg(2), msg(1)], null));
+      act(() => FakeWebSocket.last.receive({ type: 'message.created', conversation_id: 1 }));
+      await advance(COALESCE_MS);
+      // Fetched in the background, but nobody has seen it yet.
+      expect(await screen.findByText('m2')).toBeInTheDocument();
+      expect(api.markConversationRead).not.toHaveBeenCalled();
+    } finally {
+      hidden.mockRestore();
+    }
+
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await advance(COALESCE_MS);
+    await waitFor(() => expect(api.markConversationRead).toHaveBeenCalledWith(1));
+  });
+
+  it('goes back to the 4 s poll when the socket drops', async () => {
+    await openLive();
+    act(() => FakeWebSocket.last.drop());
+    await advance(4_000);
+    expect(api.listMessages).toHaveBeenCalled();
+  });
+});
 
 describe('MessagesPage scroll position', () => {
   beforeEach(() => {

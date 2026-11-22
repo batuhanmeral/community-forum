@@ -1,4 +1,4 @@
-# Production-ish stack: Postgres + Django (gunicorn) + React (nginx).
+# Production-ish stack: Postgres + Redis + Django (gunicorn API, uvicorn realtime) + React (nginx).
 # Copy .env.prod.example to .env and fill in real secrets before running:
 #   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 name: nexus
@@ -21,7 +21,8 @@ services:
 
   redis:
     image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
-    # Cache + throttle counters only: eviction beats OOM.
+    # Cache, throttle counters, socket tickets and the realtime channel layer (db 2): eviction
+    # beats OOM. A dropped realtime event only delays an update; clients resync over REST.
     command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -98,6 +99,40 @@ services:
     stop_grace_period: 60s
     restart: unless-stopped
 
+  realtime:
+    image: *backend-image
+    environment: *backend-environment
+    # Bypass the web entrypoint: only backend owns migrations.
+    entrypoint: []
+    # WebSocket event stream (config/asgi.py). Not published: nginx proxies /ws/ here.
+    # Proxy headers stay off: the realtime path never uses the client address or scheme.
+    # Clients only send small auth/ping frames, hence the 4 KiB cap.
+    command:
+      - uvicorn
+      - config.asgi:application
+      - --host=0.0.0.0
+      - --port=8001
+      - --no-proxy-headers
+      - --no-server-header
+      - --lifespan=off
+      - --ws=websockets-sansio
+      - --ws-max-size=4096
+      - --ws-ping-interval=20
+      - --ws-ping-timeout=20
+      - --timeout-graceful-shutdown=10
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8001/api/v1/health/', headers={'Host': 'backend'}), timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
@@ -109,6 +144,8 @@ services:
       - nexus_media:/usr/share/nginx/media:ro
     depends_on:
       backend:
+        condition: service_healthy
+      realtime:
         condition: service_healthy
     restart: unless-stopped
 

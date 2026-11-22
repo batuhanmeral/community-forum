@@ -34,7 +34,17 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Realtime connection slots are tested against real Redis (atomic Lua compare-and-act).
+      redis:
+        image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
+      REALTIME_TEST_REDIS_URL: redis://localhost:6379/0
       DB_NAME: nexus
       DB_USER: nexus
       DB_PASSWORD: nexus
@@ -74,3 +84,16 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm test
+
+  # Static checks of repository config (nginx, workflows, ZAP gate); standard library only.
+  config-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: python3 -m unittest discover -s .github/tests

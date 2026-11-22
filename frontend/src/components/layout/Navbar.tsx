@@ -10,6 +10,7 @@ import { withAuthLock } from '@/api/client';
 import { syncUnreadCounts } from '@/features/notifications/syncUnreadCounts';
 import { userPath } from '@/lib/paths';
 import { usePolling } from '@/lib/usePolling';
+import { useRealtime, useRealtimeConnected, type RealtimeEvent } from '@/features/realtime/realtime';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Avatar } from '@/components/ui/Avatar';
 import { buttonClasses } from '@/components/ui/Button';
@@ -19,6 +20,16 @@ import { ArrowBigUp, Menu, MessageSquare, PanelLeft, PanelRight, Search } from '
 import { LanguageToggle, ThemeToggle } from './PreferenceToggles';
 
 const UNREAD_POLL_MS = 30_000;
+// With the socket up, events drive the badges; the poll only covers dropped events.
+const LIVE_UNREAD_POLL_MS = 5 * 60_000;
+const BADGE_EVENTS = new Set([
+  'notification.created',
+  'unread.changed',
+  'message.created',
+  'message.read',
+  'resync',
+]);
+const isBadgeEvent = (event: RealtimeEvent) => BADGE_EVENTS.has(event.type);
 
 interface NavbarProps {
   leftOpen?: boolean;
@@ -100,11 +111,13 @@ export function Navbar({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onOpe
     void syncUnreadCounts(dispatch, getState);
   }, [dispatch, getState]);
 
-  // Sync right away on login, then every 30 s while the tab is visible.
+  // Sync right away on login, then on realtime events, polling as a fallback while the tab is visible.
   useEffect(() => {
     if (isAuthed) syncCounts();
   }, [isAuthed, syncCounts]);
-  usePolling(syncCounts, UNREAD_POLL_MS, isAuthed);
+  const live = useRealtimeConnected();
+  usePolling(syncCounts, live ? LIVE_UNREAD_POLL_MS : UNREAD_POLL_MS, isAuthed);
+  useRealtime(isBadgeEvent, syncCounts);
 
   // Catch up at once when the user returns to the tab.
   useEffect(() => {
