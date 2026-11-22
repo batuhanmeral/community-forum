@@ -6,7 +6,7 @@ from apps.comments.models import Comment
 from apps.communities.models import Community, Membership
 from apps.messaging.models import Message
 from apps.notifications.models import Notification
-from apps.posts.models import Post
+from apps.posts.models import CustomFeed, FeedExclusion, HiddenPost, Post
 from apps.realtime.publish import revoke_sessions
 from apps.saves.models import SavedItem
 from apps.social.models import Block, Follow
@@ -81,6 +81,9 @@ def delete_account(user: User) -> None:
     Block.objects.filter(blocker=user).delete()
     Block.objects.filter(blocked=user).delete()
     SavedItem.objects.filter(user=user).delete()
+    HiddenPost.objects.filter(user=user).delete()
+    FeedExclusion.objects.filter(user=user).delete()
+    CustomFeed.objects.filter(owner=user).delete()
     Notification.objects.filter(recipient=user).delete()
     Membership.objects.filter(user=user).delete()
 

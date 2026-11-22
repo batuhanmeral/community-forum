@@ -6,7 +6,7 @@ import type { Community } from '@/features/communities/types';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/cn';
 import { buttonClasses } from '@/components/ui/Button';
-import { Bookmark, Globe, Home, Plus, Settings, TrendingUp } from 'lucide-react';
+import { Bookmark, EyeOff, Globe, ListFilter, Home, Plus, Settings, TrendingUp } from 'lucide-react';
 
 interface NavItem {
   to: string;
@@ -26,6 +26,7 @@ const globeIcon = (
 const bookmarkIcon = (
   <Bookmark className="h-full w-full" />
 );
+const feedsIcon = <ListFilter className="h-full w-full" />;
 const hiddenIcon = <EyeOff className="h-full w-full" />;
 const settingsIcon = (
   <Settings className="h-full w-full" />
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
 
 const personalItems: NavItem[] = [
   { to: '/saved', label: 'sidebar.saved', icon: bookmarkIcon },
+  { to: '/feeds', label: 'sidebar.feeds', icon: feedsIcon },
   { to: '/hidden', label: 'sidebar.hidden', icon: hiddenIcon },
 ];
 

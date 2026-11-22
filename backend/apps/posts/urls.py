@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .customfeeds import MyFeedsView, UserFeedDetailView, UserFeedListView, UserFeedPostsView
 from .feed import FeedView, FollowingFeedView
 from .views import (
     ApprovalQueueView,
@@ -45,6 +46,34 @@ posts_urlpatterns = [
         PostApprovalView.as_view(),
         name="post-approve",
     ),
+    path(
+        "communities/<slug:slug>/feed-exclusion/",
+        CommunityFeedExclusionView.as_view(),
+        name="community-feed-exclusion",
+    ),
+    path(
+        "users/me/feed-exclusions/",
+        FeedExclusionListView.as_view(),
+        name="users-me-feed-exclusions",
+    ),
+    path("users/me/feeds/", MyFeedsView.as_view(), name="users-me-feeds"),
+    path("users/<str:username>/feeds/", UserFeedListView.as_view(), name="user-feeds"),
+    path(
+        "users/<str:username>/feeds/<slug:slug>/",
+        UserFeedDetailView.as_view(),
+        name="user-feed-detail",
+    ),
+    path(
+        "users/<str:username>/feeds/<slug:slug>/posts/",
+        UserFeedPostsView.as_view(),
+        name="user-feed-posts",
+    ),
+    path("posts/<int:pk>/hide/", PostHideView.as_view(), name="post-hide"),
+    path("users/me/hidden/", HiddenPostListView.as_view(), name="users-me-hidden"),
+    path("posts/<int:pk>/crosspost/", PostCrosspostView.as_view(), name="post-crosspost"),
+    path("posts/<int:pk>/spoiler/", PostSpoilerView.as_view(), name="post-spoiler"),
+    path("posts/<int:pk>/accept/", PostAcceptView.as_view(), name="post-accept"),
+    path("posts/<int:pk>/bounty/", PostBountyView.as_view(), name="post-bounty"),
     path(
         "users/<str:username>/posts/",
         UserPostListView.as_view(),
