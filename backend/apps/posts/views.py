@@ -528,3 +528,34 @@ class PostBountyView(WriteThrottleMixin, APIView):
         return Response(_qa_state(post.pk))
 
 
+def _qa_state(pk) -> dict:
+    return Post.objects.values(
+        "accepted_comment", "bounty_amount", "bounty_expires_at", "bounty_status"
+    ).get(pk=pk)
+
+
+class PostSpoilerView(WriteThrottleMixin, APIView):
+    """Moderator spoiler toggle (POST=mark, DELETE=clear); authors use PATCH `is_spoiler`."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "write"
+
+    def _set(self, request, pk, value: bool):
+        post = _visible_post(request.user, pk)
+        if not is_moderator(request.user, post.community):
+            raise PermissionDenied("Moderator role required.")
+        if post.deleted_at is not None:
+            raise ValidationError("Deleted posts cannot be changed.")
+        changed = Post.objects.filter(pk=post.pk).exclude(is_spoiler=value).update(is_spoiler=value)
+        if changed:
+            log_mod_action(
+                post.community,
+                actor=request.user,
+                action=ModAction.Action.POST_SPOILER if value else ModAction.Action.POST_UNSPOILER,
+                target=post,
+            )
+        return Response({"is_spoiler": value})
+
+    def post(self, request, pk):
+        return self._set(request, pk, True)
+

@@ -18,6 +18,7 @@ vi.mock('@/api/posts', () => ({
   getPost: vi.fn(),
   deletePost: vi.fn(),
   setPostSticky: vi.fn(),
+  setPostSpoiler: vi.fn(),
   updatePost: vi.fn(),
   listPostRevisions: vi.fn(),
   approvePost: vi.fn(),
@@ -370,3 +371,40 @@ describe('PostDetailPage moderator approval', () => {
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
   });
 });
+
+describe('PostDetailPage spoilers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(commentsApi.listComments).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'member' } as never);
+  });
+
+  it('hides a spoiler post body until the reader reveals it', async () => {
+    vi.mocked(postsApi.getPost).mockResolvedValue({
+      ...basePost,
+      is_spoiler: true,
+      body_html: '<p>he dies</p>',
+    } as Post);
+    renderPage();
+    const reveal = await screen.findByRole('button', { name: 'Show spoiler' });
+    expect(screen.getByText('he dies').closest('[aria-hidden="true"]')).not.toBeNull();
+    await userEvent.click(reveal);
+    expect(screen.getByText('he dies').closest('[aria-hidden="true"]')).toBeNull();
+  });
+
+  it('lets moderators who are not the author toggle the spoiler flag', async () => {
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ my_role: 'moderator' } as never);
+    vi.mocked(postsApi.getPost).mockResolvedValue({ ...basePost } as Post);
+    vi.mocked(postsApi.setPostSpoiler).mockResolvedValue({ is_spoiler: true });
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Mark spoiler' }));
+    expect(postsApi.setPostSpoiler).toHaveBeenCalledWith(5, true);
+    expect(await screen.findByRole('button', { name: 'Remove spoiler' })).toBeInTheDocument();
+  });
+});
+

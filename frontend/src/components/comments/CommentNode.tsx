@@ -18,6 +18,7 @@ import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { deletedBodyKey } from '@/lib/deletedBody';
 import { useInternalLinkClick } from '@/lib/useInternalLinkClick';
+import { useSpoilers } from '@/lib/useSpoilers';
 
 interface CommentNodeProps {
   node: CommentWithChildren;
@@ -53,6 +54,7 @@ export function CommentNode({
   const canReport = isAuthed && !isAuthor && !node.is_deleted;
   const { t } = useTranslation();
   const onBodyClick = useInternalLinkClick();
+  const [spoilerRef, spoilerClick, spoilerKey] = useSpoilers(node.body_html);
   const [historyOpen, setHistoryOpen] = useState(false);
   const loadRevisions = useCallback(
     (page: number) => listCommentRevisions(node.id, page),
@@ -133,7 +135,12 @@ export function CommentNode({
             ) : (
               <div
                 className="prose-nexus mt-1 text-sm text-[var(--color-text)]"
-                onClick={onBodyClick}
+                ref={spoilerRef}
+                onClick={(e) => {
+                  spoilerClick(e);
+                  onBodyClick(e);
+                }}
+                onKeyDown={spoilerKey}
                 // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- body_html is nh3-sanitized server-side
                 dangerouslySetInnerHTML={{ __html: node.body_html }}
               />

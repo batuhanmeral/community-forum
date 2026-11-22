@@ -10,6 +10,7 @@ import { PostCard } from '@/components/posts/PostCard';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 import { deletedBodyKey } from '@/lib/deletedBody';
+import { maskInlineSpoilers } from '@/lib/spoilers';
 import { ArrowRight } from 'lucide-react';
 
 type Filter = 'all' | 'post' | 'comment';
@@ -156,7 +157,9 @@ function SavedCommentRow({ comment }: { comment: Comment }) {
         <span>{timeAgo(comment.created_at)}</span>
       </div>
       <p className="line-clamp-3 text-sm text-[var(--color-text-soft)] whitespace-pre-wrap">
-        {comment.is_deleted ? t(deletedBodyKey(comment.body)) : comment.body}
+        {comment.is_deleted
+          ? t(deletedBodyKey(comment.body))
+          : maskInlineSpoilers(comment.body, t('spoiler.inlineMask'))}
       </p>
     </Link>
   );

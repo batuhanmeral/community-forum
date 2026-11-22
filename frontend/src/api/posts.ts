@@ -44,6 +44,7 @@ export interface CreatePostPayload {
   url?: string;
   image?: File | null;
   is_nsfw?: boolean;
+  is_spoiler?: boolean;
   is_question?: boolean;
   flair?: number | null;
   poll_options?: string[];
@@ -57,6 +58,7 @@ export async function createPost(slug: string, payload: CreatePostPayload): Prom
     form.append('title', payload.title);
     if (payload.body) form.append('body', payload.body);
     if (payload.is_nsfw) form.append('is_nsfw', 'true');
+    if (payload.is_spoiler) form.append('is_spoiler', 'true');
     if (payload.flair) form.append('flair', String(payload.flair));
     form.append('image', payload.image);
     const res = await api.post<Post>(`/communities/${slug}/posts/`, form, {
@@ -69,6 +71,7 @@ export async function createPost(slug: string, payload: CreatePostPayload): Prom
     title: payload.title,
     body: payload.body ?? '',
     is_nsfw: payload.is_nsfw ?? false,
+    is_spoiler: payload.is_spoiler ?? false,
   };
   if (payload.flair) body.flair = payload.flair;
   if (payload.is_question) body.is_question = true;
@@ -87,6 +90,7 @@ export interface UpdatePostPayload {
   title?: string;
   body?: string;
   is_nsfw?: boolean;
+  is_spoiler?: boolean;
 }
 
 export async function updatePost(id: number, payload: UpdatePostPayload): Promise<Post> {
@@ -94,8 +98,14 @@ export async function updatePost(id: number, payload: UpdatePostPayload): Promis
   return res.data;
 }
 
+export async function setPostSpoiler(id: number, spoiler: boolean): Promise<{ is_spoiler: boolean }> {
+  const res = spoiler
+    ? await api.post<{ is_spoiler: boolean }>(`/posts/${id}/spoiler/`)
+    : await api.delete<{ is_spoiler: boolean }>(`/posts/${id}/spoiler/`);
+  return res.data;
+}
+
 export async function deletePost(id: number): Promise<void> {
-  await api.delete(`/posts/${id}/`);
 }
 
 export async function setPostSticky(id: number, pinned: boolean): Promise<{ is_pinned: boolean }> {

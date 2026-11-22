@@ -8,7 +8,7 @@ import {
   getPost,
   listPostRevisions,
   placeBounty,
-import { deletePost, getPost, listPostRevisions, setPostSticky, updatePost } from '@/api/posts';
+  setPostSpoiler,
   setPostSticky,
   updatePost,
 } from '@/api/posts';
@@ -36,6 +36,7 @@ import type { VoteValue } from '@/api/votes';
 import { userPath } from '@/lib/paths';
 import { timeAgo } from '@/lib/time';
 import { useInternalLinkClick } from '@/lib/useInternalLinkClick';
+import { useSpoilers } from '@/lib/useSpoilers';
 import { Flag } from 'lucide-react';
 
 export function PostDetailPage() {
@@ -43,10 +44,11 @@ export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const onBodyClick = useInternalLinkClick();
+  const [post, setPost] = useState<Post | null>(null);
+  const [spoilerRef, spoilerClick, spoilerKey] = useSpoilers(post?.body_html ?? '');
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
   const isAuthed = useAppSelector((s) => s.auth.status === 'authenticated');
 
-  const [post, setPost] = useState<Post | null>(null);
   const [myRole, setMyRole] = useState<CommunityRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -93,6 +95,10 @@ export function PostDetailPage() {
     if (!post) return;
     await deletePost(post.id);
     navigate(`/c/${post.community}`, { replace: true });
+  async function handleSpoilerToggle() {
+    if (!post) return;
+    const res = await setPostSpoiler(post.id, !post.is_spoiler);
+    setPost({ ...post, is_spoiler: res.is_spoiler });
   }
 
   async function handleSticky() {
@@ -156,6 +162,19 @@ export function PostDetailPage() {
   const isMod = myRole === 'admin' || myRole === 'moderator';
   const canReport = isAuthed && !isAuthor;
 
+  const bodyHtml = (
+    <div
+      ref={spoilerRef}
+      className="prose-nexus text-sm text-[var(--color-text)]"
+      onClick={(e) => {
+        spoilerClick(e);
+        onBodyClick(e);
+      }}
+      onKeyDown={spoilerKey}
+      // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- body_html is nh3-sanitized server-side
+      dangerouslySetInnerHTML={{ __html: post.body_html }}
+    />
+  );
   const image = post.image && (
     <img src={post.image} alt={post.title} className="max-h-[600px] w-full object-contain" />
   );
@@ -218,6 +237,7 @@ export function PostDetailPage() {
           )}
           {post.is_pinned && <Badge tone="link">{t('post.pinned')}</Badge>}
           {post.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
+          {post.is_spoiler && <Badge tone="danger">{t('spoiler.badge')}</Badge>}
           {post.is_question && <Badge tone="link">{t('qa.question')}</Badge>}
           {post.bounty_status === 'open' && (
             <Badge tone="link">{t('qa.bounty', { amount: post.bounty_amount })}</Badge>
@@ -254,7 +274,13 @@ export function PostDetailPage() {
 
             {post.kind === 'image' && post.image && (
               <div className="mt-3 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
-                {post.is_nsfw ? <NsfwReveal>{image}</NsfwReveal> : image}
+                {post.is_nsfw ? (
+                  <NsfwReveal>{image}</NsfwReveal>
+                ) : post.is_spoiler ? (
+                  <NsfwReveal label={t('spoiler.reveal')}>{image}</NsfwReveal>
+                ) : (
+                  image
+                )}
               </div>
             )}
 
@@ -264,11 +290,13 @@ export function PostDetailPage() {
             )}
 
             {post.kind === 'text' && !post.is_deleted && post.body_html && (
-              <div
-                className="prose-nexus mt-3 text-sm text-[var(--color-text)]"
-                onClick={onBodyClick}
-                dangerouslySetInnerHTML={{ __html: post.body_html }}
-              />
+              <div className="mt-3">
+                {post.is_spoiler ? (
+                  <NsfwReveal label={t('spoiler.reveal')}>{bodyHtml}</NsfwReveal>
+                ) : (
+                  bodyHtml
+                )}
+              </div>
             )}
 
             {post.kind === 'text' && !post.is_deleted && !post.body_html && post.body && (
@@ -303,6 +331,11 @@ export function PostDetailPage() {
                 {isAuthor && post.is_question && !post.bounty_status && !post.accepted_comment && (
                   <Button variant="secondary" size="sm" onClick={() => setBountyOpen(true)}>
                     {t('qa.offerBounty')}
+                  </Button>
+                )}
+                {isMod && !isAuthor && (
+                  <Button variant="secondary" size="sm" onClick={handleSpoilerToggle}>
+                    {post.is_spoiler ? t('spoiler.unmark') : t('spoiler.mark')}
                   </Button>
                 )}
                 {isMod && (
@@ -420,6 +453,7 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
   const [title, setTitle] = useState(post.title);
   const [body, setBody] = useState(post.body);
   const [isNsfw, setIsNsfw] = useState(post.is_nsfw);
+  const [isSpoiler, setIsSpoiler] = useState(post.is_spoiler);
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
@@ -430,6 +464,7 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
         title: title.trim(),
         body: post.kind === 'text' ? body : undefined,
         is_nsfw: isNsfw,
+        is_spoiler: isSpoiler,
       });
       onSaved(updated);
     } finally {
@@ -468,6 +503,15 @@ function PostEditForm({ post, onCancel, onSaved }: EditFormProps) {
           className="h-4 w-4 accent-[var(--color-link)]"
         />
         {t('post.nsfw')}
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={isSpoiler}
+          onChange={(e) => setIsSpoiler(e.target.checked)}
+          className="h-4 w-4 accent-[var(--color-link)]"
+        />
+        {t('spoiler.badge')}
       </label>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onCancel}>

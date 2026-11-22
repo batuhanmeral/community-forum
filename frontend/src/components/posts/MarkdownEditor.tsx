@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { previewMarkdown } from '@/api/markdown';
 import { cn } from '@/lib/cn';
+import { useSpoilers } from '@/lib/useSpoilers';
 
 interface MarkdownEditorProps {
   value: string;
@@ -16,6 +17,7 @@ export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEdi
   const [html, setHtml] = useState('');
   const [previewedFor, setPreviewedFor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [spoilerRef, spoilerClick, spoilerKey] = useSpoilers(html);
 
   async function showPreview() {
     setTab('preview');
@@ -72,6 +74,9 @@ export function MarkdownEditor({ value, onChange, rows = 8, error }: MarkdownEdi
             <p className="text-sm text-[var(--color-text-dim)]">{t('editor.empty')}</p>
           ) : (
             <div
+              ref={spoilerRef}
+              onClick={spoilerClick}
+              onKeyDown={spoilerKey}
               className="prose-nexus text-sm text-[var(--color-text)]"
               dangerouslySetInnerHTML={{ __html: html }}
             />

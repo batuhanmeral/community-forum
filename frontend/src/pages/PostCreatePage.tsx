@@ -77,6 +77,7 @@ export function PostCreatePage() {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isNsfw, setIsNsfw] = useState(false);
+  const [isSpoiler, setIsSpoiler] = useState(false);
   const [isQuestion, setIsQuestion] = useState(false);
   // Communities that switched Q&A off hide the option; the server enforces it too.
   const qaAllowed = communities.find((c) => c.slug === communitySlug)?.qa_enabled ?? true;
@@ -151,6 +152,7 @@ export function PostCreatePage() {
         url: kind === 'link' ? url.trim() : undefined,
         image: kind === 'image' ? image : null,
         is_nsfw: isNsfw,
+        is_spoiler: isSpoiler,
         is_question: kind === 'text' && qaAllowed && isQuestion,
         flair: flairId === '' ? null : flairId,
         poll_options: kind === 'poll' ? pollOptions : undefined,
@@ -393,6 +395,16 @@ export function PostCreatePage() {
           <label className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
             <input
               type="checkbox"
+              checked={isSpoiler}
+              onChange={(e) => setIsSpoiler(e.target.checked)}
+              className="h-4 w-4 accent-[var(--color-link)]"
+            />
+            <span className="text-sm">
+              <span className="font-medium">{t('spoiler.badge')}</span>
+              <span className="ml-2 text-[var(--color-text-muted)]">{t('spoiler.hint')}</span>
+            </span>
+          </label>
+
           {kind === 'text' && qaAllowed && (
             <label className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
               <input
@@ -408,6 +420,9 @@ export function PostCreatePage() {
             </label>
           )}
 
+          <label className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
+            <input
+              type="checkbox"
               checked={isNsfw}
               onChange={(e) => setIsNsfw(e.target.checked)}
               className="h-4 w-4 accent-[var(--color-link)]"

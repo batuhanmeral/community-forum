@@ -43,6 +43,7 @@ class Post(RenderedBodyModel):
     bounty_status = models.CharField(max_length=8, default="", blank=True)
     image = models.ImageField(upload_to="posts/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
+    is_spoiler = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

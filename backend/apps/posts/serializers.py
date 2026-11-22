@@ -57,6 +57,7 @@ class PostSerializer(serializers.ModelSerializer):
             "url",
             "image",
             "is_nsfw",
+            "is_spoiler",
             "is_question",
             "accepted_comment",
             "bounty_amount",

@@ -39,6 +39,8 @@ class ModAction(models.Model):
     class Action(models.TextChoices):
         POST_PIN = "post_pin", "Post pinned"
         POST_UNPIN = "post_unpin", "Post unpinned"
+        POST_SPOILER = "post_spoiler", "Post marked spoiler"
+        POST_UNSPOILER = "post_unspoiler", "Post spoiler cleared"
         POST_APPROVE = "post_approve", "Post approved"
         POST_REJECT = "post_reject", "Post rejected"
         POST_REMOVE = "post_remove", "Post removed"

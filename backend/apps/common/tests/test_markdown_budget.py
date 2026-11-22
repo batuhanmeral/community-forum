@@ -27,6 +27,7 @@ PATHOLOGICAL_PATTERNS = {
     "emphasis": "*a",
     "html-openers": "<a ",
     "backslashes": "\\",
+    "unclosed-spoilers": ">!a ",
     "padded-tables": PADDED_TABLE,
 }
 

@@ -3,6 +3,7 @@ from html import escape
 
 import nh3
 from markdown_it import MarkdownIt
+from markdown_it.rules_block import blockquote
 from markdown_it.rules_block import table as _table_rule
 from markdown_it.token import Token
 
@@ -68,6 +69,78 @@ def _link_mentions(state):
         block.children = children
 
 
+def _find_close(src: str, start: int) -> int:
+    return src.find("!<", start)
+
+
+def _next_close(state, start: int) -> int:
+    """Position of the first `!<` at or after `start` in this inline source, or -1.
+
+    Cached per source string in `state.env`: without it every unclosed `>!` rescans to the end,
+    which is quadratic on a body full of openers. Openers are met left to right, so the cached
+    hit stays valid until the scan passes it.
+    """
+    cache = state.env.setdefault("_spoiler_close", {})
+    entry = cache.get(id(state.src))
+    if entry is not None and entry[0] is state.src and entry[1] <= start:
+        found = entry[2]
+        if found == -1 or found >= start:
+            return found
+    found = _find_close(state.src, start)
+    cache[id(state.src)] = (state.src, start, found)
+    return found
+
+
+def _spoiler(state, silent):
+    """Inline rule: `>!hidden text!<` renders as `<span class="spoiler">`."""
+    pos = state.pos
+    if state.src[pos : pos + 2] != ">!":
+        return False
+    end = _next_close(state, pos + 2)
+    if end == -1 or end + 2 > state.posMax or end == pos + 2:
+        return False
+    if not silent:
+        opening = state.push("spoiler_open", "span", 1)
+        opening.attrSet("class", "spoiler")
+        outer_max = state.posMax
+        state.pos, state.posMax = pos + 2, end
+        state.md.inline.tokenize(state)
+        state.pos, state.posMax = end, outer_max
+        state.push("spoiler_close", "span", -1)
+    state.pos = end + 2
+    return True
+
+
+def _is_spoiler_line(state, line: int) -> bool:
+    """The line opens with `>!` and that spoiler closes on the same line."""
+    pos = state.bMarks[line] + state.tShift[line]
+    return (
+        state.src.startswith(">!", pos) and state.src.find("!<", pos + 3, state.eMarks[line]) != -1
+    )
+
+
+def _blockquote_unless_spoiler(state, start_line, end_line, silent):
+    """A line opening with `>!text!<` is a spoiler, not a quote reading "!text!<".
+
+    That holds for the first line and for what would otherwise be a quote continuation
+    (`> quote` then `>!secret!<`): the quote is ended before such a line, which then parses as
+    an ordinary paragraph. Unterminated markers, a close on a later line and `> >!x!<` are
+    left to the stock blockquote rule.
+    """
+    pos = state.bMarks[start_line] + state.tShift[start_line]
+    if state.src[pos : pos + 1] != ">" or state.sCount[start_line] - state.blkIndent >= 4:
+        return False  # what the stock rule would answer, without scanning ahead
+    if _is_spoiler_line(state, start_line):
+        return False
+    for line in range(start_line + 1, end_line):
+        if state.bMarks[line] + state.tShift[line] >= state.eMarks[line]:
+            break  # a blank line ends the quote anyway
+        if state.sCount[line] - state.blkIndent < 4 and _is_spoiler_line(state, line):
+            end_line = line
+            break
+    return blockquote(state, start_line, end_line, silent)
+
+
 def _parser(allow_raw_html: bool) -> MarkdownIt:
     # CommonMark parsing is linear in input size; Python-Markdown backtracked cubically.
     # Typographer stays off: its smart quotes are quadratic on quote runs.
@@ -76,6 +149,12 @@ def _parser(allow_raw_html: bool) -> MarkdownIt:
         MarkdownIt("commonmark", {"breaks": True, "html": allow_raw_html})
         .enable("table")
         .disable("reference")
+    )
+    md.inline.ruler.before("emphasis", "spoiler", _spoiler)
+    md.block.ruler.at(
+        "blockquote",
+        _blockquote_unless_spoiler,
+        {"alt": ["paragraph", "reference", "blockquote", "list"]},
     )
     md.block.ruler.at("table", _bounded_table, {"alt": ["paragraph", "reference"]})
     md.core.ruler.push("mentions", _link_mentions)
@@ -118,11 +197,15 @@ _ALLOWED_TAGS = {
     "td",
     "del",
     "ins",
+    "span",
 }
 _ALLOWED_ATTRS = {
     "a": {"href", "title"},
     "code": {"class"},
+    "span": {"class"},
 }
+# The only class users can produce, and only on <span>: it is what the SPA hides until clicked.
+SPOILER_CLASS = "spoiler"
 _LANGUAGE_CLASS = re.compile(r"^language-[A-Za-z0-9_+-]+$")
 _URL_SCHEMES = {"http", "https", "mailto"}
 _URL_SCHEME = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
@@ -148,6 +231,8 @@ def _safe_href(value: str) -> str | None:
 def _keep_safe_attribute(tag: str, attr: str, value: str) -> str | None:
     # Arbitrary classes would let users restyle the app (e.g. full-screen fake banners).
     if attr == "class":
+        if tag == "span":
+            return value if value == SPOILER_CLASS else None
         return value if tag == "code" and _LANGUAGE_CLASS.match(value) else None
     if tag == "a" and attr == "href":
         return _safe_href(value)
