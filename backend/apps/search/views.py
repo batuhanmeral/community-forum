@@ -12,7 +12,7 @@ from apps.posts.feed import _apply_nsfw_filter, nsfw_allowed
 from apps.posts.models import Post
 from apps.posts.serializers import PostSerializer
 from apps.posts.services import unavailable_root_q
-from apps.posts.views import _annotate_score, _base_post_qs
+from apps.posts.views import _annotate_score, _base_post_qs, _exclude_hidden
 from apps.social.services import with_social_annotations
 from apps.users.serializers import PublicUserSerializer
 
@@ -50,7 +50,9 @@ class SearchView(ListAPIView):
             # A crosspost of a gone or held original must not be findable by the copied text.
             qs = qs.exclude(unavailable_root_q())
             qs = _apply_nsfw_filter(qs, self.request)
-            qs = _annotate_score(_base_post_qs(qs, user=self.request.user))
+            qs = _exclude_hidden(
+                _annotate_score(_base_post_qs(qs, user=self.request.user)), self.request.user
+            )
         elif type_param == "community":
             if not nsfw_allowed(self.request):
                 qs = qs.filter(is_nsfw=False)

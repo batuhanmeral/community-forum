@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models import (
     Count,
+    Exists,
     F,
     FloatField,
     IntegerField,
@@ -76,6 +77,13 @@ def _base_post_qs(qs=None, user=None):
     return qs.select_related("author", "community", "flair", "poll").prefetch_related(
         *viewer_prefetches(user), *poll_prefetches(user, "poll__")
     )
+def _exclude_hidden(qs, user):
+    """Drop the posts the signed-in viewer hid; anonymous viewers hide nothing."""
+    if not user or not user.is_authenticated:
+        return qs
+    return qs.exclude(Exists(HiddenPost.objects.filter(user=user, post=OuterRef("pk"))))
+
+
 
 
 def _apply_time_window(qs, t: str | None):
@@ -207,6 +215,7 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
                 user=self.request.user,
             )
         )
+        qs = _exclude_hidden(qs, self.request.user)
         sort = self.request.query_params.get("sort", "new")
         qs = _apply_time_window(qs, self.request.query_params.get("t"))
         return _apply_sort(_apply_answered_filter(qs, self.request), sort)
@@ -580,4 +589,115 @@ class PostCrosspostView(WriteThrottleMixin, APIView):
 
     permission_classes = (permissions.IsAuthenticated,)
     throttle_scope = "write"
+
+    def post(self, request, pk):
+        source = _visible_post(request.user, pk)
+        root = source.crosspost_parent or source
+        # A crosspost keeps pointing at the original, so both ends must still be readable.
+        if source.deleted_at is not None or not source.is_approved:
+            raise ValidationError("This post cannot be crossposted.")
+        if root.deleted_at is not None or not root.is_approved:
+            raise ValidationError("The original post is no longer available.")
+        nsfw = source.is_nsfw or source.community.is_nsfw or root.is_nsfw or root.community.is_nsfw
+        if nsfw and not request.user.show_nsfw:
+            # Same 404 as a missing post, so the response cannot confirm what is behind it.
+            get_object_or_404(Post.objects.none(), pk=pk)
+        slug = request.data.get("community")
+        if not isinstance(slug, str) or not slug:
+            raise ValidationError({"community": "Choose a community."})
+        community = get_object_or_404(Community, slug=slug)
+        if active_membership(request.user, community) is None:
+            raise PermissionDenied("You must be an unbanned member of this community.")
+        if is_banned(request.user, source.community) or is_banned(request.user, root.community):
+            raise PermissionDenied("You are banned from the community this post is in.")
+        if community.pk == root.community_id:
+            raise ValidationError({"community": "The original post is already in this community."})
+        if not root.author.is_active:
+            raise ValidationError("This post cannot be crossposted.")
+        from apps.social.models import is_blocked_between
+
+        if is_blocked_between(request.user, root.author):
+            raise PermissionDenied("You cannot crosspost this user's post.")
+        if root.kind == Post.Kind.POLL:
+            raise ValidationError("Polls cannot be crossposted.")
+        title = request.data.get("title")
+        title = title.strip() if isinstance(title, str) and title.strip() else root.title
+        if len(title) > Post._meta.get_field("title").max_length:
+            raise ValidationError({"title": "Title is too long."})
+        if Post.objects.filter(
+            author=request.user, crosspost_parent=root, community=community, deleted_at__isnull=True
+        ).exists():
+            raise ValidationError("You already crossposted this post to that community.")
+        is_approved, matched_kw = _intake_state(request.user, community, title, root.body, root.url)
+        try:
+            with transaction.atomic():
+                post = Post.objects.create(
+                    author=request.user,
+                    community=community,
+                    kind=root.kind,
+                    title=title,
+                    body=root.body,
+                    url=root.url,
+                    image=root.image.name if root.image else None,
+                    is_nsfw=nsfw or community.is_nsfw,
+                    is_spoiler=root.is_spoiler,
+                    is_approved=is_approved,
+                    crosspost_parent=root,
+                )
+        except IntegrityError:
+            raise ValidationError("You already crossposted this post to that community.") from None
+        if matched_kw:
+            log_mod_action(
+                community,
+                action=ModAction.Action.AUTOMOD_HOLD,
+                target=post,
+                detail=f"matched keyword: {matched_kw}",
+            )
+        row = _annotate_score(
+            _base_post_qs(Post.objects.filter(pk=post.pk), user=request.user)
+        ).get()
+        return Response(
+            PostSerializer(row, context={"request": request}).data, status=status.HTTP_201_CREATED
+        )
+
+
+class PostHideView(WriteThrottleMixin, APIView):
+    """POST hides a post from the viewer's own feeds, DELETE brings it back."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "write"
+
+    def post(self, request, pk):
+        post = _visible_post(request.user, pk)
+        if post.deleted_at is not None or not post.is_approved:
+            # Same 404 a missing post gets: removed content has nothing left to hide.
+            get_object_or_404(Post.objects.none(), pk=pk)
+        _, created = HiddenPost.objects.get_or_create(user=request.user, post=post)
+        if created:
+            _prune_hidden(request.user)
+        return Response({"is_hidden": True}, status=201 if created else 200)
+
+    def delete(self, request, pk):
+        HiddenPost.objects.filter(user=request.user, post_id=pk).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _prune_hidden(user) -> None:
+    """Keep only the newest MAX_HIDDEN_PER_USER rows; the oldest hides fall off.
+
+    Runs on every new hide, so the common case (under the cap) is a single COUNT; only an
+    overflow deletes, in one statement, without loading the kept ids.
+    """
+    rows = HiddenPost.objects.filter(user=user)
+    if rows.count() <= MAX_HIDDEN_PER_USER:
+        return
+    overflow = rows.order_by("-created", "-id").values("pk")[MAX_HIDDEN_PER_USER:]
+    HiddenPost.objects.filter(pk__in=overflow).delete()
+
+
+class HiddenPostListView(generics.ListAPIView):
+    """The viewer's hidden posts, most recently hidden first (readable ones only)."""
+
+    serializer_class = PostSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 

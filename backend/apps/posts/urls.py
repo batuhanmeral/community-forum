@@ -8,6 +8,7 @@ from .views import (
     PostBountyView,
     PostCrosspostView,
     PostDetailView,
+    PostHideView,
     PostRevisionListView,
     PostSpoilerView,
     PostStickyView,

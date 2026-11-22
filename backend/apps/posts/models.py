@@ -109,3 +109,22 @@ class PostRevision(models.Model):
 
     def __str__(self) -> str:
         return f"rev of post {self.post_id} @ {self.edited_at:%Y-%m-%d %H:%M}"
+
+
+class HiddenPost(models.Model):
+    """A post a user hid from their own feeds; profile pages and direct links are unaffected."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="hidden_posts"
+    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="hidden_by")
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("user", "post"), name="posts_hiddenpost_user_post_uniq")
+        ]
+        indexes = [models.Index(fields=("user", "-created"), name="posts_hidden_user_created_idx")]
+
+    def __str__(self) -> str:
+        return f"user {self.user_id} hid post {self.post_id}"
