@@ -449,6 +449,14 @@ export const tr: Translation = {
     empty: 'Henüz hiç gönderi gizlemedin.',
     loadFailed: 'Gizlenen gönderiler yüklenemedi.',
   },
+  feedFilter: {
+    title: 'Akışlardan çıkarılan topluluklar',
+    settingsHint: 'Bu topluluklar Popüler, Tümü ve gündem akışlarında görünmez. Ana akışın ve bildirimlerin etkilenmez.',
+    empty: 'Akışlardan çıkarılan topluluk yok.',
+    exclude: 'Akışlardan çıkar',
+    include: 'Akışlarda göster',
+    hint: 'Bu topluluğu Popüler, Tümü ve gündem akışlarından çıkar. Ana akış ve bildirimler etkilenmez.',
+  },
   qa: {
     question: 'Soru',
     askAsQuestion: 'Soru olarak sor',

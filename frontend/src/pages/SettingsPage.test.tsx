@@ -9,6 +9,7 @@ import authReducer, { setUser } from '@/features/auth/authSlice';
 import { SettingsPage } from './SettingsPage';
 import * as usersApi from '@/api/users';
 import * as followApi from '@/api/follow';
+import * as postsApi from '@/api/posts';
 import i18n from '@/i18n';
 import { resetLanguage, visibleText } from '@/test/i18nHelpers';
 
@@ -18,6 +19,7 @@ vi.mock('@/api/users', () => ({
   downloadAccountExport: vi.fn(),
   updatePreferences: vi.fn(),
 }));
+vi.mock('@/api/posts', () => ({ listFeedExclusions: vi.fn(), setFeedExclusion: vi.fn() }));
 
 vi.mock('@/api/follow', () => ({
   listBlocked: vi.fn(),
@@ -62,6 +64,8 @@ describe('SettingsPage', () => {
     listBlocked.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
     changePassword.mockResolvedValue({ access: 'new-access' });
     unblockUser.mockResolvedValue();
+    vi.mocked(postsApi.listFeedExclusions).mockResolvedValue([]);
+    vi.mocked(postsApi.setFeedExclusion).mockResolvedValue();
   });
 
   it('rejects mismatched new passwords without calling the API', async () => {
@@ -250,3 +254,22 @@ describe('SettingsPage theme', () => {
     expect(localStorage.getItem('nexus.theme')).toBe('light');
   });
 });
+
+describe('SettingsPage feed filters', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    listBlocked.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    vi.mocked(postsApi.setFeedExclusion).mockResolvedValue();
+  });
+
+  it('lists filtered communities and lets the user bring one back', async () => {
+    vi.mocked(postsApi.listFeedExclusions).mockResolvedValue([{ slug: 'loud', name: 'Loud' }]);
+    renderPage();
+    expect(await screen.findByText('c/loud')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Show in feeds' }));
+    expect(postsApi.setFeedExclusion).toHaveBeenCalledWith('loud', false);
+    await waitFor(() => expect(screen.queryByText('c/loud')).toBeNull());
+    expect(screen.getByText('No communities are filtered out.')).toBeInTheDocument();
+  });
+});
+

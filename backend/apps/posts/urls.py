@@ -3,7 +3,11 @@ from django.urls import path
 from .feed import FeedView, FollowingFeedView
 from .views import (
     ApprovalQueueView,
+    CommunityFeedExclusionView,
     CommunityPostListCreateView,
+    FeedExclusionListView,
+    HiddenPostListView,
+    PostAcceptView,
     PostApprovalView,
     PostBountyView,
     PostCrosspostView,

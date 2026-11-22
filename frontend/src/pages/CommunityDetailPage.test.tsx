@@ -24,6 +24,8 @@ vi.mock('@/api/communities', () => ({
 
 vi.mock('@/api/posts', () => ({
   listCommunityPosts: vi.fn(),
+  getFeedExclusion: vi.fn(),
+  setFeedExclusion: vi.fn(),
 }));
 
 const baseCommunity: Community = {
@@ -104,6 +106,8 @@ describe('CommunityDetailPage membership state', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
+    vi.mocked(postsApi.getFeedExclusion).mockResolvedValue(false);
+    vi.mocked(postsApi.setFeedExclusion).mockResolvedValue();
     vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({
       count: 0,
       next: null,
@@ -265,3 +269,37 @@ describe('CommunityDetailPage time range', () => {
     );
   });
 });
+
+describe('CommunityDetailPage feed filter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(communitiesApi.listRules).mockResolvedValue([]);
+    vi.mocked(postsApi.listCommunityPosts).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(postsApi.setFeedExclusion).mockResolvedValue();
+    vi.mocked(communitiesApi.getCommunity).mockResolvedValue({ ...baseCommunity, is_member: true });
+  });
+
+  it('keeps the community out of discovery feeds and can undo it', async () => {
+    vi.mocked(postsApi.getFeedExclusion).mockResolvedValue(false);
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: 'Hide from feeds' }));
+    expect(postsApi.setFeedExclusion).toHaveBeenCalledWith('py', true);
+    await userEvent.click(await screen.findByRole('button', { name: 'Show in feeds' }));
+    expect(postsApi.setFeedExclusion).toHaveBeenLastCalledWith('py', false);
+  });
+
+  it('shows the stored state and reverts when the request fails', async () => {
+    vi.mocked(postsApi.getFeedExclusion).mockResolvedValue(true);
+    vi.mocked(postsApi.setFeedExclusion).mockRejectedValue(new Error('x'));
+    renderPage();
+    const button = await screen.findByRole('button', { name: 'Show in feeds' });
+    await userEvent.click(button);
+    expect(await screen.findByRole('button', { name: 'Show in feeds' })).toBeInTheDocument();
+  });
+});
+

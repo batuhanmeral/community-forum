@@ -8,7 +8,13 @@ import {
   listRules,
   updateNotifyLevel,
 } from '@/api/communities';
-import { listCommunityPosts, type SortOption, type TimeWindow } from '@/api/posts';
+import {
+  getFeedExclusion,
+  listCommunityPosts,
+  setFeedExclusion,
+  type SortOption,
+  type TimeWindow,
+} from '@/api/posts';
 import type {
   Community,
   CommunityRule,
@@ -42,6 +48,7 @@ export function CommunityDetailPage() {
   const [sort, setSort] = useState<SortOption>('hot');
   const [timeRange, setTimeRange] = useState<TimeWindow>('all');
   const [unansweredOnly, setUnansweredOnly] = useState(false);
+  const [feedExcluded, setFeedExcluded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState<NotifyLevel>('all');
@@ -152,6 +159,27 @@ export function CommunityDetailPage() {
       }
     } finally {
       setActionLoading(false);
+  useEffect(() => {
+    if (!isAuthed || !slug) return;
+    let cancelled = false;
+    getFeedExclusion(slug)
+      .then((v) => {
+        if (!cancelled) setFeedExcluded(v);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, isAuthed]);
+
+  async function handleFeedExclusion() {
+    if (!community) return;
+    const next = !feedExcluded;
+    setFeedExcluded(next);
+    try {
+      await setFeedExclusion(community.slug, next);
+    } catch {
+      setFeedExcluded(!next);
     }
   }
 
@@ -231,6 +259,15 @@ export function CommunityDetailPage() {
                     </Button>
                   </Link>
                 )}
+                <Button
+                  variant="secondary"
+                  size="md"
+                  aria-pressed={feedExcluded}
+                  onClick={handleFeedExclusion}
+                  title={t('feedFilter.hint')}
+                >
+                  {feedExcluded ? t('feedFilter.include') : t('feedFilter.exclude')}
+                </Button>
                 {community.is_member && (
                   <NotifyDropdown value={notifyLevel} onChange={handleNotifyChange} />
                 )}

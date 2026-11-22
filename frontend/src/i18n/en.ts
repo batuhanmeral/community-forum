@@ -445,6 +445,14 @@ export const en = {
     empty: 'You have not hidden any posts.',
     loadFailed: 'Could not load hidden posts.',
   },
+  feedFilter: {
+    title: 'Hidden communities',
+    settingsHint: 'These communities are kept out of Popular, All and trending. Your Home feed and notifications are not affected.',
+    empty: 'No communities are filtered out.',
+    exclude: 'Hide from feeds',
+    include: 'Show in feeds',
+    hint: 'Keep this community out of Popular, All and trending. Home and notifications are unaffected.',
+  },
   qa: {
     question: 'Question',
     askAsQuestion: 'Ask as a question',

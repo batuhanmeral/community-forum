@@ -34,7 +34,7 @@ from apps.notifications.services import notify
 from apps.polls.services import poll_prefetches
 
 from . import qa
-from .models import Post, PostRevision
+from .models import FeedExclusion, HiddenPost, Post, PostRevision
 from .permissions import IsAuthorOrModeratorForDelete, IsCommunityMember
 from .serializers import PostRevisionSerializer, PostSerializer
 from .services import can_see_unapproved
@@ -84,6 +84,12 @@ def _exclude_hidden(qs, user):
     return qs.exclude(Exists(HiddenPost.objects.filter(user=user, post=OuterRef("pk"))))
 
 
+def _exclude_feed_communities(qs, user, field="community"):
+    """Drop communities the viewer keeps out of discovery feeds (Popular, All, trending)."""
+    if not user or not user.is_authenticated:
+        return qs
+    excluded = FeedExclusion.objects.filter(user=user).values("community_id")
+    return qs.exclude(**{f"{field}__in": excluded})
 
 
 def _apply_time_window(qs, t: str | None):
@@ -701,3 +707,60 @@ class HiddenPostListView(generics.ListAPIView):
     serializer_class = PostSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
+    def get_queryset(self):
+        from .feed import _apply_nsfw_filter
+
+        user = self.request.user
+        qs = Post.objects.filter(
+            hidden_by__user=user, is_approved=True, deleted_at__isnull=True
+        ).annotate(hidden_at=F("hidden_by__created"))
+        qs = _annotate_score(_base_post_qs(_apply_nsfw_filter(qs, self.request), user=user))
+        return qs.order_by("-hidden_at", "-pk")
+
+
+class CommunityFeedExclusionView(WriteThrottleMixin, APIView):
+    """GET the viewer's state, POST keeps the community out of Popular/All/trending, DELETE undoes."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "write"
+
+    def _community(self, slug):
+        return get_object_or_404(Community, slug=slug)
+
+    def get(self, request, slug):
+        community = self._community(slug)
+        excluded = FeedExclusion.objects.filter(user=request.user, community=community).exists()
+        return Response({"excluded": excluded})
+
+    def post(self, request, slug):
+        community = self._community(slug)
+        with transaction.atomic():
+            # Lock the user row so two requests cannot both pass the cap check.
+            User.objects.select_for_update().get(pk=request.user.pk)
+            if FeedExclusion.objects.filter(user=request.user, community=community).exists():
+                return Response({"excluded": True}, status=status.HTTP_200_OK)
+            if FeedExclusion.objects.filter(user=request.user).count() >= MAX_FEED_EXCLUSIONS:
+                raise ValidationError(
+                    f"You can keep at most {MAX_FEED_EXCLUSIONS} communities out of your feeds."
+                )
+            FeedExclusion.objects.create(user=request.user, community=community)
+        return Response({"excluded": True}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, slug):
+        community = self._community(slug)
+        FeedExclusion.objects.filter(user=request.user, community=community).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class FeedExclusionListView(APIView):
+    """The communities the viewer keeps out of discovery feeds (at most MAX_FEED_EXCLUSIONS)."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        rows = (
+            Community.objects.filter(feed_exclusions__user=request.user)
+            .order_by("slug")
+            .values("slug", "name")
+        )
+        return Response(list(rows))
