@@ -12,6 +12,9 @@ class Notification(models.Model):
         FOLLOW = "follow", "Follow"
         DM = "dm", "DM"
         MOD_ACTION = "mod_action", "Mod action"
+        ANSWER_ACCEPTED = "answer_accepted", "Answer accepted"
+        BOUNTY_AWARDED = "bounty_awarded", "Bounty awarded"
+        BOUNTY_REFUNDED = "bounty_refunded", "Bounty refunded"
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -11,6 +11,7 @@ export interface ListPostsParams {
   nsfw?: 'show' | 'hide';
   page?: number;
   scope?: 'all';
+  answered?: 'true' | 'false';
 }
 
 export async function listCommunityPosts(
@@ -43,6 +44,7 @@ export interface CreatePostPayload {
   url?: string;
   image?: File | null;
   is_nsfw?: boolean;
+  is_question?: boolean;
   flair?: number | null;
   poll_options?: string[];
   poll_closes_at?: string;
@@ -69,6 +71,7 @@ export async function createPost(slug: string, payload: CreatePostPayload): Prom
     is_nsfw: payload.is_nsfw ?? false,
   };
   if (payload.flair) body.flair = payload.flair;
+  if (payload.is_question) body.is_question = true;
   if (payload.kind === 'link') body.url = payload.url ?? '';
   if (payload.kind === 'poll' && payload.poll_options && payload.poll_closes_at) {
     body.poll_input = {
@@ -120,5 +123,27 @@ export async function rejectPost(id: number): Promise<void> {
 
 export async function listPostRevisions(id: number, page = 1): Promise<Paginated<PostRevision>> {
   const res = await api.get<Paginated<PostRevision>>(`/posts/${id}/revisions/`, { params: { page } });
+  return res.data;
+}
+
+export interface QaState {
+  accepted_comment: number | null;
+  bounty_amount: number;
+  bounty_expires_at: string | null;
+  bounty_status: Post['bounty_status'];
+}
+
+export async function acceptAnswer(postId: number, commentId: number): Promise<QaState> {
+  const res = await api.post<QaState>(`/posts/${postId}/accept/`, { comment: commentId });
+  return res.data;
+}
+
+export async function clearAcceptedAnswer(postId: number): Promise<QaState> {
+  const res = await api.delete<QaState>(`/posts/${postId}/accept/`);
+  return res.data;
+}
+
+export async function placeBounty(postId: number, amount: number): Promise<QaState> {
+  const res = await api.post<QaState>(`/posts/${postId}/bounty/`, { amount });
   return res.data;
 }

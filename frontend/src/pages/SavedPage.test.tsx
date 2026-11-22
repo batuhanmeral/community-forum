@@ -24,6 +24,7 @@ const removedComment: Comment = {
   body: '[removed]',
   body_html: '<p>[removed]</p>',
   is_deleted: true,
+  is_accepted: false,
   score: 0,
   user_vote: null,
   is_saved: true,

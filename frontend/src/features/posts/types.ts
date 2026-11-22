@@ -34,6 +34,11 @@ export interface Post {
   url: string;
   image: string | null;
   is_nsfw: boolean;
+  is_question: boolean;
+  accepted_comment: number | null;
+  bounty_amount: number;
+  bounty_expires_at: string | null;
+  bounty_status: '' | 'open' | 'paid' | 'refunded';
   is_pinned: boolean;
   is_approved: boolean;
   score: number;

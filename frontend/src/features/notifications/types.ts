@@ -4,7 +4,9 @@ export type NotificationVerb =
   | 'mention'
   | 'follow'
   | 'dm'
-  | 'mod_action';
+  | 'mod_action'
+  | 'answer_accepted'
+  | 'bounty_awarded'
 
 export type NotificationTargetType = 'post' | 'comment' | 'user' | string | null;
 

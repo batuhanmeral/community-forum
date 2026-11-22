@@ -31,6 +31,7 @@ class CommentSerializer(serializers.ModelSerializer):
     body = serializers.CharField(max_length=COMMENT_BODY_MAX_CHARS, trim_whitespace=False)
     body_html = serializers.SerializerMethodField()
     is_deleted = serializers.SerializerMethodField()
+    is_accepted = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -44,6 +45,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "body",
             "body_html",
             "is_deleted",
+            "is_accepted",
             "score",
             "user_vote",
             "is_saved",
@@ -74,6 +76,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_body_html(self, obj: Comment) -> str:
         return obj.body_html if obj.deleted_at is None else f"<p>{_mask_body(obj)}</p>"
+    def get_is_accepted(self, obj: Comment) -> bool:
+        post = self.context.get("post")
+        return post is not None and post.accepted_comment_id == obj.pk
 
     def get_is_deleted(self, obj: Comment) -> bool:
         return obj.deleted_at is not None

@@ -33,6 +33,7 @@ function comment(id: number, parent: number | null = null): Comment {
     body: `body ${id}`,
     body_html: `<p>body ${id}</p>`,
     is_deleted: false,
+    is_accepted: false,
     score: 0,
     user_vote: null,
     is_saved: false,
@@ -306,3 +307,42 @@ describe('CommentSection mention links', () => {
     expect(await screen.findByText('profile of tim')).toBeInTheDocument();
   });
 });
+
+describe('CommentSection accepted answers', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function renderQuestion(onAcceptToggle?: (id: number, accepted: boolean) => Promise<number | null>) {
+    const store = configureStore({ reducer: { auth: authReducer } });
+    return render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/posts/1']}>
+          <CommentSection postId={1} acceptedId={2} onAcceptToggle={onAcceptToggle} />
+        </MemoryRouter>
+      </Provider>,
+    );
+  }
+
+  it('badges the accepted answer and offers accept/remove only when allowed', async () => {
+    listComments.mockResolvedValue({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [{ ...comment(2), is_accepted: true }, comment(1)],
+    });
+    const toggle = vi.fn().mockResolvedValue(null);
+    renderQuestion(toggle);
+    expect(await screen.findByText('Accepted')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove accepted' }));
+    expect(toggle).toHaveBeenCalledWith(2, false);
+    await userEvent.click(screen.getByRole('button', { name: 'Accept answer' }));
+    expect(toggle).toHaveBeenCalledWith(1, true);
+  });
+
+  it('hides the accept controls from viewers who cannot accept', async () => {
+    listComments.mockResolvedValue({ count: 1, next: null, previous: null, results: [comment(1)] });
+    renderQuestion(undefined);
+    await screen.findByText('body 1');
+    expect(screen.queryByRole('button', { name: 'Accept answer' })).toBeNull();
+  });
+});
+

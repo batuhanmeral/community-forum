@@ -57,6 +57,11 @@ class PostSerializer(serializers.ModelSerializer):
             "url",
             "image",
             "is_nsfw",
+            "is_question",
+            "accepted_comment",
+            "bounty_amount",
+            "bounty_expires_at",
+            "bounty_status",
             "is_pinned",
             "is_approved",
             "score",
@@ -74,6 +79,10 @@ class PostSerializer(serializers.ModelSerializer):
             "community",
             "is_pinned",
             "is_approved",
+            "accepted_comment",
+            "bounty_amount",
+            "bounty_expires_at",
+            "bounty_status",
             "created_at",
             "edited_at",
         )
@@ -154,6 +163,24 @@ class PostSerializer(serializers.ModelSerializer):
         if self.instance is not None:
             self._validate_update_fields(attrs)
         kind = attrs.get("kind") or (self.instance.kind if self.instance else Post.Kind.TEXT)
+        is_question = attrs.get(
+            "is_question", self.instance.is_question if self.instance else False
+        )
+        community = self.context.get("community") or (
+            self.instance.community if self.instance else None
+        )
+        if is_question and (kind != Post.Kind.TEXT or (community and not community.qa_enabled)):
+            raise serializers.ValidationError(
+                {"is_question": "Questions require an enabled community and a text post."}
+            )
+        if (
+            self.instance
+            and "is_question" in attrs
+            and attrs["is_question"] != self.instance.is_question
+        ):
+            raise serializers.ValidationError(
+                {"is_question": "Question mode cannot be changed after posting."}
+            )
         if kind == Post.Kind.LINK and not (
             attrs.get("url") or (self.instance and self.instance.url)
         ):

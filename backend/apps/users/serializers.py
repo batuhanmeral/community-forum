@@ -17,6 +17,7 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     total_karma = serializers.SerializerMethodField()
+    bounty_held = serializers.SerializerMethodField()
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     is_following = serializers.SerializerMethodField()
@@ -36,6 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
             "post_karma",
             "comment_karma",
             "total_karma",
+            "bounty_held",
             "followers_count",
             "following_count",
             "is_following",
@@ -87,6 +89,13 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_total_karma(self, obj: User) -> int:
         return obj.post_karma + obj.comment_karma
+    def get_bounty_held(self, obj: User) -> int:
+        held = getattr(obj, "held_bounty_karma", None)
+        if held is not None:
+            return held
+        from apps.posts.qa import bounty_held
+
+        return bounty_held(obj)
 
     def get_followers_count(self, obj: User) -> int:
         count = getattr(obj, "followers_count", None)

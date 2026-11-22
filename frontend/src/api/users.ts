@@ -14,6 +14,8 @@ export interface UserProfile {
   post_karma: number;
   comment_karma: number;
   total_karma: number;
+  /** Karma locked in the user's open bounties (already deducted from comment_karma). */
+  bounty_held?: number;
   followers_count: number;
   following_count: number;
   is_following: boolean;

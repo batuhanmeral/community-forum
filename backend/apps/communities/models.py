@@ -17,6 +17,7 @@ class Community(models.Model):
     avatar = models.ImageField(upload_to="community_avatars/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
+    qa_enabled = models.BooleanField(default=True)
     # AutoMod: newline-separated keywords; matching posts are held for mod approval.
     banned_keywords = models.CharField(max_length=2000, blank=True, default="")
     creator = models.ForeignKey(

@@ -32,6 +32,7 @@ from apps.moderation.services import log_mod_action
 from apps.notifications.services import notify
 from apps.polls.services import poll_prefetches
 
+from . import qa
 from .models import Post, PostRevision
 from .permissions import IsAuthorOrModeratorForDelete, IsCommunityMember
 from .serializers import PostRevisionSerializer, PostSerializer
@@ -97,6 +98,11 @@ def _annotate_hot(qs):
     # Cast: Postgres LOG(10, int) and EXTRACT return numeric; the API wants a float.
     hot = Sign(score) * Log(10, Greatest(Abs(score), 1)) + Extract("created_at", "epoch") / 45000
     return qs.annotate(hot=Cast(hot, FloatField()))
+def _apply_answered_filter(qs, request):
+    answered = request.query_params.get("answered")
+    if answered in ("true", "false"):
+        return qs.filter(is_question=True, accepted_comment__isnull=answered == "false")
+    return qs
 
 
 def _apply_sort(qs, sort: str):
@@ -187,7 +193,7 @@ class CommunityPostListCreateView(WriteThrottleMixin, generics.ListCreateAPIView
         )
         sort = self.request.query_params.get("sort", "new")
         qs = _apply_time_window(qs, self.request.query_params.get("t"))
-        return _apply_sort(qs, sort)
+        return _apply_sort(_apply_answered_filter(qs, self.request), sort)
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -293,27 +299,11 @@ class PostDetailView(WriteThrottleMixin, generics.RetrieveUpdateDestroyAPIView):
 
     def _locked_update(self, serializer):
         instance = serializer.instance
-        # Adopt the locked row (moderation and content) so the save and checks can't use a stale read.
-        fresh = (
-            Post.objects.select_for_update()
-            .filter(pk=instance.pk)
-            .values(
-                "deleted_at",
-                "deleted_by_id",
-                "is_approved",
-                "is_pinned",
-                "title",
-                "body",
-                "body_html",
-                "url",
-                "image",
-                "is_nsfw",
-                "flair_id",
-            )
-            .get()
-        )
-        for field, value in fresh.items():
-            setattr(instance, field, value)
+        # Adopt the whole locked row: the save below writes every column, so any field left stale
+        # (moderation, Q&A accept/bounty, crosspost link) would silently undo a concurrent change.
+        fresh = Post.objects.select_for_update().get(pk=instance.pk)
+        for field in Post._meta.concrete_fields:
+            setattr(instance, field.attname, getattr(fresh, field.attname))
         if is_banned(self.request.user, instance.community):
             raise PermissionDenied("You are banned from this community.")
         if instance.deleted_at is not None:
@@ -509,3 +499,32 @@ class PostApprovalView(APIView):
             )
             notify(post.author, actor=request.user, verb="mod_action", target=post)
         return Response({"is_approved": False, "deleted": True})
+
+
+class PostAcceptView(WriteThrottleMixin, APIView):
+    """POST {comment} accepts an answer; DELETE clears it. Asker or community mod only."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "write"
+
+    def post(self, request, pk):
+        post = _visible_post(request.user, pk)
+        qa.accept_answer(request.user, post.pk, request.data.get("comment"))
+        return Response(_qa_state(post.pk))
+
+    def delete(self, request, pk):
+        post = _visible_post(request.user, pk)
+        qa.unaccept_answer(request.user, post.pk)
+        return Response(_qa_state(post.pk))
+
+
+class PostBountyView(WriteThrottleMixin, APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "write"
+
+    def post(self, request, pk):
+        post = _visible_post(request.user, pk)
+        qa.place_bounty(request.user, post.pk, request.data.get("amount"))
+        return Response(_qa_state(post.pk))
+
+

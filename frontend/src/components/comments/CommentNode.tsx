@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { Comment } from '@/features/comments/types';
 import { createComment, deleteComment, listCommentRevisions, updateComment } from '@/api/comments';
 import { VoteCluster } from '@/components/votes/VoteCluster';
+import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import type { VoteValue } from '@/api/votes';
 import { toggleSave } from '@/api/saves';
@@ -23,6 +24,8 @@ interface CommentNodeProps {
   postId: number;
   depth: number;
   isModerator: boolean;
+  /** Set when the viewer may accept answers on this question (asker or moderator). */
+  onAcceptToggle?: (commentId: number, accepted: boolean) => void;
   onReply: (parentId: number, created: Comment) => void;
   onUpdate: (updated: Comment) => void;
   onDelete: (id: number) => void;
@@ -33,6 +36,7 @@ export function CommentNode({
   postId,
   depth,
   isModerator,
+  onAcceptToggle,
   onReply,
   onUpdate,
   onDelete,
@@ -100,6 +104,7 @@ export function CommentNode({
           )}
           <span className="text-[var(--color-text-dim)]">·</span>
           <span>{timeAgo(node.created_at)}</span>
+          {node.is_accepted && <Badge tone="link">{t('qa.accepted')}</Badge>}
           {node.edited_at &&
             (canViewHistory ? (
               <button type="button" onClick={() => setHistoryOpen(true)} className="italic hover:underline">
@@ -150,6 +155,15 @@ export function CommentNode({
                 >
                   {t('common.reply')}
                 </button>
+                {onAcceptToggle && !node.is_deleted && (
+                  <button
+                    type="button"
+                    onClick={() => onAcceptToggle(node.id, !node.is_accepted)}
+                    className="hover:text-[var(--color-text)]"
+                  >
+                    {node.is_accepted ? t('qa.unaccept') : t('qa.accept')}
+                  </button>
+                )}
                 <CommentSaveLink commentId={node.id} initialSaved={node.is_saved} />
                 {canReport && (
                   <button
@@ -210,6 +224,7 @@ export function CommentNode({
                     postId={postId}
                     depth={depth + 1}
                     isModerator={isModerator}
+                    onAcceptToggle={onAcceptToggle}
                     onReply={onReply}
                     onUpdate={onUpdate}
                     onDelete={onDelete}

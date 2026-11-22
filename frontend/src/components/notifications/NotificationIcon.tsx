@@ -1,4 +1,4 @@
-import { AtSign, Bell, Flag, Mail, MessageSquare, Reply, UserPlus, type LucideIcon } from 'lucide-react';
+import { AtSign, Bell, CheckCircle2, Coins, Flag, Mail, MessageSquare, Reply, UserPlus, type LucideIcon } from 'lucide-react';
 import type { NotificationKind } from '@/features/notifications/format';
 
 const ICONS: Record<NotificationKind, LucideIcon> = {
@@ -8,6 +8,8 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   follow: UserPlus,
   message: Mail,
   mod: Flag,
+  answer: CheckCircle2,
+  bounty: Coins,
   other: Bell,
 };
 

@@ -15,10 +15,15 @@ def _count(field: str):
 
 
 def with_social_annotations(qs, viewer):
-    """Annotate follower/following counts, plus the viewer's follow/block flags when authenticated."""
-    qs = qs.annotate(
-        followers_count=_count("followed"),
-        following_count=_count("follower"),
+    """Annotate follower/following counts, karma held in open bounties, plus the viewer's
+    follow/block flags when authenticated."""
+    from apps.posts.qa import with_bounty_held
+
+    qs = with_bounty_held(
+        qs.annotate(
+            followers_count=_count("followed"),
+            following_count=_count("follower"),
+        )
     )
     if not viewer or not viewer.is_authenticated:
         return qs
