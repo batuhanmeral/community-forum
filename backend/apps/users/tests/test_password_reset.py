@@ -28,7 +28,7 @@ def _link_params(body: str) -> dict:
     return match.groupdict()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestPasswordReset:
     def test_request_sends_email(self, api, alice):
         resp = api.post(RESET, {"email": "a@x.com"}, format="json")

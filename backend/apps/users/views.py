@@ -192,8 +192,7 @@ class PasswordResetRequestView(APIView):
         user = User.objects.filter(
             email__iexact=serializer.validated_data["email"], is_active=True
         ).first()
-        if user:
-            send_password_reset_email(user)
+        send_password_reset_email(user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

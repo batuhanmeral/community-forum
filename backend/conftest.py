@@ -35,3 +35,44 @@ def rows_loaded():
                 post_init.disconnect(receiver, sender=model)
 
     return counter
+
+
+@pytest.fixture
+def task_command():
+    """Run task commands without leaking process-global worker state into tests."""
+    import logging
+    import signal
+
+    from django.core.management import call_command
+
+    def run(name, **options):
+        signals = [signal.SIGINT, signal.SIGTERM]
+        if hasattr(signal, "SIGQUIT"):
+            signals.append(signal.SIGQUIT)
+        handlers = {sig: signal.getsignal(sig) for sig in signals}
+        loggers = [
+            logging.getLogger(logger_name)
+            for logger_name in [
+                "django.tasks",
+                "django_tasks_db",
+                "django_tasks_db.prune_db_task_results",
+            ]
+        ]
+        logger_states = [(logger, logger.level, logger.handlers[:]) for logger in loggers]
+        defaults = {"verbosity": 0}
+        if name == "db_worker":
+            defaults.update(batch=True, startup_delay=False)
+        try:
+            return call_command(name, **{**defaults, **options})
+        finally:
+            for sig, handler in handlers.items():
+                signal.signal(sig, handler)
+            for logger, level, original_handlers in logger_states:
+                for handler in logger.handlers[:]:
+                    if handler not in original_handlers:
+                        logger.removeHandler(handler)
+                        handler.close()
+                logger.handlers = original_handlers
+                logger.setLevel(level)
+
+    return run

@@ -147,6 +147,28 @@ npm run dev
 pip-compile --allow-unsafe --generate-hashes --strip-extras --output-file=requirements.txt requirements.in
 pip-compile --allow-unsafe --generate-hashes --strip-extras --output-file=requirements-dev.txt requirements-dev.in
 ```
+### Background email worker
+
+
+For local development, run a second backend terminal with the same database and email environment:
+
+```bash
+python manage.py db_worker --no-reload
+```
+
+Tests use `config.settings.test` with an immediate backend; queue integration tests exercise PostgreSQL and the real worker. Both existing and unknown password-reset accounts enqueue one task and return the same response even if enqueue fails. Unknown accounts use an inert ID of 0. The worker performs the same recipient lookup, state HMAC, token generation and message construction for these dummy jobs, but sends no mail. This reduces timing differences without claiming constant-time behavior: database row loading, input sizes, scheduling and real SMTP delivery still differ; shared queue latency can expose those differences indirectly. Task arguments contain only a user ID and a keyed state digest. Tokens and links are generated inside the worker; stale jobs are discarded after relevant account changes. SMTP failures are logged without addresses or SMTP details; users can request another email (there is no automatic retry).
+
+`EMAIL_TIMEOUT` defaults to 30 seconds per SMTP socket operation; `EMAIL_USE_TLS` defaults to `True`. Both are shared by the API and worker. The worker finishes its current task on SIGTERM, with a 60-second Compose shutdown grace period; keep SMTP timeouts below that window. The project `db_worker` command writes a PID readiness marker after initialization and a database probe, immediately before polling. Compose `--wait` requires this marker and a live worker PID. The marker is cleared before startup maintenance and on normal/error exits; the restart policy handles process exits. This is a startup/liveness check, not a heartbeat: monitor queue age and failures separately to detect a stuck worker. Console email output contains live links; use SMTP for real delivery.
+
+The production worker entrypoint runs maintenance at startup and hourly (completed jobs: 14 days, failed jobs: 30 days), without another scheduler service. Maintenance failures at startup or during the hourly loop are logged and retried at the next hourly interval without stopping the worker. Retention preserves pending/running jobs. Recovery marks default-backend `RUNNING` jobs older than 60 minutes as `FAILED`; it never retries them because a killed job might already have delivered mail. Worker completion writes lock and recheck the result row, so a late success or failure cannot overwrite recovery; completion signals report the preserved result. Set the manual recovery age above the longest legitimate task duration. Local `db_worker` does not start this maintenance loop. Manual commands (add `--dry-run` to preview retention deletions):
+
+```bash
+python manage.py recover_stale_tasks --older-than-minutes 60
+python manage.py prune_db_task_results --min-age-days 14 --failed-min-age-days 30
+# In the production stack:
+docker compose -f docker-compose.prod.yml exec worker python manage.py prune_db_task_results --min-age-days 14 --failed-min-age-days 30
+```
+
 
 ## Testing
 
