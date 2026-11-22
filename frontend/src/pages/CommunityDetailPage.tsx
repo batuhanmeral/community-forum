@@ -41,6 +41,7 @@ export function CommunityDetailPage() {
   const [postsLoading, setPostsLoading] = useState(true);
   const [sort, setSort] = useState<SortOption>('hot');
   const [timeRange, setTimeRange] = useState<TimeWindow>('all');
+  const [unansweredOnly, setUnansweredOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState<NotifyLevel>('all');
@@ -81,7 +82,7 @@ export function CommunityDetailPage() {
     setNextPage(null);
     setLoadMoreFailed(false);
     setLoadingMore(false);
-    listCommunityPosts(slug, { sort, t: timeRange })
+    listCommunityPosts(slug, { sort, t: timeRange, answered: unansweredOnly ? 'false' : undefined })
       .then((d) => {
         if (cancelled) return;
         setPosts(d.results);
@@ -94,7 +95,7 @@ export function CommunityDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, sort, timeRange]);
+  }, [slug, sort, timeRange, unansweredOnly]);
 
   useEffect(
     () => () => {
@@ -109,7 +110,12 @@ export function CommunityDetailPage() {
     setLoadingMore(true);
     setLoadMoreFailed(false);
     try {
-      const d = await listCommunityPosts(slug, { sort, t: timeRange, page: nextPage });
+      const d = await listCommunityPosts(slug, {
+        sort,
+        t: timeRange,
+        answered: unansweredOnly ? 'false' : undefined,
+        page: nextPage,
+      });
       if (version !== listVersion.current) return;
       setPosts((ps) => [...ps, ...d.results.filter((p) => !ps.some((x) => x.id === p.id))]);
       setNextPage(d.next ? nextPage + 1 : null);
@@ -270,6 +276,21 @@ export function CommunityDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           {isAuthed && <CreatePostLink to={`/c/${community.slug}/submit`} showLabel />}
           <div className="ml-auto flex items-center gap-2 max-sm:gap-1.5">
+            {community.qa_enabled && (
+              <button
+                type="button"
+                aria-pressed={unansweredOnly}
+                onClick={() => setUnansweredOnly((v) => !v)}
+                className={cn(
+                  'rounded-[var(--radius-control)] border px-3 py-1.5 text-[13px] font-medium transition',
+                  unansweredOnly
+                    ? 'border-[var(--color-link)] text-[var(--color-link)]'
+                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]',
+                )}
+              >
+                {t('qa.unanswered')}
+              </button>
+            )}
             <PostSortTabs value={sort} onChange={setSort} />
             <TimeRangeSelect value={timeRange} onChange={setTimeRange} iconOnly />
           </div>

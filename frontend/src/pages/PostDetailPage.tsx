@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  acceptAnswer,
+  clearAcceptedAnswer,
+  deletePost,
+  getPost,
+  listPostRevisions,
+  placeBounty,
 import { deletePost, getPost, listPostRevisions, setPostSticky, updatePost } from '@/api/posts';
+  setPostSticky,
+  updatePost,
+} from '@/api/posts';
 import { getCommunity } from '@/api/communities';
 import type { Post } from '@/features/posts/types';
 import type { CommunityRole } from '@/features/communities/types';
@@ -45,6 +55,9 @@ export function PostDetailPage() {
   const [reporting, setReporting] = useState(false);
   const [stickyBusy, setStickyBusy] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [bountyOpen, setBountyOpen] = useState(false);
+  const [bountyAmount, setBountyAmount] = useState(50);
+  const [qaError, setQaError] = useState<string | null>(null);
   const loadRevisions = useCallback((page: number) => listPostRevisions(Number(id), page), [id]);
 
   useEffect(() => {
@@ -91,6 +104,30 @@ export function PostDetailPage() {
       setPost({ ...post, is_pinned: res.is_pinned });
     } finally {
       setStickyBusy(false);
+  async function handleAcceptToggle(commentId: number, accepted: boolean): Promise<number | null> {
+    if (!post) return null;
+    setQaError(null);
+    try {
+      const state = accepted
+        ? await acceptAnswer(post.id, commentId)
+        : await clearAcceptedAnswer(post.id);
+      setPost({ ...post, ...state });
+      return state.accepted_comment;
+    } catch {
+      setQaError(t('qa.actionFailed'));
+      return post.accepted_comment;
+    }
+  }
+
+  async function handleBounty() {
+    if (!post) return;
+    setQaError(null);
+    try {
+      const state = await placeBounty(post.id, bountyAmount);
+      setPost({ ...post, ...state });
+      setBountyOpen(false);
+    } catch {
+      setQaError(t('qa.bountyFailed'));
     }
   }
 
@@ -181,6 +218,14 @@ export function PostDetailPage() {
           )}
           {post.is_pinned && <Badge tone="link">{t('post.pinned')}</Badge>}
           {post.is_nsfw && <Badge tone="danger">{t('post.nsfw')}</Badge>}
+          {post.is_question && <Badge tone="link">{t('qa.question')}</Badge>}
+          {post.bounty_status === 'open' && (
+            <Badge tone="link">{t('qa.bounty', { amount: post.bounty_amount })}</Badge>
+          )}
+          {post.bounty_status === 'paid' && (
+            <Badge tone="link">{t('qa.bountyPaid', { amount: post.bounty_amount })}</Badge>
+          )}
+          {post.bounty_status === 'refunded' && <Badge tone="link">{t('qa.bountyRefunded')}</Badge>}
         </div>
 
         {editing ? (
@@ -255,6 +300,11 @@ export function PostDetailPage() {
                 onChange={(saved) => setPost({ ...post, is_saved: saved })}
               />
               <div className="ml-auto flex flex-wrap items-center gap-2">
+                {isAuthor && post.is_question && !post.bounty_status && !post.accepted_comment && (
+                  <Button variant="secondary" size="sm" onClick={() => setBountyOpen(true)}>
+                    {t('qa.offerBounty')}
+                  </Button>
+                )}
                 {isMod && (
                   <Button
                     variant="secondary"
@@ -291,8 +341,42 @@ export function PostDetailPage() {
         postId={post.id}
         canComment={!post.is_deleted && post.is_approved}
         isModerator={isMod}
+        acceptedId={post.accepted_comment}
+        onAcceptToggle={post.is_question && (isAuthor || isMod) ? handleAcceptToggle : undefined}
       />
+      {qaError && (
+        <p role="alert" className="text-sm text-[var(--color-danger)]">
+          {qaError}
+        </p>
+      )}
 
+      <Modal
+        open={bountyOpen}
+        onClose={() => setBountyOpen(false)}
+        title={t('qa.bountyTitle')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setBountyOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleBounty}>{t('qa.bountyConfirm')}</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-[var(--color-text-muted)]">{t('qa.bountyBody')}</p>
+        <label className="mt-3 flex flex-col gap-1 text-sm">
+          {t('qa.bountyAmount')}
+          <input
+            type="number"
+            min={50}
+            max={500}
+            step={50}
+            value={bountyAmount}
+            onChange={(e) => setBountyAmount(Number(e.target.value))}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2"
+          />
+        </label>
+      </Modal>
       <Modal
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}

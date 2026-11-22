@@ -51,6 +51,7 @@ The project is split into two independent applications: a Django REST Framework 
 - Account settings: theme, interface language, NSFW preference, password change
 - Data export: download everything you wrote or chose (profile, posts, comments, sent messages, votes, saves, follows, blocks, memberships) as JSON
 - Account deletion: personal data is erased while content stays attributed to a `deleted-<id>` placeholder; communities you created are handed to their highest-ranked active member, and every outstanding token is revoked
+- Question & answer mode: text posts can be asked as questions (communities can switch this off with `qa_enabled`). The asker or a moderator accepts one answer, which is pinned first and earns its author +15 karma (granted once per accepted answer, reversed if the acceptance is removed). Askers can reserve a 50-500 karma bounty (steps of 50, never below zero balance): it goes to the accepted answer, or is refunded after 7 days or when the question is removed (`manage.py expire_bounties`, run by the worker's maintenance loop). Every karma movement is a `KarmaAdjustment`, so `recalculate_karma` stays consistent. Feeds accept `?answered=false|true`, and the community page has an "Unanswered" toggle
 
 **Interface**
 - Light, dark, and system themes; Inter and JetBrains Mono are self-hosted, so the app loads no third-party resources

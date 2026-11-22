@@ -15,6 +15,10 @@ interface CommentSectionProps {
   postId: number;
   canComment?: boolean;
   isModerator?: boolean;
+  /** Question posts: accept/clear an answer. Return the new accepted id, or null. */
+  onAcceptToggle?: (commentId: number, accepted: boolean) => Promise<number | null>;
+  /** Changes when the accepted answer changes so the list reloads (pinned first). */
+  acceptedId?: number | null;
 }
 
 const SORTS = ['best', 'top', 'new', 'old', 'controversial'] as const satisfies readonly CommentSort[];
@@ -53,7 +57,7 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
     return () => {
       cancelled = true;
     };
-  }, [postId, sort]);
+  }, [postId, sort, acceptedId]);
 
   const location = useLocation();
 
@@ -167,6 +171,7 @@ export function CommentSection({ postId, canComment = true, isModerator = false 
             postId={postId}
             depth={0}
             isModerator={isModerator}
+            onAcceptToggle={onAcceptToggle && ((id, accepted) => void onAcceptToggle(id, accepted))}
             onReply={handleReply}
             onUpdate={handleUpdate}
             onDelete={handleDelete}

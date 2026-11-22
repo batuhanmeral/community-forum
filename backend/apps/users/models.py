@@ -48,3 +48,38 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.username
+
+
+class KarmaAdjustment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="karma_adjustments")
+    amount = models.IntegerField()
+    reason = models.CharField(max_length=32)
+    post = models.ForeignKey(
+        "posts.Post", null=True, on_delete=models.SET_NULL, related_name="karma_adjustments"
+    )
+    comment = models.ForeignKey(
+        "comments.Comment", null=True, on_delete=models.SET_NULL, related_name="karma_adjustments"
+    )
+    created = models.DateTimeField(auto_now_add=True)
+    active = models.BooleanField(default=False)
+    reverses = models.OneToOneField(
+        "self", null=True, on_delete=models.SET_NULL, related_name="reversal"
+    )
+
+    class Meta:
+        indexes = [models.Index(fields=("user", "created"), name="qa_adjustment_user_idx")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("comment", "reason"),
+                condition=models.Q(active=True),
+                name="qa_one_active_comment_grant",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(active=False)
+                | models.Q(amount=15, reason="answer_accepted", comment__isnull=False),
+                name="qa_valid_active_grant",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.reason} {self.amount:+d} for user {self.user_id}"

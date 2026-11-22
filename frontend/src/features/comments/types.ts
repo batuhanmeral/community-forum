@@ -8,6 +8,7 @@ export interface Comment {
   body: string;
   body_html: string;
   is_deleted: boolean;
+  is_accepted: boolean;
   score: number;
   user_vote: number | null;
   is_saved: boolean;

@@ -8,6 +8,8 @@ fi
 
 maintenance() {
     python manage.py recover_stale_tasks &&
+        python manage.py prune_db_task_results --min-age-days 14 --failed-min-age-days 30 &&
+        python manage.py expire_bounties
 }
 
 # Migrations belong to the API container, which is healthy before we start.

@@ -184,6 +184,7 @@ describe('UserProfilePage', () => {
           body: '[deleted]',
           body_html: '<p>[deleted]</p>',
           is_deleted: true,
+          is_accepted: false,
           score: 0,
           user_vote: null,
           is_saved: false,
@@ -207,5 +208,50 @@ describe('UserProfilePage', () => {
     api.getUserProfile.mockImplementation(getUserProfile);
     renderProfile(null, username);
     await waitFor(() => expect(document.title).toBe(expected));
+  });
+});
+
+describe('karma stats', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.clearAllMocks());
+
+  function renderWith(karma: { post_karma: number; comment_karma: number; bounty_held: number }) {
+    api.getUserProfile.mockResolvedValue({
+      ...me,
+      ...karma,
+      date_joined: '2026-01-01T00:00:00Z',
+      total_karma: karma.post_karma + karma.comment_karma,
+      followers_count: 0,
+      following_count: 0,
+      is_following: false,
+      is_blocked: false,
+    });
+    api.getUserPosts.mockResolvedValue(empty);
+    api.getUserComments.mockResolvedValue(empty);
+    const store = configureStore({ reducer: { auth: authReducer } });
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/u/alice']}>
+          <Routes>
+            <Route path="/u/:username" element={<UserProfilePage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>,
+    );
+  }
+
+  it('shows a bounty hold separately instead of as negative comment karma', async () => {
+    renderWith({ post_karma: 150, comment_karma: -50, bounty_held: 50 });
+    const label = await screen.findByText('Comment karma');
+    expect(label.previousElementSibling?.textContent).toBe('0');
+    expect(screen.getByText('50 held in bounties')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+  });
+
+  it('still shows genuinely negative comment karma', async () => {
+    renderWith({ post_karma: 10, comment_karma: -20, bounty_held: 0 });
+    const label = await screen.findByText('Comment karma');
+    expect(label.previousElementSibling?.textContent).toBe('-20');
+    expect(screen.queryByText(/held in bounties/)).toBeNull();
   });
 });

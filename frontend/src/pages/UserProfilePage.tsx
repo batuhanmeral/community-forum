@@ -187,7 +187,17 @@ export function UserProfilePage() {
         <div className="mt-5 grid grid-cols-3 gap-3 border-t border-[var(--color-border)] pt-4">
           <KarmaStat label={t('profile.totalKarma')} value={profile.total_karma} accent />
           <KarmaStat label={t('profile.postKarma')} value={profile.post_karma} />
-          <KarmaStat label={t('profile.commentKarma')} value={profile.comment_karma} />
+          {/* A held bounty is charged to comment karma: show the earned amount and the hold
+              separately, so post + comment - held = total and real negative karma still shows. */}
+          <KarmaStat
+            label={t('profile.commentKarma')}
+            value={profile.comment_karma + (profile.bounty_held ?? 0)}
+            note={
+              profile.bounty_held
+                ? t('profile.bountyHeld', { amount: profile.bounty_held.toLocaleString() })
+                : undefined
+            }
+          />
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -495,9 +505,10 @@ interface KarmaStatProps {
   label: string;
   value: number;
   accent?: boolean;
+  note?: string;
 }
 
-function KarmaStat({ label, value, accent }: KarmaStatProps) {
+function KarmaStat({ label, value, accent, note }: KarmaStatProps) {
   return (
     <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
       <div
@@ -512,6 +523,7 @@ function KarmaStat({ label, value, accent }: KarmaStatProps) {
       <div className="mt-0.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--color-text-dim)]">
         {label}
       </div>
+      {note && <div className="mt-0.5 text-[10.5px] text-[var(--color-text-muted)]">{note}</div>}
     </div>
   );
 }

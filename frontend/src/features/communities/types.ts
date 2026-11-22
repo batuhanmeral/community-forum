@@ -9,6 +9,7 @@ export interface Community {
   avatar: string | null;
   is_nsfw: boolean;
   requires_approval: boolean;
+  qa_enabled: boolean;
   creator: number;
   created_at: string;
   member_count: number;

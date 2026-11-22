@@ -29,6 +29,7 @@ const community: Community = {
   avatar: null,
   is_nsfw: false,
   requires_approval: false,
+  qa_enabled: true,
   creator: 9,
   created_at: '2026-10-01T00:00:00Z',
   member_count: 1,

@@ -30,6 +30,17 @@ class Post(RenderedBodyModel):
     title = models.CharField(max_length=300)
     body = models.TextField(blank=True, default="")
     url = models.URLField(blank=True, default="")
+    is_question = models.BooleanField(default=False)
+    accepted_comment = models.ForeignKey(
+        "comments.Comment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="accepted_for",
+    )
+    bounty_amount = models.PositiveSmallIntegerField(default=0)
+    bounty_expires_at = models.DateTimeField(null=True, blank=True)
+    bounty_status = models.CharField(max_length=8, default="", blank=True)
     image = models.ImageField(upload_to="posts/", blank=True, null=True)
     is_nsfw = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
@@ -57,6 +68,9 @@ class Post(RenderedBodyModel):
         ordering = ("-is_pinned", "-created_at")
         indexes = [
             models.Index(fields=("community", "-created_at")),
+            models.Index(
+                fields=("bounty_status", "bounty_expires_at"), name="qa_bounty_expiry_idx"
+            ),
             GinIndex(fields=("search_vector",), name="posts_post_search_gin"),
         ]
 

@@ -6,6 +6,7 @@ from django.db.models import OuterRef, Subquery, Sum
 
 from apps.comments.models import Comment
 from apps.posts.models import Post
+from apps.users.models import KarmaAdjustment
 from apps.votes.models import Vote
 
 User = get_user_model()
@@ -22,10 +23,15 @@ class Command(BaseCommand):
         post_totals = self._totals_by_author(Post, post_ct)
         comment_totals = self._totals_by_author(Comment, comment_ct)
 
+        adjustments = dict(
+            KarmaAdjustment.objects.values("user_id")
+            .annotate(total=Sum("amount"))
+            .values_list("user_id", "total")
+        )
         updated = 0
         for user in User.objects.all():
             new_post = post_totals.get(user.pk, 0)
-            new_comment = comment_totals.get(user.pk, 0)
+            new_comment = comment_totals.get(user.pk, 0) + adjustments.get(user.pk, 0)
             if user.post_karma != new_post or user.comment_karma != new_comment:
                 user.post_karma = new_post
                 user.comment_karma = new_comment

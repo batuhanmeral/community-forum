@@ -77,6 +77,9 @@ export function PostCreatePage() {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isNsfw, setIsNsfw] = useState(false);
+  const [isQuestion, setIsQuestion] = useState(false);
+  // Communities that switched Q&A off hide the option; the server enforces it too.
+  const qaAllowed = communities.find((c) => c.slug === communitySlug)?.qa_enabled ?? true;
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const [pollClosesAt, setPollClosesAt] = useState(defaultPollClose());
   const [loading, setLoading] = useState(false);
@@ -148,6 +151,7 @@ export function PostCreatePage() {
         url: kind === 'link' ? url.trim() : undefined,
         image: kind === 'image' ? image : null,
         is_nsfw: isNsfw,
+        is_question: kind === 'text' && qaAllowed && isQuestion,
         flair: flairId === '' ? null : flairId,
         poll_options: kind === 'poll' ? pollOptions : undefined,
         poll_closes_at: kind === 'poll' ? new Date(pollClosesAt).toISOString() : undefined,
@@ -389,6 +393,21 @@ export function PostCreatePage() {
           <label className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
             <input
               type="checkbox"
+          {kind === 'text' && qaAllowed && (
+            <label className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={isQuestion}
+                onChange={(e) => setIsQuestion(e.target.checked)}
+                className="h-4 w-4 accent-[var(--color-link)]"
+              />
+              <span className="text-sm">
+                <span className="font-medium">{t('qa.askAsQuestion')}</span>
+                <span className="ml-2 text-[var(--color-text-muted)]">{t('qa.askAsQuestionHint')}</span>
+              </span>
+            </label>
+          )}
+
               checked={isNsfw}
               onChange={(e) => setIsNsfw(e.target.checked)}
               className="h-4 w-4 accent-[var(--color-link)]"

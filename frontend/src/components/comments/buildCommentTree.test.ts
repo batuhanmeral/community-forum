@@ -13,6 +13,7 @@ function c(id: number, parent: number | null): Comment {
     body: `comment ${id}`,
     body_html: `<p>comment ${id}</p>`,
     is_deleted: false,
+    is_accepted: false,
     score: 0,
     user_vote: null,
     is_saved: false,

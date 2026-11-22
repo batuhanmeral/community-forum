@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { Notification } from './types';
 
-export type NotificationKind = 'comment' | 'reply' | 'mention' | 'follow' | 'message' | 'mod' | 'other';
+export type NotificationKind = 'comment' | 'reply' | 'mention' | 'follow' | 'message' | 'mod' | 'answer' | 'bounty' | 'other';
 
 export interface FormattedNotification {
   kind: NotificationKind;
@@ -32,6 +32,12 @@ export function formatNotification(n: Notification, t: TFunction): FormattedNoti
       return { kind: 'message', text: t('notifications.message', { actor }), to };
     case 'mod_action':
       return { kind: 'mod', text: t('notifications.mod', { target: t(targetKey(n.target_type)) }), to };
+    case 'answer_accepted':
+      return { kind: 'answer', text: t('notifications.answerAccepted'), to };
+    case 'bounty_awarded':
+      return { kind: 'bounty', text: t('notifications.bountyAwarded'), to };
+    case 'bounty_refunded':
+      return { kind: 'bounty', text: t('notifications.bountyRefunded'), to };
     default:
       return { kind: 'other', text: t('notifications.other', { actor }), to };
   }

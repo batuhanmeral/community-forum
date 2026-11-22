@@ -100,3 +100,15 @@ describe('formatNotification', () => {
     );
   });
 });
+
+describe('formatNotification Q&A verbs', () => {
+  it.each([
+    ['answer_accepted', 'answer', 'Your answer was accepted (+15 karma)'],
+    ['bounty_awarded', 'bounty', 'You were awarded a bounty for your answer'],
+    ['bounty_refunded', 'bounty', 'Your bounty was refunded'],
+  ] as const)('formats %s in English and Turkish', (verb, kind, text) => {
+    const n = make({ verb, actor: null, actor_username: null });
+    expect(formatNotification(n)).toMatchObject({ kind, text, to: n.link });
+    expect(formatNotification(n, tr).text).not.toBe(text);
+  });
+});

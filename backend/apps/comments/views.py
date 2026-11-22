@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Case, Count, F, IntegerField, Q, Sum, Value, When
 from django.db.models.functions import Abs, Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -99,8 +99,7 @@ class PostCommentListCreateView(WriteThrottleMixin, generics.ListCreateAPIView):
         qs = _base_comment_qs(
             _annotate_score(Comment.objects.filter(post=self.get_post())), self.request.user
         )
-        sort = self.request.query_params.get("sort", "best")
-        return _apply_comment_sort(qs, sort)
+        return qs.annotate(_accepted=accepted).order_by("-_accepted", *qs.query.order_by)
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
