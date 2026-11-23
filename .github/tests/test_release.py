@@ -135,6 +135,30 @@ class ReleaseTests(unittest.TestCase):
         )
         self.assertIn("fetch-depth: 0", source)
 
+    def test_job_env_uses_only_allowed_contexts(self):
+        # jobs.<id>.env cannot read runner/job/steps/env; GitHub then rejects the
+        # whole workflow and records a failed, job-less run on every push.
+        source = WORKFLOW.read_text()
+        job_env = source.split("\n    env:\n", 1)[1].split("\n    steps:\n", 1)[0]
+        self.assertNotRegex(job_env, r"\$\{\{[^}]*\b(runner|job|steps|env)\.")
+
+    def test_docker_config_is_private_to_the_run(self):
+        source = WORKFLOW.read_text()
+        steps = source.split("\n    steps:\n", 1)[1]
+        items = [line for line in steps.splitlines() if line.startswith("      - ")]
+        first_step = items[0]
+        self.assertEqual(
+            first_step,
+            "      - name: Docker config directory",
+            "DOCKER_CONFIG must be set before any step that talks to a registry",
+        )
+        result = self.run_steps("Docker config directory")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            (self.root / "env").read_text(),
+            f"DOCKER_CONFIG={self.root}/release-docker\n",
+        )
+
     def test_build_labels_source_and_revision(self):
         result = self.run_steps("Build image without cache")
         self.assertEqual(result.returncode, 0, result.stderr)
