@@ -37,8 +37,12 @@ jobs:
         shell: bash
     env:
       IMAGE_COMPONENT: ${{ matrix.component }}
-      DOCKER_CONFIG: ${{ runner.temp }}/release-docker
     steps:
+      # The runner context is not available in jobs.<id>.env, so the private
+      # Docker config path is exported for every later step here instead.
+      - name: Docker config directory
+        run: |
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/release-docker" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history so the release commit can be checked against origin/main.
